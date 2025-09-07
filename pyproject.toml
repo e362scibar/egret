@@ -1,0 +1,11 @@
+[project]
+name = "egret"
+dynamic = ["version"]
+description = "A general-purpose beam dynamics simulation code. (Egret: Engine for General Research in Energetic-beam Tracking.)"
+authors = [{name="Hirokazu Maesaka", email="maesaka@spring8.or.jp"}]
+license = "GPL-3.0-or-later"
+license-files = ["LICEN[CS]E*"]
+readme = "README.md"
+
+[tool.setuptools.dynamic]
+version = { attr = "egret.version.__version__" }
