@@ -26,3 +26,8 @@ class Drift(Element):
     """
     def __init__(self, name, length, dx=0., dy=0., ds=0., tilt=0., info=''):
         super().__init__(name, length, dx, dy, ds, tilt, info)
+        self.update()
+
+    def update(self):
+        self.tmat[0,1] = self.length
+        self.tmat[2,3] = self.length

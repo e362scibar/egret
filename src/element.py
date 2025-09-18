@@ -20,6 +20,8 @@
 
 from .object import Object
 
+import numpy as np
+
 class Element(Object):
     """
     Base class of an accelerator element.
@@ -32,3 +34,5 @@ class Element(Object):
         self.ds = ds
         self.tilt = tilt
         self.info = info
+        self.tmat = np.eye(6)
+        self.disp = np.zeros(6)
