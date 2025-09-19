@@ -20,6 +20,8 @@
 
 from .element import Element
 
+import numpy as np
+
 class Dipole(Element):
     """
     Dipole magnet.
@@ -29,7 +31,15 @@ class Dipole(Element):
         self.angle = angle
         self.radius = radius
         self.k1 = k1
-        self.e1 = e1
-        self.e2 = e2
-        self.h1 = h1
-        self.h2 = h2
+        self.e1 = e1  # edge angle at the entrance
+        self.e2 = e2  # edge angle at the exit
+        self.h1 = h1  # ??
+        self.h2 = h2  # ??
+        self.update()
+
+    def update(self):
+        phi = self.angle
+        rho = self.radius
+        self.tmat[:2,:2] = np.array([[np.cos(phi), rho*np.sin(phi)], [-np.sin(phi)/rho, np.cos(phi)]])
+        self.tmat[3,4] = rho*phi
+        self.disp[:2] = np.array([rho*(1.-np.cos(phi)), np.sin(phi)])
