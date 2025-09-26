@@ -34,6 +34,10 @@ class Quadrupole(Element):
     def update(self):
         k = np.abs(self.k1)
         psi = np.sqrt(k) * self.length
+        if k == 0.: # drift
+            self.tmat[0,1] = self.length
+            self.tmat[2,3] = self.length
+            return
         mf = np.array([[np.cos(psi), np.sin(psi)/np.sqrt(k)],
                        [-np.sqrt(k)*np.sin(psi), np.cos(psi)]])
         md = np.array([[np.cosh(psi), np.sinh(psi)/np.sqrt(k)],

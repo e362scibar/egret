@@ -27,11 +27,11 @@ class Ring(Element):
     """
     Ring accelerator.
     """
-    def __init__(self, name, elements, dx=0., dy=0., ds=0., tilt=0., info=''):
+    def __init__(self, name, elements, info=''):
         length = 0.
         for e in elements:
             length += e.length
-        super().__init__(name, length, dx, dy, ds, tilt, info)
+        super().__init__(name, length, 0., 0., 0., 0., info)
         self.elements = copy.deepcopy(elements)
         self.update()
 
