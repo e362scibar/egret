@@ -1,4 +1,4 @@
-# __init__.py
+# lattice.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -18,9 +18,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .version import __version__
-
-from .object import Object
-
 from .element import Element
-from .drift import Drift
+
+import copy
+import numpy as np
+
+class Lattice(Element):
+    """
+    Lattice element.
+    """
+    def __init__(self, name, elements, dx=0., dy=0., ds=0., tilt=0., info=''):
+        length = 0.
+        for e in elements:
+            length += e.length
+        super().__init__(name, length, dx, dy, ds, tilt, info)
+        self.elements = copy.deepcopy(elements)
+        self.update()
+
+    def update(self):
+        for e in self.elements:
+            self.tmat = np.dot(e.tmat, self.tmat)
+            self.disp = np.dot(e.tmat, self.disp.T).T + e.disp

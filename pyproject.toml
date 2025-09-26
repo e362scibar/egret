@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "numpy"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "egret"
 dynamic = ["version"]
@@ -6,6 +10,7 @@ authors = [{name="Hirokazu Maesaka", email="maesaka@spring8.or.jp"}]
 license = "GPL-3.0-or-later"
 license-files = ["LICEN[CS]E*"]
 readme = "README.md"
+dependencies = ["numpy"]
 
 [tool.setuptools.dynamic]
 version = { attr = "egret.version.__version__" }

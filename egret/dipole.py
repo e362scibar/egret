@@ -26,10 +26,10 @@ class Dipole(Element):
     """
     Dipole magnet.
     """
-    def __init__(self, name, length, angle, radius, k1=0., e1=0., e2=0., h1=0., h2=0., dx=0., dy=0., ds=0., tilt=0., info=''):
+    def __init__(self, name, length, angle, k1=0., e1=0., e2=0., h1=0., h2=0., dx=0., dy=0., ds=0., tilt=0., info=''):
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.angle = angle
-        self.radius = radius
+        self.radius = length / angle
         self.k1 = k1
         self.e1 = e1  # edge angle at the entrance
         self.e2 = e2  # edge angle at the exit
