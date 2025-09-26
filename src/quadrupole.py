@@ -20,6 +20,8 @@
 
 from .element import Element
 
+import numpy as np
+
 class Quadrupole(Element):
     """
     Quadrupole magnet.
@@ -27,3 +29,18 @@ class Quadrupole(Element):
     def __init__(self, name, length, k1, dx=0., dy=0., ds=0., tilt=0., info=''):
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k1 = k1
+        self.update()
+
+    def update(self):
+        k = np.abs(self.k1)
+        psi = np.sqrt(k) * self.length
+        mf = np.array([[np.cos(psi), np.sin(psi)/np.sqrt(k)],
+                       [-np.sqrt(k)*np.sin(psi), np.cos(psi)]])
+        md = np.array([[np.cosh(psi), np.sinh(psi)/np.sqrt(k)],
+                       [np.sqrt(k)*np.sinh(psi), np.cosh(psi)]])
+        if self.k1 < 0.: # defocusing quadrupole
+            self.tmat[:2,:2] = md
+            self.tmat[2:4,2:4] = mf
+        else: # focusing quadrupole
+            self.tmat[:2,:2] = mf
+            self.tmat[2:4,2:4] = md

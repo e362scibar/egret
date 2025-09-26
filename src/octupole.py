@@ -27,3 +27,9 @@ class Octupole(Element):
     def __init__(self, name, length, k3, dx=0., dy=0., ds=0., tilt=0., info=''):
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k3 = k3
+        self.update()
+    
+    def update(self):
+        # temporarilly set to drift
+        self.tmat[0,1] = self.length
+        self.tmat[2,3] = self.length
