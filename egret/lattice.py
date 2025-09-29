@@ -32,6 +32,7 @@ class Lattice(Element):
         for e in elements:
             length += e.length
         super().__init__(name, length, dx, dy, ds, tilt, info)
+        self.angle = 0.
         self.elements = copy.deepcopy(elements)
         self.update()
 
@@ -39,3 +40,7 @@ class Lattice(Element):
         for e in self.elements:
             self.tmat = np.dot(e.tmat, self.tmat)
             self.disp = np.dot(e.tmat, self.disp.T).T + e.disp
+            try:
+                self.angle += e.angle
+            except AttributeError:
+                pass
