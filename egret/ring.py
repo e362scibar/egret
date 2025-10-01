@@ -19,6 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .element import Element
+from .betafunc import BetaFunc
 
 import copy
 import numpy as np
@@ -33,6 +34,9 @@ class Ring(Element):
             length += e.length
         super().__init__(name, length, 0., 0., 0., 0., info)
         self.angle = 0.
+        self.disp0 = np.zeros(6)  # initial dispersion
+        self.tune = np.zeros(2)
+        self.beta0 = BetaFunc()  # initial beta function
         self.elements = copy.deepcopy(elements)
         self.update()
 
@@ -44,3 +48,24 @@ class Ring(Element):
                 self.angle += e.angle
             except AttributeError:
                 pass
+        # initial dispersion
+        self.disp0[0:4] = np.linalg.inv(np.eye(4) - self.tmat[0:4,0:4]) @ self.disp[0:4]
+        # initial beta function and tune
+        cospsix = 0.5 * (np.trace(self.tmat[0:2,0:2]))
+        cospsiy = 0.5 * (np.trace(self.tmat[2:4,2:4]))
+        sin2psix = np.linalg.det(self.tmat[0:2,0:2] - np.eye(2) * cospsix)
+        sin2psiy = np.linalg.det(self.tmat[2:4,2:4] - np.eye(2) * cospsiy)
+        sinpsix = np.sign(self.tmat[0,1]-self.tmat[1,0]) * np.sqrt(abs(sin2psix))
+        sinpsiy = np.sign(self.tmat[2,3]-self.tmat[3,2]) * np.sqrt(abs(sin2psiy))
+        psix = np.arctan2(sinpsix, cospsix)
+        psiy = np.arctan2(sinpsiy, cospsiy)
+        betax = self.tmat[0,1] / sinpsix
+        betay = self.tmat[2,3] / sinpsiy
+        alphax = (self.tmat[0,0]-self.tmat[1,1]) / (2.*sinpsix)
+        alphay = (self.tmat[2,2]-self.tmat[3,3]) / (2.*sinpsiy)
+        self.beta0 = BetaFunc(betax, alphax, betay, alphay)
+        self.tune[0] = psix / (2.*np.pi)
+        self.tune[1] = psiy / (2.*np.pi)
+        for i in range(2):
+            if self.tune[i] < 0.:
+                self.tune[i] += 1.

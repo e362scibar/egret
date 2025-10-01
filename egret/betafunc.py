@@ -1,4 +1,4 @@
-# __init__.py
+# betafunc.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -18,19 +18,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .version import __version__
-
 from .object import Object
 
-from .element import Element
-from .drift import Drift
-from .dipole import Dipole
-from .quadrupole import Quadrupole
-from .sextupole import Sextupole
-from .octupole import Octupole
+import numpy as np
 
-from .betafunc import BetaFunc
-
-from .lattice import Lattice
-
-from .ring import Ring
+class BetaFunc:
+    """
+    Beta function object.
+    """
+    def __init__(self, bx=1., ax=0., by=1., ay=0.):
+        self.bx = bx
+        self.ax = ax
+        self.by = by
+        self.ay = ay
+        self.gx = (1. + ax**2) / bx
+        self.gy = (1. + ay**2) / by
