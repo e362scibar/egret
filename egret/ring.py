@@ -23,6 +23,8 @@ from .betafunc import BetaFunc
 
 import copy
 import numpy as np
+import numpy.typing as npt
+from typing import Tuple
 
 class Ring(Element):
     """
@@ -81,3 +83,31 @@ class Ring(Element):
         if endpoint:
             beta.append(b0)
         return beta
+
+    def dispersion(self, ds:float=0.01, endpoint:bool=True)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
+        s0 = 0.
+        s = np.array([0.])
+        disp = np.zeros((6,1))
+        for elem in self.elements:
+            if elem.length == 0.:
+                continue
+            _, ss = elem.tmatarray(ds, False)
+            disp = np.hstack((disp, elem.dispersion(ds, False)))
+            s = np.hstack((s, ss+s0))
+            s0 += elem.length
+        return disp, s
+
+    def etafunc(self, ds:float=0.01, endpoint:bool=True)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
+        s0 = 0.
+        s = np.array([0.])
+        eta0 = copy.copy(self.disp0)
+        eta = np.array([copy.copy(self.disp0)]).T
+        for elem in self.elements:
+            if elem.length == 0.:
+                continue
+            etaelem, ss = elem.etafunc(eta0, ds, False)
+            eta = np.hstack((eta, etaelem))
+            s = np.hstack((s, ss+s0))
+            s0 += elem.length
+            eta0 = np.matmul(elem.tmat, eta0) + elem.disp
+        return eta, s

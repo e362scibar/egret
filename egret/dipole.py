@@ -92,3 +92,21 @@ class Dipole(Element):
                 tmat[:,2:4,2:4] = np.moveaxis(np.array([[np.cosh(psiy), np.sinh(psiy)/np.sqrt(ky)],
                                                         [np.sqrt(ky)*np.sinh(psiy), np.cosh(psiy)]]), 2, 0)
         return tmat, rho * phi
+
+    def dispersion(self, ds:float=0.01, endpoint:bool=False)->npt.NDArray[np.floating]:
+        phi = np.linspace(0., self.angle, int(self.length//ds)+int(endpoint)+1, endpoint)
+        rho = self.radius
+        s = rho * phi
+        disp = np.zeros((6, len(s)))
+        if self.k1 == 0.: # simple dipole
+            disp[0:2, :] = np.array([rho*(1.-np.cos(phi)), np.sin(phi)])
+        else:
+            kx = np.abs(self.k1 + 1./rho**2)
+            psix = np.sqrt(kx) * rho * phi
+            ky = np.abs(self.k1)
+            psiy = np.sqrt(ky) * rho * phi
+            if self.k1 < 0.: # defocusing dipole
+                disp[0:2, :] = np.array([(np.cosh(psix)-1.)/(kx*rho), np.sinh(psix)/(np.sqrt(kx)*rho)])
+            else: # focusing dipole
+                disp[0:2, :] = np.array([(1.-np.cos(psix))/(kx*rho), np.sin(psix)/(np.sqrt(kx)*rho)])
+        return disp, s

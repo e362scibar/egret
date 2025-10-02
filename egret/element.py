@@ -23,6 +23,7 @@ from .betafunc import BetaFunc
 
 import numpy as np
 import numpy.typing as npt
+from typing import Tuple
 
 class Element(Object):
     """
@@ -42,8 +43,19 @@ class Element(Object):
 
     def tmatarray(self, ds:float=0.01, endpoint:bool=False)->npt.NDArray[np.floating]:
         s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1)
+        print('Element.tmatarray()', self.name, self.length, len(s))
         return np.repeat(self.tmat[np.newaxis,:,:], len(s), axis=0), s
 
     def betafunc(self, b0:BetaFunc, ds:float=0.01, endpoint:bool=False)->BetaFunc:
         tmat, s = self.tmatarray(ds, endpoint)
         return b0.transfer(tmat, s)
+
+    def dispersion(self, ds:float=0.01, endpoint:bool=False)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
+        n = int(self.length//ds)+int(endpoint)+1
+        s = np.linspace(0., self.length, n, endpoint)
+        return np.zeros((6, n)), s
+
+    def etafunc(self, eta0:npt.NDArray[np.floating], ds:float=0.01, endpoint:bool=False)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
+        disp, s = self.dispersion(ds, endpoint)
+        tmat, _ = self.tmatarray(ds, endpoint)
+        return np.matmul(tmat, eta0).T + disp, s
