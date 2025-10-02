@@ -58,16 +58,16 @@ class Quadrupole(Element):
         if k == 0.: # drift
             tmat[:,0,1] = s
             tmat[:,2,3] = s
-            return tmat
+            return tmat, s
         psi = np.sqrt(k) * s
         mf = np.moveaxis(np.array([[np.cos(psi), np.sin(psi)/np.sqrt(k)],
-                                   [-np.sqrt(k)*np.sin(psi), np.cos(psi)]]), -1, 0)
+                                   [-np.sqrt(k)*np.sin(psi), np.cos(psi)]]), 2, 0)
         md = np.moveaxis(np.array([[np.cosh(psi), np.sinh(psi)/np.sqrt(k)],
-                                   [np.sqrt(k)*np.sinh(psi), np.cosh(psi)]]), -1, 0)
+                                   [np.sqrt(k)*np.sinh(psi), np.cosh(psi)]]), 2, 0)
         if self.k1 < 0.: # defocusing quadrupole
             tmat[:,0:2,0:2] = md
             tmat[:,2:4,2:4] = mf
         else: # focusing quadrupole
             tmat[:,0:2,0:2] = mf
             tmat[:,2:4,2:4] = md
-        return tmat
+        return tmat, s

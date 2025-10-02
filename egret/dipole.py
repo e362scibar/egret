@@ -74,7 +74,7 @@ class Dipole(Element):
         tmat = np.repeat(np.eye(6)[np.newaxis,:,:], len(phi), axis=0)
         if self.k1 == 0.: # simple dipole
             tmat[:,0:2,0:2] = np.moveaxis(np.array([[np.cos(phi), rho*np.sin(phi)],
-                                                    [-np.sin(phi)/rho, np.cos(phi)]]), -1, 0)
+                                                    [-np.sin(phi)/rho, np.cos(phi)]]), 2, 0)
             tmat[:,2,3] = rho*phi
         else:
             kx = np.abs(self.k1 + 1./rho**2)
@@ -83,12 +83,12 @@ class Dipole(Element):
             psiy = np.sqrt(ky) * rho * phi
             if self.k1 < 0.: # defocusing dipole
                 tmat[:,0:2,0:2] = np.moveaxis(np.array([[np.cosh(psix), np.sinh(psix)/np.sqrt(kx)],
-                                                        [np.sqrt(kx)*np.sinh(psix), np.cosh(psix)]]), -1, 0)
+                                                        [np.sqrt(kx)*np.sinh(psix), np.cosh(psix)]]), 2, 0)
                 tmat[:,2:4,2:4] = np.moveaxis(np.array([[np.cos(psiy), np.sin(psiy)/np.sqrt(ky)],
-                                                        [-np.sqrt(ky)*np.sin(psiy), np.cos(psiy)]]), -1, 0)
+                                                        [-np.sqrt(ky)*np.sin(psiy), np.cos(psiy)]]), 2, 0)
             else: # focusing dipole
                 tmat[:,0:2,0:2] = np.moveaxis(np.array([[np.cos(psix), np.sin(psix)/np.sqrt(kx)],
-                                                        [-np.sqrt(kx)*np.sin(psix), np.cos(psix)]]), -1, 0)
+                                                        [-np.sqrt(kx)*np.sin(psix), np.cos(psix)]]), 2, 0)
                 tmat[:,2:4,2:4] = np.moveaxis(np.array([[np.cosh(psiy), np.sinh(psiy)/np.sqrt(ky)],
-                                                        [np.sqrt(ky)*np.sinh(psiy), np.cosh(psiy)]]), -1, 0)
-        return tmat
+                                                        [np.sqrt(ky)*np.sinh(psiy), np.cosh(psiy)]]), 2, 0)
+        return tmat, rho * phi

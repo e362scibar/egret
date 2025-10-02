@@ -63,7 +63,7 @@ class Ring(Element):
         betay = self.tmat[2,3] / sinpsiy
         alphax = (self.tmat[0,0]-self.tmat[1,1]) / (2.*sinpsix)
         alphay = (self.tmat[2,2]-self.tmat[3,3]) / (2.*sinpsiy)
-        self.beta0 = BetaFunc(betax, alphax, betay, alphay)
+        self.beta0 = BetaFunc(betax, alphax, betay, alphay, 0.)
         self.tune[0] = psix / (2.*np.pi)
         self.tune[1] = psiy / (2.*np.pi)
         for i in range(2):
@@ -71,13 +71,13 @@ class Ring(Element):
                 self.tune[i] += 1.
 
     def betafunc(self, ds:float=0.01, endpoint:bool=True)->BetaFunc:
-        b0 = copy.copy(self.beta0)
-        beta = copy.copy(b0)
+        b0 = copy.deepcopy(self.beta0)
+        beta = copy.deepcopy(b0)
         for elem in self.elements:
             if elem.length == 0.:
                 continue
             beta.append(elem.betafunc(b0, ds, False))
-            b0.transfer(elem.tmat)
+            b0 = b0.transfer(elem.tmat, elem.length)
         if endpoint:
             beta.append(b0)
         return beta

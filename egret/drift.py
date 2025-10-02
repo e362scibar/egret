@@ -39,4 +39,4 @@ class Drift(Element):
         tmat = np.repeat(self.tmat[np.newaxis,:,:], len(s), axis=0)
         tmat[:,0,1] = s
         tmat[:,2,3] = s
-        return tmat
+        return tmat, s

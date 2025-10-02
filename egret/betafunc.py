@@ -38,12 +38,10 @@ class BetaFunc:
         self.s = s
 
     def __getitem__(self, key):
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            raise AttributeError
-    
-    def transfer(self, tmat:npt.NDArray[np.floating], s)->BetaFunc:
+        return self.vector[self.index[key]]
+
+    @classmethod
+    def tmat(cls, tmat:npt.NDArray[np.floating])->npt.NDArray[np.floating]:
         Cx = tmat[...,0,0]
         Sx = tmat[...,0,1]
         Cpx = tmat[...,1,0]
@@ -52,19 +50,27 @@ class BetaFunc:
         Sy = tmat[...,2,3]
         Cpy = tmat[...,3,2]
         Spy = tmat[...,3,3]
+        tmatbx = np.array([[Cx**2, -2.*Cx*Sx, Sx**2],
+                           [-Cx*Cpx, Cx*Spx+Cpx*Sx, -Sx*Spx],
+                           [Cpx**2, -2.*Cpx*Spx, Spx**2]])
+        tmatby = np.array([[Cy**2, -2.*Cy*Sy, Sy**2],
+                           [-Cy*Cpy, Cx*Spy+Cpy*Sy, -Sy*Spy],
+                           [Cpy**2, -2.*Cpy*Spy, Spy**2]])
         if Cx.ndim == 0:
             tmatb = np.zeros((6,6))
+            tmatb[0:3,0:3] = tmatbx
+            tmatb[3:6,3:6] = tmatby
         else:
             tmatb = np.zeros((Cx.shape[0],6,6))
-        tmatb[...,0:3,0:3] = np.moveaxis(np.array([[Cx**2, -2.*Cx*Sx, Sx**2],
-                                                   [-Cx*Cpx, Cx*Spx+Cpx*Sx, -Sx*Spx],
-                                                   [Cpx**2, -2.*Cpx*Spx, Spx**2]]), -1, 0)
-        tmatb[...,3:6,3:6] = np.moveaxis(np.array([[Cy**2, -2.*Cy*Sy, Sy**2],
-                                                   [-Cy*Cpy, Cx*Spy+Cpy*Sy, -Sy*Spy],
-                                                   [Cpy**2, -2.*Cpy*Spy, Spy**2]]), -1, 0)
+            tmatb[...,0:3,0:3] = np.moveaxis(tmatbx, 2, 0)
+            tmatb[...,3:6,3:6] = np.moveaxis(tmatby, 2, 0)
+        return tmatb
+
+    def transfer(self, tmat:npt.NDArray[np.floating], s)->BetaFunc:
+        tmat = self.tmat(tmat)
         beta = np.matmul(tmat, self.vector)
-        return BetaFunc(beta[...,0], beta[...,1], beta[...,3], beta[...,4], s)
-    
+        return BetaFunc(beta[...,0], beta[...,1], beta[...,3], beta[...,4], self.s+s)
+
     def append(self, beta:BetaFunc):
         if self.vector.ndim == 1:
             self.vector = self.vector[:,np.newaxis]

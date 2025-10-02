@@ -39,10 +39,11 @@ class Element(Object):
         self.info = info
         self.tmat = np.eye(6)
         self.disp = np.zeros(6)
-    
+
     def tmatarray(self, ds:float=0.01, endpoint:bool=False)->npt.NDArray[np.floating]:
         s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1)
-        return np.repeat(self.tmat[np.newaxis,:,:], n, axis=0), s
-    
+        return np.repeat(self.tmat[np.newaxis,:,:], len(s), axis=0), s
+
     def betafunc(self, b0:BetaFunc, ds:float=0.01, endpoint:bool=False)->BetaFunc:
-        return b0.transfer(*self.tmatarray(ds, endpoint))
+        tmat, s = self.tmatarray(ds, endpoint)
+        return b0.transfer(tmat, s)

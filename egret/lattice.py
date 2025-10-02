@@ -45,15 +45,15 @@ class Lattice(Element):
                 self.angle += e.angle
             except AttributeError:
                 pass
-    
+
     def betafunc(self, b0:BetaFunc, ds:float=0.01, endpoint:bool=False)->BetaFunc:
-        b0 = copy.copy(b0)
-        beta = copy.copy(b0)
+        b0 = copy.deepcopy(b0)
+        beta = copy.deepcopy(b0)
         for elem in self.elements:
             if elem.length == 0.:
                 continue
             beta.append(elem.betafunc(b0, ds, False))
-            b0.transfer(elem.tmat)
+            b0 = b0.transfer(elem.tmat, elem.length)
         if endpoint:
             beta.append(b0)
         return beta
