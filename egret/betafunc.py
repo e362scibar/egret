@@ -54,7 +54,7 @@ class BetaFunc:
                            [-Cx*Cpx, Cx*Spx+Cpx*Sx, -Sx*Spx],
                            [Cpx**2, -2.*Cpx*Spx, Spx**2]])
         tmatby = np.array([[Cy**2, -2.*Cy*Sy, Sy**2],
-                           [-Cy*Cpy, Cx*Spy+Cpy*Sy, -Sy*Spy],
+                           [-Cy*Cpy, Cy*Spy+Cpy*Sy, -Sy*Spy],
                            [Cpy**2, -2.*Cpy*Spy, Spy**2]])
         if Cx.ndim == 0:
             tmatb = np.zeros((6,6))
