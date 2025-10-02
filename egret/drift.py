@@ -20,6 +20,8 @@
 
 from .element import Element
 
+import numpy as np
+import numpy.typing as npt
 class Drift(Element):
     """
     Drift space element.
@@ -31,3 +33,10 @@ class Drift(Element):
     def update(self):
         self.tmat[0,1] = self.length
         self.tmat[2,3] = self.length
+
+    def tmatarray(self, ds:float=0.01, endpoint:bool=False)->npt.NDArray[np.floating]:
+        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
+        tmat = np.repeat(self.tmat[np.newaxis,:,:], len(s), axis=0)
+        tmat[:,0,1] = s
+        tmat[:,2,3] = s
+        return tmat

@@ -19,6 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .element import Element
+from .betafunc import BetaFunc
 
 import copy
 import numpy as np
@@ -44,3 +45,15 @@ class Lattice(Element):
                 self.angle += e.angle
             except AttributeError:
                 pass
+    
+    def betafunc(self, b0:BetaFunc, ds:float=0.01, endpoint:bool=False)->BetaFunc:
+        b0 = copy.copy(b0)
+        beta = copy.copy(b0)
+        for elem in self.elements:
+            if elem.length == 0.:
+                continue
+            beta.append(elem.betafunc(b0, ds, False))
+            b0.transfer(elem.tmat)
+        if endpoint:
+            beta.append(b0)
+        return beta

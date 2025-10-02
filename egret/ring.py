@@ -69,3 +69,15 @@ class Ring(Element):
         for i in range(2):
             if self.tune[i] < 0.:
                 self.tune[i] += 1.
+
+    def betafunc(self, ds:float=0.01, endpoint:bool=True)->BetaFunc:
+        b0 = copy.copy(self.beta0)
+        beta = copy.copy(b0)
+        for elem in self.elements:
+            if elem.length == 0.:
+                continue
+            beta.append(elem.betafunc(b0, ds, False))
+            b0.transfer(elem.tmat)
+        if endpoint:
+            beta.append(b0)
+        return beta

@@ -18,18 +18,60 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .object import Object
 
 import numpy as np
+import numpy.typing as npt
 
 class BetaFunc:
     """
     Beta function object.
     """
-    def __init__(self, bx=1., ax=0., by=1., ay=0.):
-        self.bx = bx
-        self.ax = ax
-        self.by = by
-        self.ay = ay
-        self.gx = (1. + ax**2) / bx
-        self.gy = (1. + ay**2) / by
+    index = {'bx': 0, 'ax': 1, 'gx': 2, 'by': 3, 'ay': 4, 'gy': 5}
+
+    def __init__(self, bx=1., ax=0., by=1., ay=0., s=0.):
+        gx = (1. + ax**2) / bx
+        gy = (1. + ay**2) / by
+        self.vector = np.array([bx, ax, gx, by, ay, gy])
+        self.s = s
+
+    def __getitem__(self, key):
+        try:
+            return self.vector[self.index[key]]
+        except KeyError:
+            raise AttributeError
+    
+    def transfer(self, tmat:npt.NDArray[np.floating], s)->BetaFunc:
+        Cx = tmat[...,0,0]
+        Sx = tmat[...,0,1]
+        Cpx = tmat[...,1,0]
+        Spx = tmat[...,1,1]
+        Cy = tmat[...,2,2]
+        Sy = tmat[...,2,3]
+        Cpy = tmat[...,3,2]
+        Spy = tmat[...,3,3]
+        if Cx.ndim == 0:
+            tmatb = np.zeros((6,6))
+        else:
+            tmatb = np.zeros((Cx.shape[0],6,6))
+        tmatb[...,0:3,0:3] = np.moveaxis(np.array([[Cx**2, -2.*Cx*Sx, Sx**2],
+                                                   [-Cx*Cpx, Cx*Spx+Cpx*Sx, -Sx*Spx],
+                                                   [Cpx**2, -2.*Cpx*Spx, Spx**2]]), -1, 0)
+        tmatb[...,3:6,3:6] = np.moveaxis(np.array([[Cy**2, -2.*Cy*Sy, Sy**2],
+                                                   [-Cy*Cpy, Cx*Spy+Cpy*Sy, -Sy*Spy],
+                                                   [Cpy**2, -2.*Cpy*Spy, Spy**2]]), -1, 0)
+        beta = np.matmul(tmat, self.vector)
+        return BetaFunc(beta[...,0], beta[...,1], beta[...,3], beta[...,4], s)
+    
+    def append(self, beta:BetaFunc):
+        if self.vector.ndim == 1:
+            self.vector = self.vector[:,np.newaxis]
+            self.s = np.array([self.s])
+        if beta.vector.ndim == 1:
+            self.vector = np.hstack((self.vector, beta.vector[:,np.newaxis]))
+            self.s = np.hstack((self.s, np.array([beta.s])))
+        else:
+            self.vector = np.hstack((self.vector, beta.vector))
+            self.s = np.hstack((self.s, beta.s))

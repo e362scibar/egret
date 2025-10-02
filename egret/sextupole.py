@@ -20,11 +20,15 @@
 
 from .element import Element
 
+import numpy as np
+import numpy.typing as npt
+
 class Sextupole(Element):
     """
     Sextupole magnet.
     """
-    def __init__(self, name, length, k2, dx=0., dy=0., ds=0., tilt=0., info=''):
+    def __init__(self, name:str, length:float, k2:float,
+                 dx:float=0., dy:float=0., ds:float=0., tilt:float=0., info:str=''):
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k2 = k2
         self.update()
@@ -33,3 +37,11 @@ class Sextupole(Element):
         # temporarilly set to drift
         self.tmat[0,1] = self.length
         self.tmat[2,3] = self.length
+
+    def tmatarray(self, ds:float=0.01, endpoint:bool=False)->npt.NDArray[np.floating]:
+        # temporarilly set to drift
+        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
+        tmat = np.repeat(self.tmat[np.newaxis,:,:], len(s), axis=0)
+        tmat[:,0,1] = s
+        tmat[:,2,3] = s
+        return tmat

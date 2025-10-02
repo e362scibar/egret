@@ -21,12 +21,14 @@
 from .element import Element
 
 import numpy as np
+import numpy.typing as npt
 
 class Quadrupole(Element):
     """
     Quadrupole magnet.
     """
-    def __init__(self, name, length, k1, dx=0., dy=0., ds=0., tilt=0., info=''):
+    def __init__(self, name:str, length:float, k1:float,
+                 dx:float=0., dy:float=0., ds:float=0., tilt:float=0., info:float=''):
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k1 = k1
         self.update()
@@ -43,8 +45,29 @@ class Quadrupole(Element):
         md = np.array([[np.cosh(psi), np.sinh(psi)/np.sqrt(k)],
                        [np.sqrt(k)*np.sinh(psi), np.cosh(psi)]])
         if self.k1 < 0.: # defocusing quadrupole
-            self.tmat[:2,:2] = md
+            self.tmat[0:2,0:2] = md
             self.tmat[2:4,2:4] = mf
         else: # focusing quadrupole
-            self.tmat[:2,:2] = mf
+            self.tmat[0:2,0:2] = mf
             self.tmat[2:4,2:4] = md
+
+    def tmatarray(self, ds:float=0.01, endpoint:bool=False)->npt.NDArray[np.floating]:
+        k = np.abs(self.k1)
+        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
+        tmat = np.repeat(np.eye(6)[np.newaxis,:,:], len(s), axis=0)
+        if k == 0.: # drift
+            tmat[:,0,1] = s
+            tmat[:,2,3] = s
+            return tmat
+        psi = np.sqrt(k) * s
+        mf = np.moveaxis(np.array([[np.cos(psi), np.sin(psi)/np.sqrt(k)],
+                                   [-np.sqrt(k)*np.sin(psi), np.cos(psi)]]), -1, 0)
+        md = np.moveaxis(np.array([[np.cosh(psi), np.sinh(psi)/np.sqrt(k)],
+                                   [np.sqrt(k)*np.sinh(psi), np.cosh(psi)]]), -1, 0)
+        if self.k1 < 0.: # defocusing quadrupole
+            tmat[:,0:2,0:2] = md
+            tmat[:,2:4,2:4] = mf
+        else: # focusing quadrupole
+            tmat[:,0:2,0:2] = mf
+            tmat[:,2:4,2:4] = md
+        return tmat

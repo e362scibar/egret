@@ -19,14 +19,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .object import Object
+from .betafunc import BetaFunc
 
 import numpy as np
+import numpy.typing as npt
 
 class Element(Object):
     """
     Base class of an accelerator element.
     """
-    def __init__(self, name, length, dx=0., dy=0., ds=0., tilt=0., info=''):
+    def __init__(self, name:str, length:float,
+                 dx:float=0., dy:float=0., ds:float=0., tilt:float=0., info:str=''):
         super().__init__(name)
         self.length = length
         self.dx = dx
@@ -36,3 +39,10 @@ class Element(Object):
         self.info = info
         self.tmat = np.eye(6)
         self.disp = np.zeros(6)
+    
+    def tmatarray(self, ds:float=0.01, endpoint:bool=False)->npt.NDArray[np.floating]:
+        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1)
+        return np.repeat(self.tmat[np.newaxis,:,:], n, axis=0), s
+    
+    def betafunc(self, b0:BetaFunc, ds:float=0.01, endpoint:bool=False)->BetaFunc:
+        return b0.transfer(*self.tmatarray(ds, endpoint))
