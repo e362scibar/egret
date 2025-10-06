@@ -34,3 +34,5 @@ from .betafunc import BetaFunc
 from .lattice import Lattice
 
 from .ring import Ring
+
+from .readring import read_ring

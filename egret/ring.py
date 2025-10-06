@@ -30,7 +30,10 @@ class Ring(Element):
     """
     Ring accelerator.
     """
-    def __init__(self, name, elements, info=''):
+    C_q = 3.83193864e-13  # Factor for equilibrium emittance
+    m_e_eV = 510998.95  # Electron rest mass in eV
+    
+    def __init__(self, name, elements, energy, info=''):
         length = 0.
         for e in elements:
             length += e.length
@@ -40,6 +43,7 @@ class Ring(Element):
         self.tune = np.zeros(2)
         self.beta0 = BetaFunc()  # initial beta function
         self.elements = copy.deepcopy(elements)
+        self.energy = energy
         self.update()
 
     def update(self):
@@ -95,6 +99,9 @@ class Ring(Element):
             disp = np.hstack((disp, elem.dispersion(ds, False)))
             s = np.hstack((s, ss+s0))
             s0 += elem.length
+        if endpoint:
+            disp = np.hstack((disp, np.zeros((6,1))))
+            s = np.hstack((s, np.array([s0])))
         return disp, s
 
     def etafunc(self, ds:float=0.01, endpoint:bool=True)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
@@ -110,4 +117,7 @@ class Ring(Element):
             s = np.hstack((s, ss+s0))
             s0 += elem.length
             eta0 = np.matmul(elem.tmat, eta0) + elem.disp
+        if endpoint:
+            eta = np.hstack((eta, eta0[:,np.newaxis]))
+            s = np.hstack((s, np.array([s0])))
         return eta, s
