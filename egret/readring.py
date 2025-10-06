@@ -42,7 +42,7 @@ def read_ring(path:str|Path)->Ring:
     config = latticejson.load(path)
     rootname = config['root']
     elements = _make_elements(config)
-    return Ring(rootname, [_make_lattice(config, name, elements) for name in config['lattices'][rootname]], config['energy'], config['info'])
+    return Ring(rootname, [_make_lattice(config, name, elements) for name in config['lattices'][rootname]], config['energy']*1.e9, config['info'])
 
 def _make_lattice(config, name, elems):
     '''
