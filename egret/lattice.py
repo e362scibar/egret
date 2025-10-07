@@ -88,3 +88,20 @@ class Lattice(Element):
             s0 += elem.length
             eta0 = np.matmul(elem.tmat, eta0) + elem.disp
         return eta, s
+
+    def radiation_integrals(self, beta0:BetaFunc, eta0:npt.NDArray[np.floating], ds:float=0.1) -> Tuple[float,float,float]:
+        I2 = 0.
+        I4 = 0.
+        I5 = 0.
+        beta = copy.deepcopy(beta0)
+        eta = copy.copy(eta0)
+        for elem in self.elements:
+            if elem.length == 0.:
+                continue
+            i2, i4, i5 = elem.radiation_integrals(beta, eta, ds)
+            I2 += i2
+            I4 += i4
+            I5 += i5
+            beta = beta.transfer(elem.tmat, elem.length)
+            eta = np.matmul(elem.tmat, eta) + elem.disp
+        return I2, I4, I5

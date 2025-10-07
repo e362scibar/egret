@@ -75,6 +75,11 @@ class Ring(Element):
         for i in range(2):
             if self.tune[i] < 0.:
                 self.tune[i] += 1.
+        self.I2, self.I4, self.I5 = self.radiation_integrals()
+        self.emittance = self.C_q * (self.energy / self.m_e_eV)**2 * self.I5 / (self.I2 - self.I4)
+        self.Jx = 1. - self.I4 / self.I2
+        self.Jy = 1.
+        self.Jz = 2. + self.I4 / self.I2
 
     def betafunc(self, ds:float=0.01, endpoint:bool=True)->BetaFunc:
         b0 = copy.deepcopy(self.beta0)
@@ -121,3 +126,21 @@ class Ring(Element):
             eta = np.hstack((eta, eta0[:,np.newaxis]))
             s = np.hstack((s, np.array([s0])))
         return eta, s
+
+    def radiation_integrals(self) -> Tuple[float,float,float]:
+        I2 = 0.
+        I4 = 0.
+        I5 = 0.
+        beta = copy.deepcopy(self.beta0)
+        eta = copy.deepcopy(self.disp0)
+        ds = 0.1
+        for elem in self.elements:
+            if elem.length == 0.:
+                continue
+            i2, i4, i5 = elem.radiation_integrals(beta, eta, ds)
+            I2 += i2
+            I4 += i4
+            I5 += i5
+            beta = beta.transfer(elem.tmat, elem.length)
+            eta = np.matmul(elem.tmat, eta) + elem.disp
+        return I2, I4, I5
