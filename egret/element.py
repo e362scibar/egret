@@ -26,9 +26,9 @@ import numpy.typing as npt
 from typing import Tuple
 
 class Element(Object):
-    """
+    '''
     Base class of an accelerator element.
-    """
+    ''' 
     def __init__(self, name:str, length:float,
                  dx:float=0., dy:float=0., ds:float=0., tilt:float=0., info:str=''):
         super().__init__(name)
@@ -59,3 +59,17 @@ class Element(Object):
         disp, s = self.dispersion(ds, endpoint)
         tmat, _ = self.tmatarray(ds, endpoint)
         return np.matmul(tmat, eta0).T + disp, s
+
+    def radiation_integrals(self, beta0:BetaFunc, eta0:npt.NDArray[np.floating], ds:float=0.1)->Tuple[float,float,float]:
+        '''
+        Calculate radiation integrals.
+
+        Args:
+            beta0 BetaFunc: Initial Twiss parameters.
+            eta0 npt.NDArray[np.floating]: Initial dispersion [eta_x, eta_x', eta_y, eta_y'].
+            ds float: Step size for numerical integration.
+
+        Returns:
+            float, float, float: Radiation integrals I2, I4, and I5.
+        '''
+        return 0., 0., 0.

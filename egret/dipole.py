@@ -19,9 +19,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .element import Element
+from .betafunc import BetaFunc
 
 import numpy as np
 import numpy.typing as npt
+from typing import Tuple
+import scipy
 
 class Dipole(Element):
     """
@@ -110,3 +113,24 @@ class Dipole(Element):
             else: # focusing dipole
                 disp[0:2, :] = np.array([(1.-np.cos(psix))/(kx*rho), np.sin(psix)/(np.sqrt(kx)*rho)])
         return disp, s
+
+    def radiation_integrals(self, beta0:BetaFunc, eta0:npt.NDArray[np.floating], ds:float=0.1)->Tuple[float,float,float]:
+        '''
+        Calculate radiation integrals.
+
+        Args:
+            beta0 BetaFunc: Initial Twiss parameters.
+            eta0 npt.NDArray[np.floating]: Initial dispersion [eta_x, eta_x', eta_y, eta_y'].
+            ds float: Step size for numerical integration.
+
+        Returns:
+            float, float, float: Radiation integrals I2, I4, and I5.
+        '''
+        kappa = 1./self.radius
+        k = self.k1
+        beta = self.betafunc(beta0, ds, endpoint=True)
+        eta, s = self.etafunc(eta0, ds, endpoint=True)
+        I2 = self.length * kappa**2
+        I4 = scipy.integrate.simpson(eta[0,:] * kappa * (kappa**2 + 2. * k), s)
+        I5 = scipy.integrate.simpson(kappa**2 * (beta['bx'] * eta[1,:]**2 + 2. * beta['ax'] * eta[0,:] * eta[1,:] + beta['gx'] * eta[0,:]**2), s)
+        return I2, I4, I5
