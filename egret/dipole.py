@@ -176,6 +176,6 @@ class Dipole(Element):
         beta = self.betafunc(beta0, ds, endpoint=True)
         eta, s = self.etafunc(eta0, ds, endpoint=True)
         I2 = self.length * kappa**2
-        I4 = scipy.integrate.simpson(eta[0,:] * kappa * (kappa**2 + 2. * k), x=s)
-        I5 = scipy.integrate.simpson(kappa**3 * (beta['bx'] * eta[1,:]**2 + 2. * beta['ax'] * eta[0,:] * eta[1,:] + beta['gx'] * eta[0,:]**2), x=s)
+        I4 = scipy.integrate.simpson(eta[0, :] * kappa * (kappa**2 + 2. * k), x=s)
+        I5 = scipy.integrate.simpson(kappa**3 * (beta['bx'] * eta[1, :]**2 + 2. * beta['ax'] * eta[0, :] * eta[1, :] + beta['gx'] * eta[0, :]**2), x=s)
         return I2, I4, I5

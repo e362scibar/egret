@@ -85,13 +85,13 @@ class BetaFunc:
                            [-Cy*Cpy, Cy*Spy+Cpy*Sy, -Sy*Spy],
                            [Cpy**2, -2.*Cpy*Spy, Spy**2]])
         if Cx.ndim == 0:
-            tmatb = np.zeros((6,6))
-            tmatb[0:3,0:3] = tmatbx
-            tmatb[3:6,3:6] = tmatby
+            tmatb = np.zeros((6, 6))
+            tmatb[0:3, 0:3] = tmatbx
+            tmatb[3:6, 3:6] = tmatby
         else:
             tmatb = np.zeros((Cx.shape[0],6,6))
-            tmatb[...,0:3,0:3] = np.moveaxis(tmatbx, 2, 0)
-            tmatb[...,3:6,3:6] = np.moveaxis(tmatby, 2, 0)
+            tmatb[..., 0:3, 0:3] = np.moveaxis(tmatbx, 2, 0)
+            tmatb[..., 3:6, 3:6] = np.moveaxis(tmatby, 2, 0)
         return tmatb
 
     def transfer(self, tmat: npt.NDArray[np.floating], s: float | npt.NDArray[np.floating]) -> BetaFunc:

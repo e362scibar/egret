@@ -53,6 +53,9 @@ class Element(Object):
         self.tmat = np.eye(4)
         self.disp = np.zeros(4)
 
+    def transfer_matrix(self, cood0: Coordinate) -> TransferMatrix:
+        pass
+
     def tmatarray(self, ds: float = 0.01, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''

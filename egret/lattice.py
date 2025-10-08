@@ -135,7 +135,7 @@ class Lattice(Element):
                 continue
             etaelem, ss = elem.etafunc(eta0, ds, False)
             eta = np.hstack((eta, etaelem))
-            s = np.hstack((s, ss+s0))
+            s = np.hstack((s, ss + s0))
             s0 += elem.length
             eta0 = np.matmul(elem.tmat, eta0) + elem.disp
         return eta, s

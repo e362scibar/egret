@@ -51,7 +51,7 @@ class Sextupole(Element):
         '''
         Update transfer matrix and dispersion.
         '''
-        # temporarilly set to drift
+        # temporarily set to drift
         self.tmat[0, 1] = self.length
         self.tmat[2, 3] = self.length
 
@@ -68,9 +68,9 @@ class Sextupole(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        # temporarilly set to drift
-        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
-        tmat = np.repeat(self.tmat[np.newaxis,:,:], len(s), axis=0)
+        # temporarily set to drift
+        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+        tmat = np.repeat(self.tmat[np.newaxis, :, :], len(s), axis=0)
         tmat[:, 0, 1] = s
         tmat[:, 2, 3] = s
         return tmat, s
