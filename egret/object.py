@@ -19,10 +19,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 class Object:
-    """
+    '''
     Base class of any objects.
-    """
-    def __init__(self, name):
+    '''
+    def __init__(self, name: str):
+        '''
+        Args:
+            name (str): name of the object
+        '''
         self.name = name
-    def get_name(self):
+
+    def get_name(self) -> str:
+        '''
+        Get the name of the object.
+        
+        Returns:
+            str: name of the object
+        '''
         return self.name

@@ -24,22 +24,29 @@ from .betafunc import BetaFunc
 import copy
 import numpy as np
 import numpy.typing as npt
-from typing import Tuple
+from typing import Tuple, List
 
 class Ring(Element):
-    """
+    '''
     Ring accelerator.
-    """
+    '''
     C_q = 3.83193864e-13  # Factor for equilibrium emittance
     m_e_eV = 510998.95  # Electron rest mass in eV
     
-    def __init__(self, name, elements, energy, info=''):
+    def __init__(self, name: str, elements: List[Element], energy: float, info: str = ''):
+        '''
+        Args:
+            name str: Name of the lattice.
+            elements list of Element: List of elements in the lattice.
+            energy float: Beam energy [eV].
+            info str: Additional information.
+        '''
         length = 0.
         for e in elements:
             length += e.length
         super().__init__(name, length, 0., 0., 0., 0., info)
         self.angle = 0.
-        self.disp0 = np.zeros(6)  # initial dispersion
+        self.disp0 = np.zeros(4)  # initial dispersion
         self.tune = np.zeros(2)
         self.beta0 = BetaFunc()  # initial beta function
         self.elements = copy.deepcopy(elements)
@@ -47,6 +54,9 @@ class Ring(Element):
         self.update()
 
     def update(self):
+        '''
+        Update transfer matrix, dispersion, and emittance.
+        '''
         for e in self.elements:
             self.tmat = np.dot(e.tmat, self.tmat)
             self.disp = np.dot(e.tmat, self.disp.T).T + e.disp
@@ -55,20 +65,20 @@ class Ring(Element):
             except AttributeError:
                 pass
         # initial dispersion
-        self.disp0[0:4] = np.linalg.inv(np.eye(4) - self.tmat[0:4,0:4]) @ self.disp[0:4]
+        self.disp0 = np.linalg.inv(np.eye(4) - self.tmat) @ self.disp
         # initial beta function and tune
-        cospsix = 0.5 * (np.trace(self.tmat[0:2,0:2]))
-        cospsiy = 0.5 * (np.trace(self.tmat[2:4,2:4]))
-        sin2psix = np.linalg.det(self.tmat[0:2,0:2] - np.eye(2) * cospsix)
-        sin2psiy = np.linalg.det(self.tmat[2:4,2:4] - np.eye(2) * cospsiy)
-        sinpsix = np.sign(self.tmat[0,1]-self.tmat[1,0]) * np.sqrt(abs(sin2psix))
-        sinpsiy = np.sign(self.tmat[2,3]-self.tmat[3,2]) * np.sqrt(abs(sin2psiy))
+        cospsix = 0.5 * (np.trace(self.tmat[0:2, 0:2]))
+        cospsiy = 0.5 * (np.trace(self.tmat[2:4, 2:4]))
+        sin2psix = np.linalg.det(self.tmat[0:2, 0:2] - np.eye(2) * cospsix)
+        sin2psiy = np.linalg.det(self.tmat[2:4, 2:4] - np.eye(2) * cospsiy)
+        sinpsix = np.sign(self.tmat[0, 1]-self.tmat[1, 0]) * np.sqrt(abs(sin2psix))
+        sinpsiy = np.sign(self.tmat[2, 3]-self.tmat[3, 2]) * np.sqrt(abs(sin2psiy))
         psix = np.arctan2(sinpsix, cospsix)
         psiy = np.arctan2(sinpsiy, cospsiy)
-        betax = self.tmat[0,1] / sinpsix
-        betay = self.tmat[2,3] / sinpsiy
-        alphax = (self.tmat[0,0]-self.tmat[1,1]) / (2.*sinpsix)
-        alphay = (self.tmat[2,2]-self.tmat[3,3]) / (2.*sinpsiy)
+        betax = self.tmat[0, 1] / sinpsix
+        betay = self.tmat[2, 3] / sinpsiy
+        alphax = (self.tmat[0, 0] - self.tmat[1, 1]) / (2.*sinpsix)
+        alphay = (self.tmat[2, 2] - self.tmat[3, 3]) / (2.*sinpsiy)
         self.beta0 = BetaFunc(betax, alphax, betay, alphay, 0.)
         self.tune[0] = psix / (2.*np.pi)
         self.tune[1] = psiy / (2.*np.pi)
@@ -81,7 +91,17 @@ class Ring(Element):
         self.Jy = 1.
         self.Jz = 2. + self.I4 / self.I2
 
-    def betafunc(self, ds:float=0.01, endpoint:bool=True)->BetaFunc:
+    def betafunc(self, ds: float = 0.01, endpoint: bool = True) -> BetaFunc:
+        '''
+        Beta function along the ring.
+        
+        Args:
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+        
+        Returns:
+            BetaFunc: Beta function along the ring.
+        '''
         b0 = copy.deepcopy(self.beta0)
         beta = copy.deepcopy(b0)
         for elem in self.elements:
@@ -93,10 +113,22 @@ class Ring(Element):
             beta.append(b0)
         return beta
 
-    def dispersion(self, ds:float=0.01, endpoint:bool=True)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
+    def dispersion(self, ds: float = 0.01, endpoint: bool = True) \
+        -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        '''
+        Dispersion along the ring.
+        
+        Args:
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+        
+        Returns:
+            NDArray[np.floating]: Dispersion along the ring.
+            NDArray[np.floating]: Longitudinal position along the ring [m].
+        '''
         s0 = 0.
         s = np.array([0.])
-        disp = np.zeros((6,1))
+        disp = np.zeros((4,1))
         for elem in self.elements:
             if elem.length == 0.:
                 continue
@@ -105,11 +137,23 @@ class Ring(Element):
             s = np.hstack((s, ss+s0))
             s0 += elem.length
         if endpoint:
-            disp = np.hstack((disp, np.zeros((6,1))))
+            disp = np.hstack((disp, np.zeros((4,1))))
             s = np.hstack((s, np.array([s0])))
         return disp, s
 
-    def etafunc(self, ds:float=0.01, endpoint:bool=True)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
+    def etafunc(self, ds: float = 0.01, endpoint: bool = True) \
+        -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        '''
+        Eta function along the ring.
+        
+        Args:
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+        
+        Returns:
+            NDArray[np.floating]: Eta function along the ring.
+            NDArray[np.floating]: Longitudinal position along the ring [m].
+        '''
         s0 = 0.
         s = np.array([0.])
         eta0 = copy.copy(self.disp0)
@@ -119,7 +163,7 @@ class Ring(Element):
                 continue
             etaelem, ss = elem.etafunc(eta0, ds, False)
             eta = np.hstack((eta, etaelem))
-            s = np.hstack((s, ss+s0))
+            s = np.hstack((s, ss + s0))
             s0 += elem.length
             eta0 = np.matmul(elem.tmat, eta0) + elem.disp
         if endpoint:
@@ -127,13 +171,23 @@ class Ring(Element):
             s = np.hstack((s, np.array([s0])))
         return eta, s
 
-    def radiation_integrals(self) -> Tuple[float,float,float]:
+    def radiation_integrals(self, ds: float = 0.1) -> Tuple[float, float, float]:
+        '''
+        Calculate radiation integrals.
+
+        Args:
+            ds float: Step size for numerical integration [m].
+        
+        Returns:
+            I2 float: Second radiation integral.
+            I4 float: Fourth radiation integral.
+            I5 float: Fifth radiation integral.
+        '''
         I2 = 0.
         I4 = 0.
         I5 = 0.
         beta = copy.deepcopy(self.beta0)
         eta = copy.deepcopy(self.disp0)
-        ds = 0.1
         for elem in self.elements:
             if elem.length == 0.:
                 continue

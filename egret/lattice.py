@@ -24,13 +24,26 @@ from .betafunc import BetaFunc
 import copy
 import numpy as np
 import numpy.typing as npt
-from typing import Tuple
+from typing import Tuple, List
 
 class Lattice(Element):
-    """
+    '''
     Lattice element.
-    """
-    def __init__(self, name, elements, dx=0., dy=0., ds=0., tilt=0., info=''):
+    '''
+
+    def __init__(self, name: str, elements: List[Element],
+                 dx: float = 0., dy: float = 0., ds: float = 0.,
+                 tilt: float = 0., info: str = ''):
+        '''
+        Args:
+            name str: Name of the lattice.
+            elements list of Element: List of elements in the lattice.
+            dx float: Horizontal offset of the lattice [m].
+            dy float: Vertical offset of the lattice [m].
+            ds float: Longitudinal offset of the lattice [m].
+            tilt float: Tilt angle of the lattice [rad].
+            info str: Additional information.
+        '''
         length = 0.
         for e in elements:
             length += e.length
@@ -40,6 +53,9 @@ class Lattice(Element):
         self.update()
 
     def update(self):
+        '''
+        Update transfer matrix and dispersion.
+        '''
         for e in self.elements:
             self.tmat = np.dot(e.tmat, self.tmat)
             self.disp = np.dot(e.tmat, self.disp.T).T + e.disp
@@ -48,7 +64,18 @@ class Lattice(Element):
             except AttributeError:
                 pass
 
-    def betafunc(self, b0:BetaFunc, ds:float=0.01, endpoint:bool=False)->BetaFunc:
+    def betafunc(self, b0: BetaFunc, ds: float = 0.01, endpoint: bool = False) -> BetaFunc:
+        '''
+        Beta function along the lattice.
+        
+        Args:
+            b0 BetaFunc: Initial beta function.
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+        
+        Returns:
+            BetaFunc: Beta function along the lattice.
+        '''
         b0 = copy.deepcopy(b0)
         beta = copy.deepcopy(b0)
         for elem in self.elements:
@@ -60,21 +87,45 @@ class Lattice(Element):
             beta.append(b0)
         return beta
 
-    def dispersion(self, ds:float=0.01, endpoint:bool=True)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
+    def dispersion(self, ds:float = 0.01, endpoint: bool = True) \
+        -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        '''
+        Dispersion function along the lattice.
+        
+        Args:
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+        
+        Returns:
+            npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
+            npt.NDArray[np.floating]: Longitudinal positions [m].
+        '''
         s0 = 0.
         s = np.array([0.])
-        disp = np.zeros((6,1))
+        disp = np.zeros((4,1))
         for elem in self.elements:
             if elem.length == 0.:
                 continue
             dispelem, ss = elem.dispersion(ds, False)
-            print('Lattice.dispersion(): disp.shape', dispelem.shape)
             disp = np.hstack((disp, dispelem))
             s = np.hstack((s, ss+s0))
             s0 += elem.length
         return disp, s
 
-    def etafunc(self, eta0:npt.NDArray[np.floating], ds:float=0.01, endpoint:bool=True)->Tuple[npt.NDArray[np.floating],npt.NDArray[np.floating]]:
+    def etafunc(self, eta0: npt.NDArray[np.floating], ds: float = 0.01, endpoint: bool = True) \
+        -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        '''
+        Calculate the dispersion function along the lattice.
+        
+        Args:
+            eta0 npt.NDArray[np.floating]: Initial dispersion function (4,).
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+        
+        Returns:
+            npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
+            npt.NDArray[np.floating]: Longitudinal positions [m].
+        '''
         s0 = 0.
         s = np.array([0.])
         eta0 = copy.copy(eta0)
@@ -89,7 +140,19 @@ class Lattice(Element):
             eta0 = np.matmul(elem.tmat, eta0) + elem.disp
         return eta, s
 
-    def radiation_integrals(self, beta0:BetaFunc, eta0:npt.NDArray[np.floating], ds:float=0.1) -> Tuple[float,float,float]:
+    def radiation_integrals(self, beta0: BetaFunc, eta0: npt.NDArray[np.floating], ds: float = 0.1) \
+        -> Tuple[float, float, float]:
+        '''
+        Calculate radiation integrals along the lattice.
+        
+        Args:
+            beta0 BetaFunc: Initial Twiss parameters.
+            eta0 npt.NDArray[np.floating]: Initial dispersion [eta_x, eta_x', eta_y, eta_y'].
+            ds float: Step size for numerical integration.
+        
+        Returns:
+            Tuple[float, float, float]: Radiation integrals (I2, I4, I5).
+        '''
         I2 = 0.
         I4 = 0.
         I5 = 0.

@@ -20,6 +20,7 @@
 
 from .ring import Ring
 from .lattice import Lattice
+from .element import Element
 from .drift import Drift
 from .dipole import Dipole
 from .quadrupole import Quadrupole
@@ -28,8 +29,9 @@ from .octupole import Octupole
 
 from pathlib import Path
 import latticejson
+from typing import Dict, List, Any
 
-def read_ring(path:str|Path)->Ring:
+def read_ring(path: str | Path) -> Ring:
     '''
     Read a ring configuration from a Lattice JSON file and return a Ring object.
 
@@ -44,7 +46,8 @@ def read_ring(path:str|Path)->Ring:
     elements = _make_elements(config)
     return Ring(rootname, [_make_lattice(config, name, elements) for name in config['lattices'][rootname]], config['energy']*1.e9, config['info'])
 
-def _make_lattice(config, name, elems):
+def _make_lattice(config: Dict[str, Any], name: str, elems: List[Lattice | Element]) \
+    -> Lattice | Element:
     '''
     Recursively construct a Lattice or Element based on the lattice configuration.
 
@@ -60,7 +63,7 @@ def _make_lattice(config, name, elems):
         return Lattice(name, [_make_lattice(config, k, elems) for k in config['lattices'][name]])
     return elems[name]
 
-def _make_elements(config):
+def _make_elements(config: Dict[str, Any]) -> Dict[str, Element]:
     '''
     Create a dictionary of Element objects from the lattice configuration.
 

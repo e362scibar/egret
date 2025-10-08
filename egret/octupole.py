@@ -22,25 +22,55 @@ from .element import Element
 
 import numpy as np
 import numpy.typing as npt
+from typing import Tuple
 
 class Octupole(Element):
-    """
+    '''
     Octupole magnet.
-    """
-    def __init__(self, name, length, k3, dx=0., dy=0., ds=0., tilt=0., info=''):
+    '''
+
+    def __init__(self, name: str, length: float, k3: float,
+                 dx: float = 0., dy: float = 0., ds: float = 0.,
+                 tilt: float = 0., info: str = ''):
+        '''
+        Args:
+            name str: Name of the element.
+            length float: Length of the element [m].
+            k3 float: Octupole strength [1/m^4].
+            dx float: Horizontal offset of the element [m].
+            dy float: Vertical offset of the element [m].
+            ds float: Longitudinal offset of the element [m].
+            tilt float: Tilt angle of the element [rad].
+            info str: Additional information.
+        '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k3 = k3
         self.update()
     
     def update(self):
+        '''
+        Update transfer matrix and dispersion.
+        '''
         # temporarilly set to drift
-        self.tmat[0,1] = self.length
-        self.tmat[2,3] = self.length
+        self.tmat[0, 1] = self.length
+        self.tmat[2, 3] = self.length
 
-    def tmatarray(self, ds:float=0.01, endpoint:bool=False)->npt.NDArray[np.floating]:
+    def tmatarray(self, ds: float = 0.01, endpoint: bool = False) \
+        -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        '''
+        Transfer matrix array along the element.
+        
+        Args:
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+        
+        Returns:
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
+            npt.NDArray[np.floating]: Longitudinal position array of shape (N,).
+        '''
         # temporarilly set to drift
-        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
-        tmat = np.repeat(self.tmat[np.newaxis,:,:], len(s), axis=0)
-        tmat[:,0,1] = s
-        tmat[:,2,3] = s
+        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+        tmat = np.repeat(self.tmat[np.newaxis, :, :], len(s), axis=0)
+        tmat[:, 0, 1] = s
+        tmat[:, 2, 3] = s
         return tmat, s
