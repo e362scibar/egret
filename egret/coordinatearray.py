@@ -1,4 +1,4 @@
-# coordinate.py
+# coordinatearray.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -21,29 +21,38 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
-class Coordinate:
+class CoordinateArray:
     '''
-    Phase-space coordinate.
+    Phase-space coordinate array.
     ''' 
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, x: float = 0., xp: float = 0., y: float = 0., yp: float = 0.,
-                 s: float = 0., z: float = 0., delta: float = 0.):
+    def __init__(self, x: npt.NDArray[np.floating], xp: npt.NDArray[np.floating],
+                 y: npt.NDArray[np.floating], yp: npt.NDArray[np.floating],
+                 s: npt.NDArray[np.floating],
+                 z: npt.NDArray[np.floating] = None, delta: npt.NDArray[np.floating] = None):
         '''
         Args:
-            x float: Horizontal position [m].
-            xp float: Horizontal angle [rad].
-            y float: Vertical position [m].
-            yp float: Vertical angle [rad].
-            s float: Longitudinal position along the reference orbit [m].
-            z float: Longitudinal displacement [m].
-            delta float: Relative momentum deviation.
+            x NDArray: Horizontal position [m].
+            xp NDArray: Horizontal angle [rad].
+            y NDArray: Vertical position [m].
+            yp NDArray: Vertical angle [rad].
+            s NDArray: Longitudinal position along the reference orbit [m].
+            z NDArray: Longitudinal displacement [m].
+            delta NDArray: Relative momentum deviation.
         '''
         self.vector = np.array([x, xp, y, yp])
-        self.s = s
-        self.z = z
-        self.delta = delta
+        self.s = s.copy()
+        if z is None:
+            self.z = np.zeros_like(s)
+        else:
+            self.z = z.copy()
+        if delta is None:
+            self.delta = np.zeros_like(s)
+        else:
+            self.delta = delta.copy()
 
     def __getitem__(self, key: str) -> float:
         '''
@@ -53,7 +62,7 @@ class Coordinate:
             key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
         
         Returns:
-            float: Value of the coordinate corresponding to the key.
+            NDArray: Value of the coordinate corresponding to the key.
         '''
         try:
             return self.vector[self.index[key]]
@@ -74,7 +83,7 @@ class Coordinate:
 
         Args:
             key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-            value float: Value to set.
+            value NDArray: Value to set.
         '''
         try:
             self.vector[self.index[key]] = value
@@ -89,10 +98,10 @@ class Coordinate:
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
-    def copy(self) -> Coordinate:
+    def copy(self) -> CoordinateArray:
         '''
         Returns:
-            Coordinate: A copy of the coordinate object.
+            CoordinateArray: A copy of the coordinate array object.
         '''
-        return Coordinate(self.vector[0], self.vector[1], self.vector[2], self.vector[3],
-                          self.s, self.z, self.delta)
+        return CoordinateArray(self.vector[0], self.vector[1], self.vector[2], self.vector[3],
+                               self.s, self.z, self.delta)

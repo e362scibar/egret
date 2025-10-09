@@ -19,6 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .element import Element
+from .coordinate import Coordinate
 from .betafunc import BetaFunc
 
 import copy
@@ -46,7 +47,7 @@ class Ring(Element):
             length += e.length
         super().__init__(name, length, 0., 0., 0., 0., info)
         self.angle = 0.
-        self.disp0 = np.zeros(4)  # initial dispersion
+        self.disp0 = Coordinate()  # initial dispersion
         self.tune = np.zeros(2)
         self.beta0 = BetaFunc()  # initial beta function
         self.elements = copy.deepcopy(elements)

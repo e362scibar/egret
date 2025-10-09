@@ -19,6 +19,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .object import Object
+from .coordinate import Coordinate
+from .coordinatearray import CoordinateArray
 from .betafunc import BetaFunc
 
 import numpy as np
@@ -50,18 +52,26 @@ class Element(Object):
         self.ds = ds
         self.tilt = tilt
         self.info = info
-        self.tmat = np.eye(4)
-        self.disp = np.zeros(4)
 
-    def transfer_matrix(self, cood0: Coordinate) -> TransferMatrix:
-        pass
+    def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
+        '''
+        Transfer matrix of the element.
+        
+        Args:
+            cood0 Coordinate: Initial coordinate (not used in the base class).
+            
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix.
+        '''
+        return np.eye(4)
 
-    def tmatarray(self, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
         
         Args:
+            cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
         
@@ -69,10 +79,19 @@ class Element(Object):
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1)
-        return np.repeat(self.tmat[np.newaxis,:,:], len(s), axis=0), s
+        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+        return np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0), s
 
-    def betafunc(self, b0: BetaFunc, ds: float = 0.01, endpoint: bool = False) -> BetaFunc:
+    def coordinate_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
+        -> CoordinateArray:
+        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+        return CoordinateArray(np.ones_like(s)*cood0['x'], np.ones_like(s)*cood0['xp'],
+                               np.ones_like(s)*cood0['y'], np.ones_like(s)*cood0['yp'],
+                               s + cood0['s'],
+                               np.ones_like(s)*cood0['z'], np.ones_like(s)*cood0['delta'])
+
+    def betafunc(self, b0: BetaFunc, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
+        -> BetaFunc:
         '''
         Calculate Twiss parameters along the element.
         
@@ -84,7 +103,7 @@ class Element(Object):
         Returns:
             BetaFunc: Twiss parameters along the element.
         '''
-        tmat, s = self.tmatarray(ds, endpoint)
+        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
         return b0.transfer(tmat, s)
 
     def dispersion(self, ds: float = 0.01, endpoint: bool = False) \

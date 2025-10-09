@@ -1,4 +1,4 @@
-# coordinate.py
+# dispersion.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -22,14 +22,13 @@ from __future__ import annotations
 
 import numpy as np
 
-class Coordinate:
+class Dispersion:
     '''
-    Phase-space coordinate.
+    Energy dispersion.
     ''' 
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, x: float = 0., xp: float = 0., y: float = 0., yp: float = 0.,
-                 s: float = 0., z: float = 0., delta: float = 0.):
+    def __init__(self, x: float = 0., xp: float = 0., y: float = 0., yp: float = 0., s: float = 0.):
         '''
         Args:
             x float: Horizontal position [m].
@@ -37,20 +36,16 @@ class Coordinate:
             y float: Vertical position [m].
             yp float: Vertical angle [rad].
             s float: Longitudinal position along the reference orbit [m].
-            z float: Longitudinal displacement [m].
-            delta float: Relative momentum deviation.
         '''
         self.vector = np.array([x, xp, y, yp])
         self.s = s
-        self.z = z
-        self.delta = delta
 
     def __getitem__(self, key: str) -> float:
         '''
         Get coordinate value by key.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
+            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
         
         Returns:
             float: Value of the coordinate corresponding to the key.
@@ -61,10 +56,6 @@ class Coordinate:
             match key:
                 case 's':
                     return self.s
-                case 'z':
-                    return self.z
-                case 'delta':
-                    return self.delta
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
@@ -73,7 +64,7 @@ class Coordinate:
         Set coordinate value by key.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
+            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
             value float: Value to set.
         '''
         try:
@@ -82,17 +73,12 @@ class Coordinate:
             match key:
                 case 's':
                     self.s = value
-                case 'z':
-                    self.z = value
-                case 'delta':
-                    self.delta = value
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
-    def copy(self) -> Coordinate:
+    def copy(self) -> Dispersion:
         '''
         Returns:
-            Coordinate: A copy of the coordinate object.
+            Dispersion: A copy of the coordinate object.
         '''
-        return Coordinate(self.vector[0], self.vector[1], self.vector[2], self.vector[3],
-                          self.s, self.z, self.delta)
+        return Dispersion(self.vector[0], self.vector[1], self.vector[2], self.vector[3], self.s)

@@ -29,10 +29,15 @@ from .quadrupole import Quadrupole
 from .sextupole import Sextupole
 from .octupole import Octupole
 
-from .betafunc import BetaFunc
-
 from .lattice import Lattice
 
 from .ring import Ring
 
 from .readring import read_ring
+
+from .coordinate import Coordinate
+from .coordinatearray import CoordinateArray
+from .envelope import Envelope
+from .dispersion import Dispersion
+
+from .betafunc import BetaFunc
