@@ -53,7 +53,7 @@ class BetaFunc:
 
         Args:
             key str: Key of the beta function. 'bx', 'ax', 'gx', 'by', 'ay', or 'gy'.
-        
+
         Returns:
             float or npt.NDArray[np.floating]: Value of the beta function corresponding to the key.
         '''
@@ -63,10 +63,10 @@ class BetaFunc:
     def tmat(cls, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
         '''
         Compute the transformation matrix for the beta function from the 4x4 transfer matrix.
-        
+
         Args:
             tmat (npt.NDArray[np.floating]): 4x4 or (N,4,4) transfer matrix.
-        
+
         Returns:
             npt.NDArray[np.floating]: 6x6 or (N,6,6) transformation matrix for the beta function.
         '''
@@ -97,10 +97,13 @@ class BetaFunc:
     def transfer(self, tmat: npt.NDArray[np.floating], s: float | npt.NDArray[np.floating]) -> BetaFunc:
         '''
         Compute the beta function after applying the transfer matrix.
-        
+
         Args:
             tmat (npt.NDArray[np.floating]): 4x4 or (N,4,4) transfer matrix.
             s (float or npt.NDArray[np.floating]): Longitudinal position increment [m].
+
+        Returns:
+            BetaFunc: BetaFunc object after applying the transfer matrix.
         '''
         tmat = self.tmat(tmat)
         beta = np.matmul(tmat, self.vector)
@@ -109,7 +112,7 @@ class BetaFunc:
     def append(self, beta: BetaFunc):
         '''
         Append another BetaFunc object to this one.
-        
+
         Args:
             beta (BetaFunc): Another BetaFunc object to append.
         '''

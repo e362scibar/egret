@@ -49,10 +49,10 @@ class Drift(Element):
     def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
-        
+
         Args:
             cood0 Coordinate: Initial coordinate (not used in the drift class).
-            
+
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
@@ -65,12 +65,12 @@ class Drift(Element):
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
-        
+
         Args:
             cood0 Coordinate: Initial coordinate (not used in the drift class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-        
+
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
@@ -85,18 +85,18 @@ class Drift(Element):
         -> CoordinateArray:
         tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
         cood = np.matmul(tmat, cood0.vector)
-        return CoordinateArray(cood[0, :], cood[1, :], cood[2, :], cood[3, :],
+        return CoordinateArray(cood[:, 0], cood[:, 1], cood[:, 2], cood[:, 3],
                                s + cood0['s'],
-                               np.ones_like(s)*cood0['z'], np.ones_like(s)*cood0['delta'])
+                               np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
 
     def tmatarray(self, ds: float = 0.01, endpoint: bool = False) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix array along the drift space.
-        
+
         Args:
             ds float: Step size [m].
             endpoint bool: If True, include the endpoint.
-        
+
         Returns:
             tmat npt.NDArray[np.floating]: Transfer matrix array.
             s npt.NDArray[np.floating]: Longitudinal positions [m].

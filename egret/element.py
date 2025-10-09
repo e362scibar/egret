@@ -85,10 +85,10 @@ class Element(Object):
     def coordinate_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
         -> CoordinateArray:
         s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
-        return CoordinateArray(np.ones_like(s)*cood0['x'], np.ones_like(s)*cood0['xp'],
-                               np.ones_like(s)*cood0['y'], np.ones_like(s)*cood0['yp'],
+        return CoordinateArray(np.full_like(s, cood0['x']), np.full_like(s, cood0['xp']),
+                               np.full_like(s, cood0['y']), np.full_like(s, cood0['yp']),
                                s + cood0['s'],
-                               np.ones_like(s)*cood0['z'], np.ones_like(s)*cood0['delta'])
+                               np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
 
     def betafunc(self, b0: BetaFunc, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
         -> BetaFunc:
