@@ -81,7 +81,7 @@ class Drift(Element):
         return tmat, s
 
     @classmethod
-    def transfer_matrix(cls, length: float) -> npt.NDArray[np.floating]:
+    def transfer_matrix_from_length(cls, length: float) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the drift space.
 
@@ -97,7 +97,7 @@ class Drift(Element):
         return tmat
 
     @classmethod
-    def transfer_matrix_array(cls, length: float, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array_from_length(cls, length: float, ds: float = 0.01, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the drift space.

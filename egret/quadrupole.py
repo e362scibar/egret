@@ -121,5 +121,24 @@ class Quadrupole(Element):
         Returns:
             npt.NDArray[np.floating]: 4-element dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
         '''
-        tmat = self.transfer_matrix() - Drift.transfer_matrix(self.length)
-        return np.zeros(4)
+        tmat = self.transfer_matrix() - Drift.transfer_matrix_from_length(self.length)
+        return np.matmul(tmat, cood0.vector)
+
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
+        -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+        '''
+        Additive dispersion array along the quadrupole.
+
+        Args:
+            cood0 Coordinate: Initial coordinate.
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+
+        Returns:
+            npt.NDArray[np.floating]: Dispersion array of shape (4, N).
+            npt.NDArray[np.floating]: Longitudinal positions [m].
+        '''
+        tmat, s = self.transfer_matrix_array(ds=ds, endpoint=endpoint)
+        tmat_drift, _ = Drift.transfer_matrix_array_from_length(self.length, ds=ds, endpoint=endpoint)
+        disp = np.matmul(tmat - tmat_drift, cood0.vector).T
+        return disp, s

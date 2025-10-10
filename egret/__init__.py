@@ -38,6 +38,6 @@ from .readring import read_ring
 from .coordinate import Coordinate
 from .coordinatearray import CoordinateArray
 from .envelope import Envelope
+from .envelopearray import EnvelopeArray
 from .dispersion import Dispersion
-
-from .betafunc import BetaFunc
+from .dispersionarray import DispersionArray

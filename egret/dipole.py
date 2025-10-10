@@ -150,7 +150,7 @@ class Dipole(Element):
         '''
         rho = self.radius
         phi = self.angle
-        tmat = self.transfer_matrix() - Drift.transfer_matrix(self.length)
+        tmat = self.transfer_matrix() - Drift.transfer_matrix_from_length(self.length)
         if self.k1 == 0.: # simple dipole
             disp = np.array([rho*(1.-np.cos(phi)), np.sin(phi), 0., 0.]) + np.dot(tmat, cood0.vector)
         else: # combined-function dipole
@@ -180,7 +180,7 @@ class Dipole(Element):
         phi = np.linspace(0., self.angle, int(self.length//ds) + int(endpoint) + 1, endpoint)
         rho = self.radius
         tmat = self.transfer_matrix_array(ds=ds, endpoint=endpoint)[0] \
-            - Drift.transfer_matrix_array(self.length, ds=ds, endpoint=endpoint)[0]
+            - Drift.transfer_matrix_array_from_length(self.length, ds=ds, endpoint=endpoint)[0]
         if self.k1 == 0.: # simple dipole
             disp = np.array([rho*(1.-np.cos(phi)), np.sin(phi), np.zeros_like(phi), np.zeros_like(phi)]) \
                 + np.matmul(tmat, cood0.vector).T

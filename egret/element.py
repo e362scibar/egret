@@ -25,7 +25,6 @@ from .envelope import Envelope
 from .envelopearray import EnvelopeArray
 from .dispersion import Dispersion
 from .dispersionarray import DispersionArray
-from .betafunc import BetaFunc
 
 import numpy as np
 import numpy.typing as npt
@@ -86,7 +85,8 @@ class Element(Object):
         s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
         return np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0), s
 
-    def envelop_transfer_matrix(self, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+    @classmethod
+    def envelope_transfer_matrix(cls, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
         '''
         Compute the transformation matrix for the beam envelope from the 4x4 transfer matrix.
 
@@ -113,7 +113,8 @@ class Element(Object):
                                     [Cpy**2, -2.*Cpy*Spy, Spy**2]])
         return tmatb
 
-    def envelop_transfer_matrix_array(self, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+    @classmethod
+    def envelope_transfer_matrix_array(cls, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
         '''
         Compute the transformation matrix array for the beam envelope from the 4x4 transfer matrix array.
 
@@ -190,8 +191,8 @@ class Element(Object):
         cood1 = Coordinate(cood[0], cood[1], cood[2], cood[3],
                            cood0['s'] + self.length, cood0['z'], cood0['delta'])
         if evlp0 is not None:
-            evlp = np.dot(self.envelop_transfer_matrix(tmat), evlp0.vector)
-            evlp1 = Envelope(evlp[0], evlp[1], evlp[2], evlp[3], cood0['s'] + self.length)
+            evlp = np.dot(self.envelope_transfer_matrix(tmat), evlp0.vector)
+            evlp1 = Envelope(evlp[0], evlp[1], evlp[3], evlp[4], cood0['s'] + self.length)
         else:
             evlp1 = None
         if disp0 is not None:
@@ -220,7 +221,7 @@ class Element(Object):
         cood1 = CoordinateArray(cood[:, 0], cood[:, 1], cood[:, 2], cood[:, 3], s + cood0['s'],
                                 np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
         if evlp0 is not None:
-            tmatb = self.envelop_transfer_matrix_array(tmat)
+            tmatb = self.envelope_transfer_matrix_array(tmat)
             evlp = np.matmul(tmatb, evlp0.vector)
             evlp1 = EnvelopeArray(evlp[:, 0], evlp[:, 1], evlp[:, 3], evlp[:, 4], s + cood0['s'])
         else:
@@ -233,15 +234,16 @@ class Element(Object):
             disp1 = None
         return cood1, evlp1, disp1
 
-    def radiation_integrals(self, beta0: BetaFunc, eta0: npt.NDArray[np.floating], ds: float = 0.1) \
+    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
         -> Tuple[float, float, float]:
         '''
         Calculate radiation integrals.
 
         Args:
-            beta0 BetaFunc: Initial Twiss parameters.
-            eta0 npt.NDArray[np.floating]: Initial dispersion [eta_x, eta_x', eta_y, eta_y'].
-            ds float: Step size for numerical integration.
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial envelope.
+            disp0 Dispersion: Initial dispersion.
+            ds float: Maximum step size [m].
 
         Returns:
             float, float, float: Radiation integrals I2, I4, and I5.

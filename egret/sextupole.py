@@ -19,6 +19,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .element import Element
+from .coordinate import Coordinate
+from .drift import Drift
 
 import numpy as np
 import numpy.typing as npt
@@ -45,32 +47,33 @@ class Sextupole(Element):
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k2 = k2
-        self.update()
-    
-    def update(self):
+
+    def transfer_matrix(self, cood0: Coordinate):
         '''
-        Update transfer matrix and dispersion.
+        Transfer matrix of the sextupole.
+
+        Args:
+            cood0 Coordinate: Initial coordinate
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
         # temporarily set to drift
-        self.tmat[0, 1] = self.length
-        self.tmat[2, 3] = self.length
+        return Drift.transfer_matrix_from_length(self.length)
 
-    def tmatarray(self, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
 
         Args:
+            cood0 Coordinate: Initial coordinate
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-        
+
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
-            npt.NDArray[np.floating]: Longitudinal positions [m].
+            npt.NDArray[np.floating]: Longitudinal position array of shape (N,).
         '''
         # temporarily set to drift
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
-        tmat = np.repeat(self.tmat[np.newaxis, :, :], len(s), axis=0)
-        tmat[:, 0, 1] = s
-        tmat[:, 2, 3] = s
-        return tmat, s
+        return Drift.transfer_matrix_array_from_length(self.length, ds, endpoint)
