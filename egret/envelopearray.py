@@ -1,4 +1,4 @@
-# envelope.py
+# envelopearray.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -21,46 +21,47 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
-class Envelope:
+class EnvelopeArray:
     '''
-    Beam envelope object.
+    Beam envelope array.
     '''
     index = {'bx': 0, 'ax': 1, 'gx': 2, 'by': 3, 'ay': 4, 'gy': 5}
 
-    def __init__(self, bx: float = 1., ax: float = 0., by: float = 1., ay: float = 0., s: float = 0.):
-        '''
-        Args:
-            bx float: Horizontal beta function [m].
-            ax float: Horizontal alpha function.
-            by float: Vertical beta function [m].
-            ay float: Vertical alpha function.
-            s float: Longitudinal position [m].
-        '''
+    def __init__(self, bx: npt.NDArray[np.floating], ax: npt.NDArray[np.floating],
+                 by: npt.NDArray[np.floating], ay: npt.NDArray[np.floating], s: npt.NDArray[np.floating]):
         gx = (1. + ax**2) / bx
         gy = (1. + ay**2) / by
         self.vector = np.array([bx, ax, gx, by, ay, gy])
-        self.s = s
+        self.s = s.copy()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> npt.NDArray[np.floating]:
         '''
-        Get beta function value by key.
+        Get beam envelope value by key.
 
         Args:
-            key str: Key of the beta function. 'bx', 'ax', 'gx', 'by', 'ay', or 'gy'.
+            key str: Key of the coordinate. 'bx', 'ax', 'gx', 'by', 'ay', 'gy', or 's'.
 
         Returns:
-            float: Value of the beta function corresponding to the key.
+            NDArray: Value of the coordinate corresponding to the key.
         '''
-        return self.vector[self.index[key]]
+        try:
+            return self.vector[self.index[key]]
+        except KeyError:
+            match key:
+                case 's':
+                    return self.s
+                case _:
+                    raise KeyError(f'Invalid key: {key}')
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: float) -> None:
         '''
-        Set beta function value by key.
+        Set coordinate value by key.
 
         Args:
-            key str: Key of the beta function. 'bx', 'ax', 'gx', 'by', 'ay', or 'gy'.
-            value float: Value to set.
+            key str: Key of the coordinate. 'bx', 'ax', 'gx', 'by', 'ay', 'gy', or 's'.
+            value NDArray: Value to set.
         '''
         try:
             self.vector[self.index[key]] = value
@@ -86,11 +87,19 @@ class Envelope:
             case _:
                 pass
 
-    def copy(self) -> Envelope:
+    def copy(self) -> EnvelopeArray:
         '''
-        Create a copy of the envelope.
-
         Returns:
-            Envelope: A copy of the envelope object.
+            EnvelopeArray: A copy of the envelope array object.
         '''
-        return Envelope(self.vector[0], self.vector[1], self.vector[3], self.vector[4], self.s)
+        return EnvelopeArray(self.vector[0], self.vector[1], self.vector[3], self.vector[4], self.s)
+
+    def append(self, evlp: EnvelopeArray) -> None:
+        '''
+        Append another envelope array to this one.
+
+        Args:
+            evlp EnvelopeArray: Another envelope array to append.
+        '''
+        self.vector = np.hstack((self.vector, evlp.vector))
+        self.s = np.hstack((self.s, evlp.s))

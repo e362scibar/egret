@@ -20,7 +20,6 @@
 
 from .element import Element
 from .coordinate import Coordinate
-from .coordinatearray import CoordinateArray
 
 import numpy as np
 import numpy.typing as npt
@@ -81,28 +80,39 @@ class Drift(Element):
         tmat[:, 2, 3] = s
         return tmat, s
 
-    def coordinate_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
-        -> CoordinateArray:
-        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
-        cood = np.matmul(tmat, cood0.vector)
-        return CoordinateArray(cood[:, 0], cood[:, 1], cood[:, 2], cood[:, 3],
-                               s + cood0['s'],
-                               np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
+    @classmethod
+    def transfer_matrix(cls, length: float) -> npt.NDArray[np.floating]:
+        '''
+        Transfer matrix of the drift space.
 
-    def tmatarray(self, ds: float = 0.01, endpoint: bool = False) -> npt.NDArray[np.floating]:
+        Args:
+            length float: Length of the drift space [m].
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix.
+        '''
+        tmat = np.eye(4)
+        tmat[0, 1] = length
+        tmat[2, 3] = length
+        return tmat
+
+    @classmethod
+    def transfer_matrix_array(cls, length: float, ds: float = 0.01, endpoint: bool = False) \
+        -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the drift space.
 
         Args:
-            ds float: Step size [m].
+            length float: Length of the drift space [m].
+            ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            tmat npt.NDArray[np.floating]: Transfer matrix array.
-            s npt.NDArray[np.floating]: Longitudinal positions [m].
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
+            npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
-        tmat = np.repeat(self.tmat[np.newaxis, :, :], len(s), axis=0)
+        s = np.linspace(0., length, int(length//ds) + int(endpoint) + 1, endpoint)
+        tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
         tmat[:, 0, 1] = s
         tmat[:, 2, 3] = s
         return tmat, s

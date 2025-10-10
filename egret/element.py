@@ -21,6 +21,10 @@
 from .object import Object
 from .coordinate import Coordinate
 from .coordinatearray import CoordinateArray
+from .envelope import Envelope
+from .envelopearray import EnvelopeArray
+from .dispersion import Dispersion
+from .dispersionarray import DispersionArray
 from .betafunc import BetaFunc
 
 import numpy as np
@@ -30,7 +34,7 @@ from typing import Tuple
 class Element(Object):
     '''
     Base class of an accelerator element.
-    ''' 
+    '''
 
     def __init__(self, name: str, length: float,
                  dx: float = 0., dy: float = 0., ds: float = 0.,
@@ -56,10 +60,10 @@ class Element(Object):
     def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
-        
+
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
-            
+
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
@@ -69,12 +73,12 @@ class Element(Object):
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
-        
+
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-        
+
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
@@ -82,64 +86,152 @@ class Element(Object):
         s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
         return np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0), s
 
-    def coordinate_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
-        -> CoordinateArray:
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
-        return CoordinateArray(np.full_like(s, cood0['x']), np.full_like(s, cood0['xp']),
-                               np.full_like(s, cood0['y']), np.full_like(s, cood0['yp']),
-                               s + cood0['s'],
-                               np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
-
-    def betafunc(self, b0: BetaFunc, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
-        -> BetaFunc:
+    def envelop_transfer_matrix(self, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
         '''
-        Calculate Twiss parameters along the element.
-        
+        Compute the transformation matrix for the beam envelope from the 4x4 transfer matrix.
+
         Args:
-            b0 BetaFunc: Initial Twiss parameters.
-            ds float: Maximum step size [m].
-            endpoint bool: If True, include the endpoint.
-            
-        Returns:
-            BetaFunc: Twiss parameters along the element.
-        '''
-        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
-        return b0.transfer(tmat, s)
+            tmat (npt.NDArray[np.floating]): 4x4 transfer matrix.
 
-    def dispersion(self, ds: float = 0.01, endpoint: bool = False) \
+        Returns:
+            npt.NDArray[np.floating]: 6x6 transformation matrix for the beam envelope.
+        '''
+        Cx = tmat[0, 0]
+        Sx = tmat[0, 1]
+        Cpx = tmat[1, 0]
+        Spx = tmat[1, 1]
+        Cy = tmat[2, 2]
+        Sy = tmat[2, 3]
+        Cpy = tmat[3, 2]
+        Spy = tmat[3, 3]
+        tmatb = np.zeros((6, 6))
+        tmatb[0:3, 0:3] = np.array([[Cx**2, -2.*Cx*Sx, Sx**2],
+                                    [-Cx*Cpx, Cx*Spx+Cpx*Sx, -Sx*Spx],
+                                    [Cpx**2, -2.*Cpx*Spx, Spx**2]])
+        tmatb[3:6, 3:6] = np.array([[Cy**2, -2.*Cy*Sy, Sy**2],
+                                    [-Cy*Cpy, Cy*Spy+Cpy*Sy, -Sy*Spy],
+                                    [Cpy**2, -2.*Cpy*Spy, Spy**2]])
+        return tmatb
+
+    def envelop_transfer_matrix_array(self, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+        '''
+        Compute the transformation matrix array for the beam envelope from the 4x4 transfer matrix array.
+
+        Args:
+            tmat npt.NDArray[np.floating]: Nx4x4 transfer matrix.
+
+        Returns:
+            npt.NDArray[np.floating]: Nx6x6 transformation matrix array for the beam envelope.
+        '''
+        Cx = tmat[:, 0, 0]
+        Sx = tmat[:, 0, 1]
+        Cpx = tmat[:, 1, 0]
+        Spx = tmat[:, 1, 1]
+        Cy = tmat[:, 2, 2]
+        Sy = tmat[:, 2, 3]
+        Cpy = tmat[:, 3, 2]
+        Spy = tmat[:, 3, 3]
+        tmatb = np.zeros((tmat.shape[0], 6, 6))
+        tmatb[:, 0:3, 0:3] = np.moveaxis(np.array([[Cx**2, -2.*Cx*Sx, Sx**2],
+                                                   [-Cx*Cpx, Cx*Spx+Cpx*Sx, -Sx*Spx],
+                                                   [Cpx**2, -2.*Cpx*Spx, Spx**2]]), 2, 0)
+        tmatb[:, 3:6, 3:6] = np.moveaxis(np.array([[Cy**2, -2.*Cy*Sy, Sy**2],
+                                                   [-Cy*Cpy, Cy*Spy+Cpy*Sy, -Sy*Spy],
+                                                   [Cpy**2, -2.*Cpy*Spy, Spy**2]]), 2, 0)
+        return tmatb
+
+    def dispersion(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
+        '''
+        Additive dispersion vector of the element.
+
+        Args:
+            cood0 Coordinate: Initial coordinate (not used in the base class).
+
+        Returns:
+            npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
+        '''
+        return np.zeros(4)
+
+    def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
-        Dispersion function along the element.
-        
+        Additive dispersion array along the element.
+
         Args:
+            cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-        
+
         Returns:
-            npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
+            npt.NDArray[np.floating]: Dispersion array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         n = int(self.length//ds) + int(endpoint) + 1
         s = np.linspace(0., self.length, n, endpoint)
         return np.zeros((4, n)), s
 
-    def etafunc(self, eta0: npt.NDArray[np.floating], ds: float = 0.01, endpoint: bool = False) \
-        -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None) \
+        -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
-        Calculate the dispersion function along the element.
-        
+        Calculate the coordinate, envelope, and dispersion after the element.
+
         Args:
-            eta0 npt.NDArray[np.floating]: Initial dispersion [eta_x, eta_x', eta_y, eta_y'].
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+
+        Returns:
+            Coordinate: Coordinate after the element.
+            Envelope: Beam envelope after the element (if evlp0 is provided).
+            Dispersion: Dispersion after the element (if disp0 is provided).
+        '''
+        tmat = self.transfer_matrix(cood0)
+        cood = np.dot(tmat, cood0.vector)
+        cood1 = Coordinate(cood[0], cood[1], cood[2], cood[3],
+                           cood0['s'] + self.length, cood0['z'], cood0['delta'])
+        if evlp0 is not None:
+            evlp = np.dot(self.envelop_transfer_matrix(tmat), evlp0.vector)
+            evlp1 = Envelope(evlp[0], evlp[1], evlp[2], evlp[3], cood0['s'] + self.length)
+        else:
+            evlp1 = None
+        if disp0 is not None:
+            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0)
+            disp1 = Dispersion(disp[0], disp[1], disp[2], disp[3], cood0['s'] + self.length)
+        else:
+            disp1 = None
+        return cood1, evlp1, disp1
+
+    def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
+                       ds: float = 0.01, endpoint: bool = False) \
+        -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
+        '''
+        Calculate the coordinate array along the element.
+
+        Args:
+            cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
-            npt.NDArray[np.floating]: Longitudinal positions [m].
+            CoordinateArray: Coordinate array along the element.
         '''
-        disp, s = self.dispersion(ds, endpoint)
-        tmat, _ = self.tmatarray(ds, endpoint)
-        return np.matmul(tmat, eta0).T + disp, s
+        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
+        cood = np.matmul(tmat, cood0.vector)
+        cood1 = CoordinateArray(cood[:, 0], cood[:, 1], cood[:, 2], cood[:, 3], s + cood0['s'],
+                                np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
+        if evlp0 is not None:
+            tmatb = self.envelop_transfer_matrix_array(tmat)
+            evlp = np.matmul(tmatb, evlp0.vector)
+            evlp1 = EnvelopeArray(evlp[:, 0], evlp[:, 1], evlp[:, 3], evlp[:, 4], s + cood0['s'])
+        else:
+            evlp1 = None
+        if disp0 is not None:
+            disp_add, _ = self.dispersion_array(cood0, ds, endpoint)
+            disp = np.matmul(tmat, disp0.vector) + disp_add.T
+            disp1 = DispersionArray(disp[:, 0], disp[:, 1], disp[:, 2], disp[:, 3], s + cood0['s'])
+        else:
+            disp1 = None
+        return cood1, evlp1, disp1
 
     def radiation_integrals(self, beta0: BetaFunc, eta0: npt.NDArray[np.floating], ds: float = 0.1) \
         -> Tuple[float, float, float]:

@@ -19,6 +19,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .element import Element
+from .coordinate import Coordinate
+from .drift import Drift
 
 import numpy as np
 import numpy.typing as npt
@@ -45,38 +47,46 @@ class Quadrupole(Element):
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k1 = k1
-        self.update()
 
-    def update(self):
+    def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
         '''
-        Update transfer matrix.
+        Transfer matrix of the quadrupole.
+
+        Args:
+            cood0 Coordinate: Initial coordinate. (Not used in the Quadrupole class.)
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
         k = np.abs(self.k1)
-        psi = np.sqrt(k) * self.length
+        tmat = np.eye(4)
         if k == 0.: # drift
-            self.tmat[0, 1] = self.length
-            self.tmat[2, 3] = self.length
-            return
+            tmat[0, 1] = self.length
+            tmat[2, 3] = self.length
+            return tmat
+        psi = np.sqrt(k) * self.length
         mf = np.array([[np.cos(psi), np.sin(psi)/np.sqrt(k)],
                        [-np.sqrt(k)*np.sin(psi), np.cos(psi)]])
         md = np.array([[np.cosh(psi), np.sinh(psi)/np.sqrt(k)],
                        [np.sqrt(k)*np.sinh(psi), np.cosh(psi)]])
         if self.k1 < 0.: # defocusing quadrupole
-            self.tmat[0:2, 0:2] = md
-            self.tmat[2:4, 2:4] = mf
+            tmat[0:2, 0:2] = md
+            tmat[2:4, 2:4] = mf
         else: # focusing quadrupole
-            self.tmat[0:2, 0:2] = mf
-            self.tmat[2:4, 2:4] = md
+            tmat[0:2, 0:2] = mf
+            tmat[2:4, 2:4] = md
+        return tmat
 
-    def tmatarray(self, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the quadrupole.
-        
+
         Args:
+            cood0 Coordinate: Initial coordinate. (Not used in the Quadrupole class.)
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-        
+
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
@@ -100,3 +110,16 @@ class Quadrupole(Element):
             tmat[:, 0:2, 0:2] = mf
             tmat[:, 2:4, 2:4] = md
         return tmat, s
+
+    def dispersion(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
+        '''
+        Additive dispersion vector of the quadrupole.
+
+        Args:
+            cood0 Coordinate: Initial coordinate.
+
+        Returns:
+            npt.NDArray[np.floating]: 4-element dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
+        '''
+        tmat = self.transfer_matrix() - Drift.transfer_matrix(self.length)
+        return np.zeros(4)

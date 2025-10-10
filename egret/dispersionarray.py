@@ -1,4 +1,4 @@
-# coordinatearray.py
+# dispersionarray.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -23,16 +23,14 @@ from __future__ import annotations
 import numpy as np
 import numpy.typing as npt
 
-class CoordinateArray:
+class DispersionArray:
     '''
-    Phase-space coordinate array.
+    Energy dispersion array.
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
     def __init__(self, x: npt.NDArray[np.floating], xp: npt.NDArray[np.floating],
-                 y: npt.NDArray[np.floating], yp: npt.NDArray[np.floating],
-                 s: npt.NDArray[np.floating],
-                 z: npt.NDArray[np.floating] = None, delta: npt.NDArray[np.floating] = None):
+                 y: npt.NDArray[np.floating], yp: npt.NDArray[np.floating], s: npt.NDArray[np.floating]):
         '''
         Args:
             x NDArray: Horizontal position [m].
@@ -40,26 +38,16 @@ class CoordinateArray:
             y NDArray: Vertical position [m].
             yp NDArray: Vertical angle [rad].
             s NDArray: Longitudinal position along the reference orbit [m].
-            z NDArray: Longitudinal displacement [m].
-            delta NDArray: Relative momentum deviation.
         '''
         self.vector = np.array([x, xp, y, yp])
         self.s = s.copy()
-        if z is None:
-            self.z = np.zeros_like(s)
-        else:
-            self.z = z.copy()
-        if delta is None:
-            self.delta = np.zeros_like(s)
-        else:
-            self.delta = delta.copy()
 
     def __getitem__(self, key: str) -> float:
         '''
         Get coordinate value by key.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
+            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
 
         Returns:
             NDArray: Value of the coordinate corresponding to the key.
@@ -70,10 +58,6 @@ class CoordinateArray:
             match key:
                 case 's':
                     return self.s
-                case 'z':
-                    return self.z
-                case 'delta':
-                    return self.delta
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
@@ -82,7 +66,7 @@ class CoordinateArray:
         Set coordinate value by key.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
+            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
             value NDArray: Value to set.
         '''
         try:
@@ -91,29 +75,22 @@ class CoordinateArray:
             match key:
                 case 's':
                     self.s = value
-                case 'z':
-                    self.z = value
-                case 'delta':
-                    self.delta = value
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
-    def copy(self) -> CoordinateArray:
+    def copy(self) -> DispersionArray:
         '''
         Returns:
-            CoordinateArray: A copy of the coordinate array object.
+            DispersionArray: A copy of the dispersion array object.
         '''
-        return CoordinateArray(self.vector[0], self.vector[1], self.vector[2], self.vector[3],
-                               self.s, self.z, self.delta)
+        return DispersionArray(self.vector[0], self.vector[1], self.vector[2], self.vector[3], self.s)
 
-    def append(self, cood: CoordinateArray) -> None:
+    def append(self, disp: DispersionArray):
         '''
-        Append another coordinate array to this one.
+        Append another dispersion array to this one.
 
         Args:
-            cood CoordinateArray: Coordinate array to append.
+            disp DispersionArray: Another dispersion array to append.
         '''
-        self.vector = np.hstack((self.vector, cood.vector))
-        self.s = np.hstack((self.s, cood.s))
-        self.z = np.hstack((self.z, cood.z))
-        self.delta = np.hstack((self.delta, cood.delta))
+        self.vector = np.hstack((self.vector, disp.vector))
+        self.s = np.hstack((self.s, disp.s))
