@@ -52,7 +52,14 @@ class Envelope:
         Returns:
             float: Value of the beta function corresponding to the key.
         '''
-        return self.vector[self.index[key]]
+        try:
+            return self.vector[self.index[key]]
+        except KeyError:
+            match key:
+                case 's':
+                    return self.s
+                case _:
+                    raise KeyError(f'Invalid key: {key}')
 
     def __setitem__(self, key, value):
         '''

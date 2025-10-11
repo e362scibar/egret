@@ -93,6 +93,88 @@ class Ring(Element):
         self.Jy = 1.
         self.Jz = 2. + self.I4 / self.I2
 
+    def get_element(self, key: int | Tuple[int, ...]) -> Element:
+        '''
+        Get element by index or tuple of indices.
+
+        Args:
+            key int or tuple of int: Index or tuple of indices.
+
+        Returns:
+            Element: Element at the specified index.
+        '''
+        if isinstance(key, int):
+            return self.elements[key]
+        elif isinstance(key, tuple):
+            if not isinstance(key[0], int):
+                raise TypeError('Index must be int or tuple of int.')
+            if len(key) > 1 and hasattr(self.elements[key[0]], 'elements'):
+                return self.elements[key[0]].get_element(key[1:])
+            else:
+                return self.elements[key[0]]
+        else:
+            raise TypeError('Index must be int or tuple of int.')
+
+    def get_s(self, key: int | Tuple[int, ...]) -> float:
+        '''
+        Get longitudinal position by index or tuple of indices.
+
+        Args:
+            key int or tuple of int: Index or tuple of indices.
+
+        Returns:
+            float: Longitudinal position [m].
+        '''
+        if isinstance(key, int):
+            if key < 0 or key >= len(self.elements):
+                raise IndexError('Index out of range.')
+            s = 0.
+            for i in range(key):
+                s += self.elements[i].length
+            return s
+        elif isinstance(key, tuple):
+            if not isinstance(key[0], int):
+                raise TypeError('Index must be int or tuple of int.')
+            if key[0] < 0 or key[0] >= len(self.elements):
+                raise IndexError('Index out of range.')
+            s = 0.
+            for i in range(key[0]):
+                s += self.elements[i].length
+            if len(key) > 1 and hasattr(self.elements[key[0]], 'elements'):
+                s += self.elements[key[0]].get_s(key[1:])
+            return s
+        else:
+            raise TypeError('Index must be int or tuple of int.')
+
+    def find_index(self, name: str | Tuple[str, ...]) -> Tuple[int, ...]:
+        '''
+        Find indices of elements starting with a given name.
+
+        Args:
+            name str | tuple of str: Name of the element.
+
+        Returns:
+            tuple of int: Tuple of indices of the element.
+        '''
+        index_list = []
+        for i,elem in enumerate(self.elements):
+            if hasattr(elem, 'elements'):
+                try:
+                    sub_index_list = elem.find_index(name)
+                    index_list += [((i,) + idx) for idx in sub_index_list]
+                except KeyError:
+                    continue
+            elif isinstance(name, str) and elem.name.startswith(name):
+                index_list.append((i,))
+            elif isinstance(name, tuple):
+                for n in name:
+                    if elem.name.startswith(n):
+                        index_list.append((i,))
+                        break
+        if len(index_list) == 0:
+            raise KeyError(f'Element starting with name {name} not found.')
+        return index_list
+
     def transfer_matrix(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the ring.

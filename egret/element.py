@@ -68,7 +68,7 @@ class Element(Object):
         '''
         return np.eye(4)
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = True) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
@@ -186,24 +186,41 @@ class Element(Object):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        tmat = self.transfer_matrix(cood0)
-        cood = np.dot(tmat, cood0.vector)
-        cood1 = Coordinate(cood[0], cood[1], cood[2], cood[3],
-                           cood0['s'] + self.length, cood0['z'], cood0['delta'])
-        if evlp0 is not None:
-            evlp = np.dot(self.envelope_transfer_matrix(tmat), evlp0.vector)
-            evlp1 = Envelope(evlp[0], evlp[1], evlp[3], evlp[4], cood0['s'] + self.length)
+        if self.dx != 0. or self.dy != 0.:
+            print(f'transfer: Element: {self.name}: dx={self.dx}, dy={self.dy}.')
+            print(self.transfer_matrix())
+        cood0err = Coordinate(cood0['x'] - self.dx, cood0['xp'],
+                              cood0['y'] - self.dy, cood0['yp'],
+                              cood0['s'] - self.ds, cood0['z'], cood0['delta'])
+        if hasattr(self, 'elements'):
+            cood = cood0err
+            evlp = evlp0.copy() if evlp0 is not None else None
+            disp = disp0.copy() if disp0 is not None else None
+            for elem in self.elements:
+                cood, evlp, disp = elem.transfer(cood, evlp, disp)
+            cood1 = Coordinate(cood['x'] + self.dx, cood['xp'],
+                               cood['y'] + self.dy, cood['yp'],
+                               cood['s'] + self.ds, cood['z'], cood['delta'])
+            disp1, evlp1 = disp, evlp
         else:
-            evlp1 = None
-        if disp0 is not None:
-            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0)
-            disp1 = Dispersion(disp[0], disp[1], disp[2], disp[3], cood0['s'] + self.length)
-        else:
-            disp1 = None
+            tmat = self.transfer_matrix(cood0err)
+            cood = np.dot(tmat, cood0err.vector)
+            cood1 = Coordinate(cood[0] + self.dx, cood[1], cood[2] + self.dy, cood[3],
+                               cood0['s'] + self.length, cood0['z'], cood0['delta'])
+            if evlp0 is not None:
+                evlp = np.dot(self.envelope_transfer_matrix(tmat), evlp0.vector)
+                evlp1 = Envelope(evlp[0], evlp[1], evlp[3], evlp[4], cood0['s'] + self.length)
+            else:
+                evlp1 = None
+            if disp0 is not None:
+                disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err)
+                disp1 = Dispersion(disp[0], disp[1], disp[2], disp[3], cood0['s'] + self.length)
+            else:
+                disp1 = None
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.01, endpoint: bool = False) \
+                       ds: float = 0.01, endpoint: bool = True) \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate array along the element.
@@ -216,22 +233,67 @@ class Element(Object):
         Returns:
             CoordinateArray: Coordinate array along the element.
         '''
-        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
-        cood = np.matmul(tmat, cood0.vector)
-        cood1 = CoordinateArray(cood[:, 0], cood[:, 1], cood[:, 2], cood[:, 3], s + cood0['s'],
-                                np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
-        if evlp0 is not None:
-            tmatb = self.envelope_transfer_matrix_array(tmat)
-            evlp = np.matmul(tmatb, evlp0.vector)
-            evlp1 = EnvelopeArray(evlp[:, 0], evlp[:, 1], evlp[:, 3], evlp[:, 4], s + cood0['s'])
+        if self.dx != 0. or self.dy != 0.:
+            print(f'transfer_array: Element: {self.name}: dx={self.dx}, dy={self.dy}.')
+            print(self.transfer_matrix())
+        cood0err = Coordinate(cood0['x'] - self.dx, cood0['xp'],
+                              cood0['y'] - self.dy, cood0['yp'],
+                              cood0['s'] - self.ds, cood0['z'], cood0['delta'])
+        if hasattr(self, 'elements'):
+            cood = cood0err
+            evlp = evlp0.copy() if evlp0 is not None else None
+            disp = disp0.copy() if disp0 is not None else None
+            cood1, evlp1, disp1 = None, None, None
+            for elem in self.elements:
+                coodarray, evlparray, disparray = elem.transfer_array(cood, evlp, disp, ds, False)
+                if cood1 is None:
+                    cood1 = coodarray
+                else:
+                    cood1.append(coodarray)
+                if evlp0 is not None:
+                    if evlp1 is None:
+                        evlp1 = evlparray
+                    else:
+                        evlp1.append(evlparray)
+                if disp0 is not None:
+                    if disp1 is None:
+                        disp1 = disparray
+                    else:
+                        disp1.append(disparray)
+                cood, evlp, disp = elem.transfer(cood, evlp, disp)
+            cood1 = CoordinateArray(cood1['x'] + self.dx, cood1['xp'],
+                                    cood1['y'] + self.dy, cood1['yp'],
+                                    cood1['s'] + self.ds, cood1['z'], cood1['delta'])
+            if endpoint:
+                cood1.append(CoordinateArray(np.array([cood['x'] + self.dx]), np.array([cood['xp']]),
+                                             np.array([cood['y'] + self.dy]), np.array([cood['yp']]),
+                                             np.array([cood0['s'] + self.length]),
+                                             np.array([cood0['z']]), np.array([cood0['delta']])))
+                if evlp0 is not None:
+                    evlp1.append(EnvelopeArray(np.array([evlp['bx']]), np.array([evlp['ax']]),
+                                               np.array([evlp['by']]), np.array([evlp['ay']]),
+                                               np.array([evlp0['s'] + self.length])))
+                if disp0 is not None:
+                    disp1.append(DispersionArray(np.array([disp['x']]), np.array([disp['xp']]),
+                                                 np.array([disp['y']]), np.array([disp['yp']]),
+                                                 np.array([disp0['s'] + self.length])))
         else:
-            evlp1 = None
-        if disp0 is not None:
-            disp_add, _ = self.dispersion_array(cood0, ds, endpoint)
-            disp = np.matmul(tmat, disp0.vector) + disp_add.T
-            disp1 = DispersionArray(disp[:, 0], disp[:, 1], disp[:, 2], disp[:, 3], s + cood0['s'])
-        else:
-            disp1 = None
+            tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint)
+            cood = np.matmul(tmat, cood0err.vector)
+            cood1 = CoordinateArray(cood[:, 0] + self.dx, cood[:, 1], cood[:, 2] + self.dy, cood[:, 3], s + cood0['s'],
+                                    np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
+            if evlp0 is not None:
+                tmatb = self.envelope_transfer_matrix_array(tmat)
+                evlp = np.matmul(tmatb, evlp0.vector)
+                evlp1 = EnvelopeArray(evlp[:, 0], evlp[:, 1], evlp[:, 3], evlp[:, 4], s + cood0['s'])
+            else:
+                evlp1 = None
+            if disp0 is not None:
+                disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
+                disp = np.matmul(tmat, disp0.vector) + disp_add.T
+                disp1 = DispersionArray(disp[:, 0], disp[:, 1], disp[:, 2], disp[:, 3], s + cood0['s'])
+            else:
+                disp1 = None
         return cood1, evlp1, disp1
 
     def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
