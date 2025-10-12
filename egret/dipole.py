@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .element import Element
 from .coordinate import Coordinate
 from .coordinatearray import CoordinateArray
@@ -65,6 +67,17 @@ class Dipole(Element):
         self.e2 = e2
         self.h1 = h1
         self.h2 = h2
+
+    def copy(self) -> Dipole:
+        '''
+        Return a copy of the dipole element.
+
+        Returns:
+            Dipole: Copied dipole element.
+        '''
+        return Dipole(self.name, self.length, self.angle, self.k1,
+                      self.e1, self.e2, self.h1, self.h2,
+                      self.dx, self.dy, self.ds, self.tilt, self.info)
 
     def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
         '''

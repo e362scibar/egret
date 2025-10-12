@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .element import Element
 from .coordinate import Coordinate
 from .envelope import Envelope
@@ -54,9 +56,20 @@ class Lattice(Element):
         self.elements = copy.deepcopy(elements)
         self.update()
 
+    def copy(self) -> Lattice:
+        '''
+        Return a copy of the lattice.
+
+        Returns:
+            Lattice: Copy of the lattice.
+        '''
+        return Lattice(self.name, self.elements,
+                       self.dx, self.dy, self.ds,
+                       self.tilt, self.info)
+
     def update(self):
         '''
-        Update angle of the lattice.
+        Update bending angle of the lattice.
         '''
         for elem in self.elements:
             try:

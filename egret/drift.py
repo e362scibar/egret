@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .element import Element
 from .coordinate import Coordinate
 
@@ -44,6 +46,15 @@ class Drift(Element):
             info str: Additional information.
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
+
+    def copy(self) -> Drift:
+        '''
+        Return a copy of the element.
+
+        Returns:
+            Drift: A copy of the element.
+        '''
+        return Drift(self.name, self.length, self.dx, self.dy, self.ds, self.tilt, self.info)
 
     def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
         '''

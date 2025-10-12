@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .element import Element
 from .coordinate import Coordinate
 from .envelope import Envelope
@@ -26,6 +28,7 @@ from .dispersion import Dispersion
 import copy
 import numpy as np
 import numpy.typing as npt
+import scipy
 from typing import Tuple, List
 
 class Ring(Element):
@@ -53,6 +56,15 @@ class Ring(Element):
         self.energy = energy
         self.update()
 
+    def copy(self) -> Ring:
+        '''
+        Return a copy of the ring.
+
+        Returns:
+            Ring: Copy of the ring.
+        '''
+        return Ring(self.name, self.elements, self.energy, self.info)
+
     def update(self):
         '''
         Update transfer matrix, dispersion, and emittance.
@@ -62,10 +74,15 @@ class Ring(Element):
                 self.angle += elem.angle
             except AttributeError:
                 pass
-        cood = Coordinate()
-        tmat = self.transfer_matrix(cood)
+        # initial coordinate of closed orbit
+        try:
+            self.cood0 = self.find_initial_coordinate_of_closed_orbit(tol=1.e-7)
+        except RuntimeError as e:
+            print(f'Warning: Failed to find closed orbit. Using zero coordinate. {e}')
+            self.cood0 = Coordinate()
+        tmat = self.transfer_matrix(self.cood0)
         # initial dispersion
-        disp = self.dispersion(cood)
+        disp = self.dispersion(self.cood0)
         disp0 = np.dot(np.linalg.inv(np.eye(4) - tmat), disp)
         self.disp0 = Dispersion(disp0[0], disp0[1], disp0[2], disp0[3], 0.)
         # initial beta function and tune
@@ -87,7 +104,7 @@ class Ring(Element):
         for i in range(2):
             if self.tune[i] < 0.:
                 self.tune[i] += 1.
-        self.I2, self.I4, self.I5 = self.radiation_integrals(cood, self.evlp0, self.disp0)
+        self.I2, self.I4, self.I5 = self.radiation_integrals(self.cood0, self.evlp0, self.disp0)
         self.emittance = self.C_q * (self.energy / self.m_e_eV)**2 * self.I5 / (self.I2 - self.I4)
         self.Jx = 1. - self.I4 / self.I2
         self.Jy = 1.
@@ -301,3 +318,26 @@ class Ring(Element):
             I5 += i5
             cood, evlp, disp = elem.transfer(cood, evlp, disp)
         return I2, I4, I5
+
+    def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = Coordinate(),
+        tol: float = None, maxiter: int = 500) -> Coordinate:
+        '''
+        Find initial coordinate of the closed orbit using Newton-Raphson method.
+
+        Args:
+            guess Coordinate: Initial guess of the coordinate.
+            tol float: Tolerance for convergence.
+            maxiter int: Maximum number of iterations.
+
+        Returns:
+            Coordinate: Initial coordinate of the closed orbit.
+        '''
+        cood = guess.copy()
+        eval_func = lambda x: np.linalg.norm(self.transfer(Coordinate(x[0],x[1],x[2],x[3]))[0].vector - x)
+        result = scipy.optimize.minimize(eval_func, cood.vector, method='Nelder-Mead', tol=tol, options={'maxiter': maxiter})
+        if not result.success:
+            raise RuntimeError('Failed to find closed orbit: ' + result.message)
+        cood = Coordinate(result.x[0], result.x[1], result.x[2], result.x[3])
+        if result.nit == maxiter:
+            raise RuntimeError('Failed to find closed orbit: Maximum number of iterations reached.')
+        return cood

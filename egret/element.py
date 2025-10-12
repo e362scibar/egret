@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .object import Object
 from .coordinate import Coordinate
 from .coordinatearray import CoordinateArray
@@ -55,6 +57,15 @@ class Element(Object):
         self.ds = ds
         self.tilt = tilt
         self.info = info
+
+    def copy(self) -> Element:
+        '''
+        Create a copy of the element.
+
+        Returns:
+            Element: A copy of the element.
+        '''
+        return Element(self.name, self.length, self.dx, self.dy, self.ds, self.tilt, self.info)
 
     def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
         '''
@@ -186,9 +197,6 @@ class Element(Object):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        if self.dx != 0. or self.dy != 0.:
-            print(f'transfer: Element: {self.name}: dx={self.dx}, dy={self.dy}.')
-            print(self.transfer_matrix())
         cood0err = Coordinate(cood0['x'] - self.dx, cood0['xp'],
                               cood0['y'] - self.dy, cood0['yp'],
                               cood0['s'] - self.ds, cood0['z'], cood0['delta'])
@@ -233,9 +241,6 @@ class Element(Object):
         Returns:
             CoordinateArray: Coordinate array along the element.
         '''
-        if self.dx != 0. or self.dy != 0.:
-            print(f'transfer_array: Element: {self.name}: dx={self.dx}, dy={self.dy}.')
-            print(self.transfer_matrix())
         cood0err = Coordinate(cood0['x'] - self.dx, cood0['xp'],
                               cood0['y'] - self.dy, cood0['yp'],
                               cood0['s'] - self.ds, cood0['z'], cood0['delta'])

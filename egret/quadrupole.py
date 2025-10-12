@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .element import Element
 from .coordinate import Coordinate
 from .drift import Drift
@@ -47,6 +49,16 @@ class Quadrupole(Element):
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k1 = k1
+
+    def copy(self) -> Quadrupole:
+        '''
+        Return a copy of the quadrupole element.
+
+        Returns:
+            Quadrupole: Copied quadrupole element.
+        '''
+        return Quadrupole(self.name, self.length, self.k1,
+                          self.dx, self.dy, self.ds, self.tilt, self.info)
 
     def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
         '''

@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .element import Element
 from .coordinate import Coordinate
 from .drift import Drift
@@ -47,6 +49,16 @@ class Octupole(Element):
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k3 = k3
+
+    def copy(self) -> Octupole:
+        '''
+        Return a copy of the octupole.
+
+        Returns:
+            Octupole: Copy of the octupole.
+        '''
+        return Octupole(self.name, self.length, self.k3,
+                        self.dx, self.dy, self.ds, self.tilt, self.info)
 
     def transfer_matrix(self, cood0: Coordinate):
         '''

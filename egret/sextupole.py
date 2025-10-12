@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from .element import Element
 from .coordinate import Coordinate
 from .drift import Drift
@@ -47,6 +49,17 @@ class Sextupole(Element):
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k2 = k2
+
+    def copy(self) -> Sextupole:
+        '''
+        Return a copy of the sextupole.
+
+        Returns:
+            Sextupole: Copy of the sextupole.
+        '''
+        return Sextupole(self.name, self.length, self.k2,
+                         self.dx, self.dy, self.ds,
+                         self.tilt, self.info)
 
     def transfer_matrix(self, cood0: Coordinate):
         '''
