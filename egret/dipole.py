@@ -79,12 +79,13 @@ class Dipole(Element):
                       self.e1, self.e2, self.h1, self.h2,
                       self.dx, self.dy, self.ds, self.tilt, self.info)
 
-    def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the dipole element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the dipole class).
+            ds float: Maximum step size [m] for integration. (not used in the dipole class).
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.

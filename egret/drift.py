@@ -56,12 +56,13 @@ class Drift(Element):
         '''
         return Drift(self.name, self.length, self.dx, self.dy, self.ds, self.tilt, self.info)
 
-    def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the drift class).
+            ds float: Maximum step size [m] for integration. (not used in the drift class).
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.

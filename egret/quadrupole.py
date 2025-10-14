@@ -44,7 +44,7 @@ class Quadrupole(Element):
             dx float: Horizontal offset of the quadrupole [m].
             dy float: Vertical offset of the quadrupole [m].
             ds float: Longitudinal offset of the quadrupole [m].
-            tilt float: Tilt angle of the quadrupole [rad].
+            tilt float: Tilt angle of the quadrupole [rad]. (+pi/4: skew quadrupole)
             info str: Additional information.
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
@@ -60,12 +60,13 @@ class Quadrupole(Element):
         return Quadrupole(self.name, self.length, self.k1,
                           self.dx, self.dy, self.ds, self.tilt, self.info)
 
-    def transfer_matrix(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the quadrupole.
 
         Args:
             cood0 Coordinate: Initial coordinate. (Not used in the Quadrupole class.)
+            ds float: Maximum step size [m] for integration. (Not used in the Quadrupole class.)
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
@@ -87,6 +88,14 @@ class Quadrupole(Element):
         else: # focusing quadrupole
             tmat[0:2, 0:2] = mf
             tmat[2:4, 2:4] = md
+        if self.tilt != 0.:
+            ct = np.cos(self.tilt)
+            st = np.sin(self.tilt)
+            rmat = np.array([[ct, 0., st, 0.],
+                             [0., ct, 0., st],
+                             [-st, 0., ct, 0.],
+                             [0., -st, 0., ct]])
+            tmat = rmat.T @ tmat @ rmat
         return tmat
 
     def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
@@ -121,6 +130,14 @@ class Quadrupole(Element):
         else: # focusing quadrupole
             tmat[:, 0:2, 0:2] = mf
             tmat[:, 2:4, 2:4] = md
+        if self.tilt != 0.:
+            ct = np.cos(self.tilt)
+            st = np.sin(self.tilt)
+            rmat = np.array([[ct, 0., st, 0.],
+                             [0., ct, 0., st],
+                             [-st, 0., ct, 0.],
+                             [0., -st, 0., ct]])
+            tmat = np.einsum('ij,kjl,lm->kim', rmat.T, tmat, rmat)
         return tmat, s
 
     def dispersion(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
