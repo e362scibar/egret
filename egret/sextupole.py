@@ -68,7 +68,7 @@ class Sextupole(Element):
 
     def transfer_matrix(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
-        Transfer matrix of the sextupole calculated by RK4 method.
+        Transfer matrix of the sextupole calculated by midpoint method.
 
         Args:
             cood0 Coordinate: Initial coordinate
@@ -82,49 +82,48 @@ class Sextupole(Element):
         k0x = self.dxp / self.length
         k0y = self.dyp / self.length
         x0, y0, xp0, yp0 = cood0['x'], cood0['y'], cood0['xp'], cood0['yp']
+        tmat = np.eye(4)
         for s in np.arange(0, self.length, s_step):
             # dipole strength at the entrance (x'+jy' = k0 L)
-            k0 = self.k2 * (- 0.5 * (x0**2 - y0**2) + 1.j * x0 * y0) + k0x + 1.j * k0y
+            k0a = self.k2 * (- 0.5 * (x0**2 - y0**2) + 1.j * x0 * y0) + k0x + 1.j * k0y
             # quadrupole strength at the entrance
-            k1 = self.k2 * (x0 - 1.j * y0)
+            k1a = self.k2 * (x0 - 1.j * y0)
+            # tilt angle of the quadrupole
+            tilt = np.angle(k1a) * 0.5
+            # transverse offset to generate dipole kick
+            if np.abs(k1a) < 1.e-20:
+                offset = 0. + 0.j
+            else:
+                offset = np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0a) / np.abs(k1a)
+            # get first quad
+            quad1 = Quadrupole(self.name+'_quad1', s_step, np.abs(k1a), dx=offset.real, dy=offset.imag, tilt=tilt)
+            # get coordinate after first quad
+            cood1, _, _ = quad1.transfer(Coordinate(0., xp0, 0., yp0))
+            x1, y1, xp1, yp1 = cood1['x']+x0, cood1['y']+y0, cood1['xp'], cood1['yp']
+            # dipole strength after the first quad
+            k0b = self.k2 * (- 0.5 * (x1**2 - y1**2) + 1.j * x1 * y1) + k0x + 1.j * k0y
+            # quadrupole strength after the first quad
+            k1b = self.k2 * (x1 - 1.j * y1)
+            # get average dipole strength
+            k0 = 0.5 * (k0a + k0b)
+            # get average quadrupole strength
+            k1 = 0.5 * (k1a + k1b)
             # tilt angle of the quadrupole
             tilt = np.angle(k1) * 0.5
             # transverse offset to generate dipole kick
-            offset = np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
-            # get first quad
-            quad1 = Quadrupole(self.name+'_quad1h', s_step*0.5, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
-            # 1st half step
-            cood1 = quad1.transfer(Coordinate(0., xp0, 0., yp0))
-            # dipole strength at the middle 1
-            x1, y1, xp1, yp1 = cood1['x']+x0, cood1['y']+y0, cood1['xp'], cood1['yp']
-            k0 = self.k2 * (- 0.5 * (x1**2 - y1**2) + 1.j * x1 * y1)
-            k1 = self.k2 * (x1 - 1.j * y1)
-            tilt = np.angle(k1) * 0.5
-            offset = np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
-            quad2 = Quadrupole(self.name+'_quad2', s_step*0.5, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
-            cood2 = quad2.transfer(Coordinate(0., xp0, 0., yp0))
-            # dipole strength at the middle 2
-            x2, y2, xp2, yp2 = cood2['x']+x0, cood2['y']+y0, cood2['xp'], cood2['yp']
-            k0 = self.k2 * (- 0.5 * (x2**2 - y2**2) + 1.j * x2 * y2)
-            k1 = self.k2 * (x2 - 1.j * y2)
-            tilt = np.angle(k1) * 0.5
-            offset = np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
-            quad3 = Quadrupole(self.name+'_quad3', s_step*0.5, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
-            cood3 = quad3.transfer(Coordinate(0., xp2, 0., yp2))
-            # dipole strength at the exit
-            x3, y3, xp3, yp3 = cood3['x']+x0, cood3['y']+y0, cood3['xp'], cood3['yp']
-            k0 = self.k2 * (- 0.5 * (x3**2 - y3**2) + 1.j * x3 * y3)
-            k1 = self.k2 * (x3 - 1.j * y3)
-            tilt = np.angle(k1) * 0.5
-            offset = np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
-            quad4 = Quadrupole(self.name+'_quad4', s_step, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
-            cood4 = quad4.transfer(Coordinate(0., xp3, 0., yp3))
+            if np.abs(k1) < 1.e-20:
+                offset = 0. + 0.j
+            else:
+                offset = np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
+            # get second quad
+            quad2 = Quadrupole(self.name+'_quad2', s_step, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
+            # get coordinate after second quad
+            cood2, _, _ = quad2.transfer(Coordinate(0., xp0, 0., yp0))
             # update for next step
-            x0, y0, xp0, yp0 = cood4['x']+x0, cood4['y']+y0, cood4['xp'], cood4['yp']
-
-
-        # temporarily set to drift
-        return Drift.transfer_matrix_from_length(self.length)
+            x0, y0, xp0, yp0 = cood2['x']+x0, cood2['y']+y0, cood2['xp'], cood2['yp']
+            # update transfer matrix
+            tmat = quad2.transfer_matrix(Coordinate(0., xp0, 0., yp0)) @ tmat
+        return tmat
 
     def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
