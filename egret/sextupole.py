@@ -95,7 +95,7 @@ class Sextupole(Element):
             x1, y1 = x0 + (xp0 - 0.5*k0a.real*ds) * ds, y0 + (yp0 - 0.5*k0a.imag*ds) * ds
         else:
             # transverse offset to generate dipole kick
-            offset = np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0a) / np.abs(k1a)
+            offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0a) / np.abs(k1a)
             # get first quad
             quad1 = Quadrupole(self.name+'_quad1', ds, np.abs(k1a), dx=offset.real, dy=offset.imag, tilt=tilt)
             # get coordinate after first quad
@@ -118,7 +118,7 @@ class Sextupole(Element):
             tmat = Drift.transfer_matrix_from_length(ds)
         else:
             # transverse offset to generate dipole kick
-            offset = np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
+            offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
             # get second quad
             quad2 = Quadrupole(self.name+'_quad2', ds, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
             # get coordinate after second quad
