@@ -150,7 +150,7 @@ class Quadrupole(Element):
         Returns:
             npt.NDArray[np.floating]: 4-element dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
         '''
-        tmat = self.transfer_matrix() - Drift.transfer_matrix_from_length(self.length)
+        tmat = Drift.transfer_matrix_from_length(self.length) - self.transfer_matrix()
         return np.matmul(tmat, cood0.vector)
 
     def dispersion_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
@@ -169,5 +169,5 @@ class Quadrupole(Element):
         '''
         tmat, s = self.transfer_matrix_array(ds=ds, endpoint=endpoint)
         tmat_drift, _ = Drift.transfer_matrix_array_from_length(self.length, ds=ds, endpoint=endpoint)
-        disp = np.matmul(tmat - tmat_drift, cood0.vector).T
+        disp = np.matmul(tmat_drift - tmat, cood0.vector).T
         return disp, s

@@ -183,7 +183,7 @@ class Element(Object):
         s = np.linspace(0., self.length, n, endpoint)
         return np.zeros((4, n)), s
 
-    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None) \
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.01) \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
         Calculate the coordinate, envelope, and dispersion after the element.
@@ -192,6 +192,7 @@ class Element(Object):
             cood0 Coordinate: Initial coordinate.
             evlp0 Envelope: Initial beam envelope (optional).
             disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m] for integration (not used in the base class).
 
         Returns:
             Coordinate: Coordinate after the element.
@@ -241,6 +242,8 @@ class Element(Object):
 
         Returns:
             CoordinateArray: Coordinate array along the element.
+            EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
+            DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
         cood0err = Coordinate(cood0['x'] - self.dx, cood0['xp'],
                               cood0['y'] - self.dy, cood0['yp'],
