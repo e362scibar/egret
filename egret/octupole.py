@@ -42,7 +42,8 @@ class Octupole(Element):
     def __init__(self, name: str, length: float, k3: float,
                  dx: float = 0., dy: float = 0., ds: float = 0.,
                  tilt: float = 0., info: str = '',
-                 dxp: float = 0., dyp: float = 0.):
+                 dxp: float = 0., dyp: float = 0.,
+                 k1: float = 0., tilt_quad: float = 0.) -> None:
         '''
         Args:
             name str: Name of the element.
@@ -55,10 +56,13 @@ class Octupole(Element):
             info str: Additional information.
             dxp float: Horizontal kick angle of the steering coil [rad].
             dyp float: Vertical kick angle of the steering coil [rad].
+            k1 float: Additional quadrupole strength [1/m^2].
+            tilt_quad float: Tilt angle of the additional quadrupole [rad] (pi/4 for skew quad).
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
         self.k3 = k3
-        self.set_steering()
+        self.set_steering(dxp, dyp)
+        self.set_quadrupole(k1, tilt_quad)
 
     def copy(self) -> Octupole:
         '''
@@ -85,9 +89,10 @@ class Octupole(Element):
         '''
         x0, y0, xp0, yp0 = cood0['x'], cood0['y'], cood0['xp'], cood0['yp']
         # dipole strength at the entrance (x'+jy' = k0 L)
-        k0a = self.k3 * (x0**3 / 6. - 0.5 * x0 * y0**2 + 1.j * (y0**3 / 6. - 0.5 * x0**2 * y0)) + self.k0x + 1.j * self.k0y
+        k0a = self.k3 * (x0**3 / 6. - 0.5 * x0 * y0**2 + 1.j * (y0**3 / 6. - 0.5 * x0**2 * y0)) \
+            + self.k0x + 1.j * self.k0y + self.k1 * np.exp(2.j * self.tilt_quad) * (x0 - 1.j * y0)
         # quadrupole strength at the entrance
-        k1a = self.k3 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0)
+        k1a = self.k3 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0) + self.k1 * np.exp(2.j * self.tilt_quad)
         # tilt angle of the quadrupole
         tilt = np.angle(k1a) * 0.5
         if np.abs(k1a) < 1.e-20:
@@ -102,9 +107,10 @@ class Octupole(Element):
             cood1, _, _ = quad1.transfer(Coordinate(0., xp0, 0., yp0))
             x1, y1 = cood1['x'] + x0, cood1['y'] + y0
         # dipole strength after the first quad
-        k0b = self.k3 * (x1**3 / 6. - 0.5 * x1 * y1**2 + 1.j * (y1**3 / 6. - 0.5 * x1**2 * y1)) + self.k0x + 1.j * self.k0y
+        k0b = self.k3 * (x1**3 / 6. - 0.5 * x1 * y1**2 + 1.j * (y1**3 / 6. - 0.5 * x1**2 * y1)) \
+            + self.k0x + 1.j * self.k0y + self.k1 * np.exp(2.j * self.tilt_quad) * (x1 - 1.j * y1)
         # quadrupole strength after the first quad
-        k1b = self.k3 * (0.5 * (x1**2 - y1**2) - 1.j * x1 * y1)
+        k1b = self.k3 * (0.5 * (x1**2 - y1**2) - 1.j * x1 * y1) + self.k1 * np.exp(2.j * self.tilt_quad)
         # get average dipole strength
         k0 = 0.5 * (k0a + k0b)
         # get average quadrupole strength
@@ -314,7 +320,7 @@ class Octupole(Element):
             disp_array = None
         return cood_array, evlp_array, disp_array
 
-    def set_steering(self, dxp: float = 0., dyp: float = 0.) -> None:
+    def set_steering(self, dxp: float = None, dyp: float = None) -> None:
         '''
         Set steering coil kick angles.
 
@@ -322,7 +328,22 @@ class Octupole(Element):
             dxp float: Horizontal kick angle of the steering coil [rad].
             dyp float: Vertical kick angle of the steering coil [rad].
         '''
-        self.dxp = dxp
-        self.dyp = dyp
-        self.k0x = - self.dxp / self.length
-        self.k0y = - self.dyp / self.length
+        if dxp is not None:
+            self.dxp = dxp
+            self.k0x = - self.dxp / self.length
+        if dyp is not None:
+            self.dyp = dyp
+            self.k0y = - self.dyp / self.length
+
+    def set_quadrupole(self, k1: float = None, tilt_quad: float = None) -> None:
+        '''
+        Set additional quadrupole strength and tilt angle.
+
+        Args:
+            k1 float: Additional quadrupole strength [1/m^2].
+            tilt_quad float: Tilt angle of the additional quadrupole [rad] (pi/4 for skew quad).
+        '''
+        if k1 is not None:
+            self.k1 = k1
+        if tilt_quad is not None:
+            self.tilt_quad = tilt_quad

@@ -314,7 +314,7 @@ class Sextupole(Element):
             disp_array = None
         return cood_array, evlp_array, disp_array
 
-    def set_steering(self, dxp: float = 0., dyp: float = 0.) -> None:
+    def set_steering(self, dxp: float = None, dyp: float = None) -> None:
         '''
         Set steering coil kick angles.
 
@@ -322,7 +322,9 @@ class Sextupole(Element):
             dxp float: Horizontal kick angle of the steering coil [rad].
             dyp float: Vertical kick angle of the steering coil [rad].
         '''
-        self.dxp = dxp
-        self.dyp = dyp
-        self.k0x = - self.dxp / self.length
-        self.k0y = - self.dyp / self.length
+        if dxp is not None:
+            self.dxp = dxp
+            self.k0x = - self.dxp / self.length
+        if dyp is not None:
+            self.dyp = dyp
+            self.k0y = - self.dyp / self.length
