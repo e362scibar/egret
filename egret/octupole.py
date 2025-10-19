@@ -87,10 +87,13 @@ class Octupole(Element):
             npt.NDArray[np.floating]: 4x4 transfer matrix.
             Coordinate: Final coordinate after the step.
         '''
+        k3 = self.k3 / (1. + cood0.delta)
+        k0x, k0y = self.k0x / (1. + cood0.delta), self.k0y / (1. + cood0.delta)
+        k1 = self.k1 / (1. + cood0.delta)
         x0, y0, xp0, yp0 = cood0['x'], cood0['y'], cood0['xp'], cood0['yp']
         # dipole strength at the entrance (x'+jy' = k0 L)
-        k0a = self.k3 * (x0**3 / 6. - 0.5 * x0 * y0**2 + 1.j * (y0**3 / 6. - 0.5 * x0**2 * y0)) \
-            + self.k0x + 1.j * self.k0y + self.k1 * np.exp(2.j * self.tilt_quad) * (x0 - 1.j * y0)
+        k0a = k3 * (x0**3 / 6. - 0.5 * x0 * y0**2 + 1.j * (y0**3 / 6. - 0.5 * x0**2 * y0)) \
+            + k0x + 1.j * k0y + k1 * np.exp(2.j * self.tilt_quad) * (x0 - 1.j * y0)
         # quadrupole strength at the entrance
         k1a = self.k3 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0) + self.k1 * np.exp(2.j * self.tilt_quad)
         # tilt angle of the quadrupole
@@ -107,10 +110,10 @@ class Octupole(Element):
             cood1, _, _ = quad1.transfer(Coordinate(0., xp0, 0., yp0))
             x1, y1 = cood1['x'] + x0, cood1['y'] + y0
         # dipole strength after the first quad
-        k0b = self.k3 * (x1**3 / 6. - 0.5 * x1 * y1**2 + 1.j * (y1**3 / 6. - 0.5 * x1**2 * y1)) \
-            + self.k0x + 1.j * self.k0y + self.k1 * np.exp(2.j * self.tilt_quad) * (x1 - 1.j * y1)
+        k0b = k3 * (x1**3 / 6. - 0.5 * x1 * y1**2 + 1.j * (y1**3 / 6. - 0.5 * x1**2 * y1)) \
+            + k0x + 1.j * k0y + k1 * np.exp(2.j * self.tilt_quad) * (x1 - 1.j * y1)
         # quadrupole strength after the first quad
-        k1b = self.k3 * (0.5 * (x1**2 - y1**2) - 1.j * x1 * y1) + self.k1 * np.exp(2.j * self.tilt_quad)
+        k1b = k3 * (0.5 * (x1**2 - y1**2) - 1.j * x1 * y1) + k1 * np.exp(2.j * self.tilt_quad)
         # get average dipole strength
         k0 = 0.5 * (k0a + k0b)
         # get average quadrupole strength

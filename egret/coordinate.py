@@ -21,26 +21,24 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 class Coordinate:
     '''
     Phase-space coordinate.
-    ''' 
+    '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, x: float = 0., xp: float = 0., y: float = 0., yp: float = 0.,
+    def __init__(self, vector: npt.NDArray[np.floating],
                  s: float = 0., z: float = 0., delta: float = 0.):
         '''
         Args:
-            x float: Horizontal position [m].
-            xp float: Horizontal angle [rad].
-            y float: Vertical position [m].
-            yp float: Vertical angle [rad].
+            vector npt.NDArray[np.floating]: 4D phase-space vector [x, x', y, y'].
             s float: Longitudinal position along the reference orbit [m].
             z float: Longitudinal displacement [m].
             delta float: Relative momentum deviation.
         '''
-        self.vector = np.array([x, xp, y, yp])
+        self.vector = vector.copy()
         self.s = s
         self.z = z
         self.delta = delta
@@ -51,7 +49,7 @@ class Coordinate:
 
         Args:
             key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-        
+
         Returns:
             float: Value of the coordinate corresponding to the key.
         '''
@@ -94,5 +92,4 @@ class Coordinate:
         Returns:
             Coordinate: A copy of the coordinate object.
         '''
-        return Coordinate(self.vector[0], self.vector[1], self.vector[2], self.vector[3],
-                          self.s, self.z, self.delta)
+        return Coordinate(self.vector, self.s, self.z, self.delta)

@@ -90,28 +90,44 @@ class Dipole(Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
-        phi = self.angle
-        rho = self.radius
+        delta = 0. if cood0 is None else cood0.delta
+        rho = self.radius * (1. + delta)
         tmat = np.eye(4)
         if self.k1 == 0.: # simple dipole
-            tmat[0:2, 0:2] = np.array([[np.cos(phi), rho*np.sin(phi)],
-                                       [-np.sin(phi)/rho, np.cos(phi)]])
-            tmat[2, 3] = rho * phi
+            phi = self.angle / (1. + delta)
+            cosphi, sinphi = np.cos(phi), np.sin(phi)
+            tmat[0:2, 0:2] = np.array([[cosphi, rho*sinphi],
+                                       [-sinphi/rho, cosphi]])
+            tmat[2, 3] = self.length
         else: # combined-function dipole
-            kx = np.abs(self.k1 + 1./rho**2)
-            psix = np.sqrt(kx) * rho * phi
-            ky = np.abs(self.k1)
-            psiy = np.sqrt(ky) * rho * phi
-            if self.k1 < 0.: # defocusing dipole
-                tmat[0:2, 0:2] = np.array([[np.cosh(psix), np.sinh(psix)/np.sqrt(kx)],
-                                           [np.sqrt(kx)*np.sinh(psix), np.cosh(psix)]])
-                tmat[2:4, 2:4] = np.array([[np.cos(psiy), np.sin(psiy)/np.sqrt(ky)],
-                                           [-np.sqrt(ky)*np.sin(psiy), np.cos(psiy)]])
-            else: # focusing dipole
-                tmat[0:2, 0:2] = np.array([[np.cos(psix), np.sin(psix)/np.sqrt(kx)],
-                                           [-np.sqrt(kx)*np.sin(psix), np.cos(psix)]])
-                tmat[2:4, 2:4] = np.array([[np.cosh(psiy), np.sinh(psiy)/np.sqrt(ky)],
-                                           [np.sqrt(ky)*np.sinh(psiy), np.cosh(psiy)]])
+            k1 = self.k1 / (1. + delta)
+            kx = k1 + 1./rho**2
+            sqrtkx = np.sqrt(np.abs(kx))
+            psix = sqrtkx * self.length
+            ky = -k1
+            sqrtky = np.sqrt(np.abs(ky))
+            psiy = sqrtky * self.length
+            if kx < 0.: # defocusing dipole
+                coshx, sinhx = np.cosh(psix), np.sinh(psix)
+                cosy, siny = np.cos(psiy), np.sin(psiy)
+                tmat[0:2, 0:2] = np.array([[coshx, sinhx/sqrtkx],
+                                           [sqrtkx*sinhx, coshx]])
+                tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky],
+                                           [-sqrtky*siny, cosy]])
+            elif ky < 0.: # focusing dipole
+                cosx, sinx = np.cos(psix), np.sin(psix)
+                coshy, sinhy = np.cosh(psiy), np.sinh(psiy)
+                tmat[0:2, 0:2] = np.array([[cosx, sinx/sqrtkx],
+                                           [-sqrtkx*sinx, cosx]])
+                tmat[2:4, 2:4] = np.array([[coshy, sinhy/sqrtky],
+                                           [sqrtky*sinhy, coshy]])
+            else: # both focusing dipole
+                cosx, sinx = np.cos(psix), np.sin(psix)
+                cosy, siny = np.cos(psiy), np.sin(psiy)
+                tmat[0:2, 0:2] = np.array([[cosx, sinx/sqrtkx],
+                                           [-sqrtkx*sinx, cosx]])
+                tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky],
+                                           [-sqrtky*siny, cosy]])
         return tmat
 
     def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
@@ -128,29 +144,46 @@ class Dipole(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        phi = np.linspace(0., self.angle, int(self.length//ds) + int(endpoint) + 1, endpoint)
-        rho = self.radius
-        tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(phi), axis=0)
+        delta = 0. if cood0 is None else cood0.delta
+        rho = self.radius * (1. + delta)
+        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+        tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
         if self.k1 == 0.: # simple dipole
-            tmat[:, 0:2, 0:2] = np.moveaxis(np.array([[np.cos(phi), rho*np.sin(phi)],
-                                                      [-np.sin(phi)/rho, np.cos(phi)]]), 2, 0)
-            tmat[:, 2, 3] = rho * phi
+            phi = s / rho
+            cosphi, sinphi = np.cos(phi), np.sin(phi)
+            tmat[:, 0:2, 0:2] = np.moveaxis(np.array([[cosphi, rho*sinphi],
+                                                      [-sinphi/rho, cosphi]]), 2, 0)
+            tmat[:, 2, 3] = s
         else: # combined-function dipole
-            kx = np.abs(self.k1 + 1./rho**2)
-            psix = np.sqrt(kx) * rho * phi
-            ky = np.abs(self.k1)
-            psiy = np.sqrt(ky) * rho * phi
-            if self.k1 < 0.: # defocusing dipole
-                tmat[:, 0:2, 0:2] = np.moveaxis(np.array([[np.cosh(psix), np.sinh(psix)/np.sqrt(kx)],
-                                                          [np.sqrt(kx)*np.sinh(psix), np.cosh(psix)]]), 2, 0)
-                tmat[:, 2:4, 2:4] = np.moveaxis(np.array([[np.cos(psiy), np.sin(psiy)/np.sqrt(ky)],
-                                                          [-np.sqrt(ky)*np.sin(psiy), np.cos(psiy)]]), 2, 0)
-            else: # focusing dipole
-                tmat[:, 0:2, 0:2] = np.moveaxis(np.array([[np.cos(psix), np.sin(psix)/np.sqrt(kx)],
-                                                          [-np.sqrt(kx)*np.sin(psix), np.cos(psix)]]), 2, 0)
-                tmat[:, 2:4, 2:4] = np.moveaxis(np.array([[np.cosh(psiy), np.sinh(psiy)/np.sqrt(ky)],
-                                                          [np.sqrt(ky)*np.sinh(psiy), np.cosh(psiy)]]), 2, 0)
-        return tmat, rho * phi
+            k1 = self.k1 / (1. + delta)
+            kx = k1 + 1./rho**2
+            sqrtkx = np.sqrt(np.abs(kx))
+            psix = sqrtkx * s
+            ky = -k1
+            sqrtky = np.sqrt(np.abs(ky))
+            psiy = sqrtky * s
+            if kx < 0.: # defocusing dipole
+                coshx, sinhx = np.cosh(psix), np.sinh(psix)
+                cosy, siny = np.cos(psiy), np.sin(psiy)
+                tmat[:, 0:2, 0:2] = np.moveaxis(np.array([[coshx, sinhx/sqrtkx],
+                                                          [sqrtkx*sinhx, coshx]]), 2, 0)
+                tmat[:, 2:4, 2:4] = np.moveaxis(np.array([[cosy, siny/sqrtky],
+                                                          [-sqrtky*siny, cosy]]), 2, 0)
+            elif ky < 0.: # focusing dipole
+                cosx, sinx = np.cos(psix), np.sin(psix)
+                coshy, sinhy = np.cosh(psiy), np.sinh(psiy)
+                tmat[:, 0:2, 0:2] = np.moveaxis(np.array([[cosx, sinx/sqrtkx],
+                                                          [-sqrtkx*sinx, cosx]]), 2, 0)
+                tmat[:, 2:4, 2:4] = np.moveaxis(np.array([[coshy, sinhy/sqrtky],
+                                                          [sqrtky*sinhy, coshy]]), 2, 0)
+            else: # both focusing dipole
+                cosx, sinx = np.cos(psix), np.sin(psix)
+                cosy, siny = np.cos(psiy), np.sin(psiy)
+                tmat[:, 0:2, 0:2] = np.moveaxis(np.array([[cosx, sinx/sqrtkx],
+                                                          [-sqrtkx*sinx, cosx]]), 2, 0)
+                tmat[:, 2:4, 2:4] = np.moveaxis(np.array([[cosy, siny/sqrtky],
+                                                          [-sqrtky*siny, cosy]]), 2, 0)
+        return tmat, s
 
     def dispersion(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
         '''
@@ -162,19 +195,21 @@ class Dipole(Element):
         Returns:
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].
         '''
-        rho = self.radius
-        phi = self.angle
+        rho = self.radius * (1. + cood0.delta)
         tmat = Drift.transfer_matrix_from_length(self.length) - self.transfer_matrix()
         if self.k1 == 0.: # simple dipole
+            phi = self.length / rho
             disp = np.array([rho*(1.-np.cos(phi)), np.sin(phi), 0., 0.]) + np.dot(tmat, cood0.vector)
         else: # combined-function dipole
-            kx = np.abs(self.k1 + 1./rho**2)
-            psix = np.sqrt(kx) * rho * phi
-            if self.k1 < 0.: # defocusing dipole
-                disp = np.array([(np.cosh(psix)-1.)/(kx*rho), np.sinh(psix)/(np.sqrt(kx)*rho), 0., 0.]) \
+            k1 = self.k1 / (1. + cood0.delta)
+            kx = k1 + 1./rho**2
+            sqrtkx = np.sqrt(np.abs(kx))
+            psix = sqrtkx * self.length
+            if kx < 0.: # defocusing dipole
+                disp = np.array([(1.-np.cosh(psix))/(kx*rho), np.sinh(psix)/(sqrtkx*rho), 0., 0.]) \
                     + np.dot(tmat, cood0.vector)
             else: # focusing dipole
-                disp = np.array([(1.-np.cos(psix))/(kx*rho), np.sin(psix)/(np.sqrt(kx)*rho), 0., 0.]) \
+                disp = np.array([(1.-np.cos(psix))/(kx*rho), np.sin(psix)/(sqrtkx*rho), 0., 0.]) \
                     + np.dot(tmat, cood0.vector)
         return disp
 
@@ -191,25 +226,27 @@ class Dipole(Element):
             npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        phi = np.linspace(0., self.angle, int(self.length//ds) + int(endpoint) + 1, endpoint)
-        rho = self.radius
-        tmat = Drift.transfer_matrix_array_from_length(self.length, ds=ds, endpoint=endpoint)[0] \
-            - self.transfer_matrix_array(ds=ds, endpoint=endpoint)[0]
+        rho = self.radius * (1. + cood0.delta)
+        tmat_array, s = self.transfer_matrix_array(ds=ds, endpoint=endpoint)
+        tmat = Drift.transfer_matrix_array_from_length(self.length, ds=ds, endpoint=endpoint)[0] - tmat_array
         if self.k1 == 0.: # simple dipole
-            disp = np.array([rho*(1.-np.cos(phi)), np.sin(phi), np.zeros_like(phi), np.zeros_like(phi)]) \
+            phi = s / rho
+            disp = np.array([rho*(1.-np.cos(phi)), np.sin(phi), np.zeros_like(s), np.zeros_like(s)]) \
                 + np.matmul(tmat, cood0.vector).T
         else:
-            kx = np.abs(self.k1 + 1./rho**2)
-            psix = np.sqrt(kx) * rho * phi
-            if self.k1 < 0.: # defocusing dipole
-                disp = np.array([(np.cosh(psix)-1.)/(kx*rho), np.sinh(psix)/(np.sqrt(kx)*rho),
-                                 np.zeros_like(phi), np.zeros_like(phi)]) \
+            k1 = self.k1 / (1. + cood0.delta)
+            kx = k1 + 1./rho**2
+            sqrtkx = np.sqrt(np.abs(kx))
+            psix = sqrtkx * s
+            if kx < 0.: # defocusing dipole
+                disp = np.array([(1.-np.cosh(psix))/(kx*rho), np.sinh(psix)/(sqrtkx*rho),
+                                 np.zeros_like(s), np.zeros_like(s)]) \
                     + np.matmul(tmat, cood0.vector).T
             else: # focusing dipole
-                disp = np.array([(1.-np.cos(psix))/(kx*rho), np.sin(psix)/(np.sqrt(kx)*rho),
-                                 np.zeros_like(phi), np.zeros_like(phi)]) \
+                disp = np.array([(1.-np.cos(psix))/(kx*rho), np.sin(psix)/(sqrtkx*rho),
+                                 np.zeros_like(s), np.zeros_like(s)]) \
                     + np.matmul(tmat, cood0.vector).T
-        return disp, rho*phi
+        return disp, s
 
     def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
         -> Tuple[float, float, float]:

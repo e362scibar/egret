@@ -21,25 +21,20 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 class Envelope:
     '''
     Beam envelope object.
     '''
-    index = {'bx': 0, 'ax': 1, 'gx': 2, 'by': 3, 'ay': 4, 'gy': 5}
 
-    def __init__(self, bx: float = 1., ax: float = 0., by: float = 1., ay: float = 0., s: float = 0.):
+    def __init__(self, cov: npt.NDArray[np.floating] = np.eye(4), s: float = 0.):
         '''
         Args:
-            bx float: Horizontal beta function [m].
-            ax float: Horizontal alpha function.
-            by float: Vertical beta function [m].
-            ay float: Vertical alpha function.
+            cov npt.NDArray[np.floating]: 4x4 positive-definite covariance matrix with the determinant of unity.
             s float: Longitudinal position [m].
         '''
-        gx = (1. + ax**2) / bx
-        gy = (1. + ay**2) / by
-        self.vector = np.array([bx, ax, gx, by, ay, gy])
+        self.cov = cov.copy()
         self.s = s
 
     def __getitem__(self, key):
@@ -52,14 +47,23 @@ class Envelope:
         Returns:
             float: Value of the beta function corresponding to the key.
         '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        match key:
+            case 'bx':
+                return self.cov[0, 0]
+            case 'ax':
+                return -0.5 * (self.cov[0, 1] + self.cov[1, 0])
+            case 'gx':
+                return self.cov[1, 1]
+            case 'by':
+                return self.cov[2, 2]
+            case 'ay':
+                return -0.5 * (self.cov[2, 3] + self.cov[3, 2])
+            case 'gy':
+                return self.cov[3, 3]
+            case 's':
+                return self.s
+            case _:
+                raise KeyError(f'Invalid key: {key}')
 
     def __setitem__(self, key, value):
         '''
@@ -69,29 +73,31 @@ class Envelope:
             key str: Key of the beta function. 'bx', 'ax', 'gx', 'by', 'ay', or 'gy'.
             value float: Value to set.
         '''
-        try:
-            self.vector[self.index[key]] = value
-        except KeyError:
-            match key:
-                case 's':
-                    self.s = value
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
         match key:
             case 'bx':
-                self.vector[2] = (1. + self.vector[1]**2) / value
+                self.cov[0, 0] = value
+                self.cov[1, 1] = (1. + self.cov[1, 0] * self.cov[0, 1]) / value
             case 'ax':
-                self.vector[2] = (1. + value**2) / self.vector[0]
+                self.cov[0, 1] = -value
+                self.cov[1, 0] = -value
+                self.cov[1, 1] = (1. + value**2) / self.cov[0, 0]
             case 'gx':
-                self.vector[0] = (1. + self.vector[1]**2) / value
+                self.cov[1, 1] = value
+                self.cov[0, 0] = (1. + self.cov[1, 0] * self.cov[0, 1]) / value
             case 'by':
-                self.vector[5] = (1. + self.vector[4]**2) / value
+                self.cov[2, 2] = value
+                self.cov[3, 3] = (1. + self.cov[3, 2] * self.cov[2, 3]) / value
             case 'ay':
-                self.vector[5] = (1. + value**2) / self.vector[4]
+                self.cov[2, 3] = -value
+                self.cov[3, 2] = -value
+                self.cov[3, 3] = (1. + value**2) / self.cov[2, 2]
             case 'gy':
-                self.vector[3] = (1. + self.vector[4]**2) / value
+                self.cov[3, 3] = value
+                self.cov[2, 2] = (1. + self.cov[3, 2] * self.cov[2, 3]) / value
+            case 's':
+                self.s = value
             case _:
-                pass
+                raise KeyError(f'Invalid key: {key}')
 
     def copy(self) -> Envelope:
         '''
@@ -100,4 +106,4 @@ class Envelope:
         Returns:
             Envelope: A copy of the envelope object.
         '''
-        return Envelope(self.vector[0], self.vector[1], self.vector[3], self.vector[4], self.s)
+        return Envelope(self.cov, self.s)

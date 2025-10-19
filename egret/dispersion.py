@@ -21,23 +21,21 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 class Dispersion:
     '''
     Energy dispersion.
-    ''' 
+    '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, x: float = 0., xp: float = 0., y: float = 0., yp: float = 0., s: float = 0.):
+    def __init__(self, vector: npt.NDArray[np.floating], s: float = 0.):
         '''
         Args:
-            x float: Horizontal position [m].
-            xp float: Horizontal angle [rad].
-            y float: Vertical position [m].
-            yp float: Vertical angle [rad].
+            vector npt.NDArray[np.floating]: 4D dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
             s float: Longitudinal position along the reference orbit [m].
         '''
-        self.vector = np.array([x, xp, y, yp])
+        self.vector = vector.copy()
         self.s = s
 
     def __getitem__(self, key: str) -> float:
@@ -46,7 +44,7 @@ class Dispersion:
 
         Args:
             key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-        
+
         Returns:
             float: Value of the coordinate corresponding to the key.
         '''
@@ -81,4 +79,4 @@ class Dispersion:
         Returns:
             Dispersion: A copy of the coordinate object.
         '''
-        return Dispersion(self.vector[0], self.vector[1], self.vector[2], self.vector[3], self.s)
+        return Dispersion(self.vector, self.s)

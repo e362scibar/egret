@@ -29,17 +29,13 @@ class DispersionArray:
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, x: npt.NDArray[np.floating], xp: npt.NDArray[np.floating],
-                 y: npt.NDArray[np.floating], yp: npt.NDArray[np.floating], s: npt.NDArray[np.floating]):
+    def __init__(self, vector: npt.NDArray[np.floating], s: npt.NDArray[np.floating]):
         '''
         Args:
-            x NDArray: Horizontal position [m].
-            xp NDArray: Horizontal angle [rad].
-            y NDArray: Vertical position [m].
-            yp NDArray: Vertical angle [rad].
-            s NDArray: Longitudinal position along the reference orbit [m].
+            vector npt.NDArray[np.floating]: 4xN 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
+            s npt.NDArray[np.floating]: Longitudinal position array along the reference orbit [m] with shape (N,).
         '''
-        self.vector = np.array([x, xp, y, yp])
+        self.vector = vector.copy()
         self.s = s.copy()
 
     def __getitem__(self, key: str) -> float:
@@ -83,7 +79,7 @@ class DispersionArray:
         Returns:
             DispersionArray: A copy of the dispersion array object.
         '''
-        return DispersionArray(self.vector[0], self.vector[1], self.vector[2], self.vector[3], self.s)
+        return DispersionArray(self.vector, self.s)
 
     def append(self, disp: DispersionArray):
         '''

@@ -29,21 +29,16 @@ class CoordinateArray:
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, x: npt.NDArray[np.floating], xp: npt.NDArray[np.floating],
-                 y: npt.NDArray[np.floating], yp: npt.NDArray[np.floating],
-                 s: npt.NDArray[np.floating],
+    def __init__(self, vector: npt.NDArray[np.floating], s: npt.NDArray[np.floating],
                  z: npt.NDArray[np.floating] = None, delta: npt.NDArray[np.floating] = None):
         '''
         Args:
-            x NDArray: Horizontal position [m].
-            xp NDArray: Horizontal angle [rad].
-            y NDArray: Vertical position [m].
-            yp NDArray: Vertical angle [rad].
-            s NDArray: Longitudinal position along the reference orbit [m].
-            z NDArray: Longitudinal displacement [m].
-            delta NDArray: Relative momentum deviation.
+            vector npt.NDArray[np.floating]: 4xN 4D phase-space vectors [x, x', y, y'].
+            s npt.NDArray[np.floating]: Longitudinal position array along the reference orbit [m] with shape (N,).
+            z npt.NDArray[np.floating]: Longitudinal displacement array [m] with shape (N,).
+            delta npt.NDArray[np.floating]: Relative momentum deviation array with shape (N,).
         '''
-        self.vector = np.array([x, xp, y, yp])
+        self.vector = vector.copy()
         self.s = s.copy()
         if z is None:
             self.z = np.zeros_like(s)
@@ -103,8 +98,7 @@ class CoordinateArray:
         Returns:
             CoordinateArray: A copy of the coordinate array object.
         '''
-        return CoordinateArray(self.vector[0], self.vector[1], self.vector[2], self.vector[3],
-                               self.s, self.z, self.delta)
+        return CoordinateArray(self.vector, self.s, self.z, self.delta)
 
     def append(self, cood: CoordinateArray) -> None:
         '''

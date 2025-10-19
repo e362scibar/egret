@@ -27,13 +27,14 @@ class EnvelopeArray:
     '''
     Beam envelope array.
     '''
-    index = {'bx': 0, 'ax': 1, 'gx': 2, 'by': 3, 'ay': 4, 'gy': 5}
 
-    def __init__(self, bx: npt.NDArray[np.floating], ax: npt.NDArray[np.floating],
-                 by: npt.NDArray[np.floating], ay: npt.NDArray[np.floating], s: npt.NDArray[np.floating]):
-        gx = (1. + ax**2) / bx
-        gy = (1. + ay**2) / by
-        self.vector = np.array([bx, ax, gx, by, ay, gy])
+    def __init__(self, cov: npt.NDArray[np.floating], s: npt.NDArray[np.floating]):
+        '''
+        Args:
+            cov npt.NDArray[np.floating]: 4x4xN positive-definite covariance matrices with the determinant of unity.
+            s npt.NDArray[np.floating]: Longitudinal positions [m] with shape (N,).
+        '''
+        self.cov = cov.copy()
         self.s = s.copy()
 
     def __getitem__(self, key: str) -> npt.NDArray[np.floating]:
@@ -46,14 +47,23 @@ class EnvelopeArray:
         Returns:
             NDArray: Value of the coordinate corresponding to the key.
         '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        match key:
+            case 'bx':
+                return self.cov[0, 0, :]
+            case 'ax':
+                return -0.5 * (self.cov[0, 1, :] + self.cov[1, 0, :])
+            case 'gx':
+                return self.cov[1, 1, :]
+            case 'by':
+                return self.cov[2, 2, :]
+            case 'ay':
+                return -0.5 * (self.cov[2, 3, :] + self.cov[3, 2, :])
+            case 'gy':
+                return self.cov[3, 3, :]
+            case 's':
+                return self.s
+            case _:
+                raise KeyError(f'Invalid key: {key}')
 
     def __setitem__(self, key: str, value: float) -> None:
         '''
@@ -63,36 +73,38 @@ class EnvelopeArray:
             key str: Key of the coordinate. 'bx', 'ax', 'gx', 'by', 'ay', 'gy', or 's'.
             value NDArray: Value to set.
         '''
-        try:
-            self.vector[self.index[key]] = value
-        except KeyError:
-            match key:
-                case 's':
-                    self.s = value
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
         match key:
             case 'bx':
-                self.vector[2] = (1. + self.vector[1]**2) / value
+                self.cov[0, 0, :] = value
+                self.cov[1, 1, :] = (1. + self.cov[1, 0, :] * self.cov[0, 1, :]) / value
             case 'ax':
-                self.vector[2] = (1. + value**2) / self.vector[0]
+                self.cov[0, 1, :] = -value
+                self.cov[1, 0, :] = -value
+                self.cov[1, 1, :] = (1. + value**2) / self.cov[0, 0, :]
             case 'gx':
-                self.vector[0] = (1. + self.vector[1]**2) / value
+                self.cov[1, 1, :] = value
+                self.cov[0, 0, :] = (1. + self.cov[1, 0, :] * self.cov[0, 1, :]) / value
             case 'by':
-                self.vector[5] = (1. + self.vector[4]**2) / value
+                self.cov[2, 2, :] = value
+                self.cov[3, 3, :] = (1. + self.cov[3, 2, :] * self.cov[2, 3, :]) / value
             case 'ay':
-                self.vector[5] = (1. + value**2) / self.vector[4]
+                self.cov[2, 3, :] = -value
+                self.cov[3, 2, :] = -value
+                self.cov[3, 3, :] = (1. + value**2) / self.cov[2, 2, :]
             case 'gy':
-                self.vector[3] = (1. + self.vector[4]**2) / value
+                self.cov[3, 3, :] = value
+                self.cov[2, 2, :] = (1. + self.cov[3, 2, :] * self.cov[2, 3, :]) / value
+            case 's':
+                self.s[:] = value
             case _:
-                pass
+                raise KeyError(f'Invalid key: {key}')
 
     def copy(self) -> EnvelopeArray:
         '''
         Returns:
             EnvelopeArray: A copy of the envelope array object.
         '''
-        return EnvelopeArray(self.vector[0], self.vector[1], self.vector[3], self.vector[4], self.s)
+        return EnvelopeArray(self.cov, self.s)
 
     def append(self, evlp: EnvelopeArray) -> None:
         '''
@@ -101,5 +113,5 @@ class EnvelopeArray:
         Args:
             evlp EnvelopeArray: Another envelope array to append.
         '''
-        self.vector = np.hstack((self.vector, evlp.vector))
+        self.cov = np.dstack((self.cov, evlp.cov))
         self.s = np.hstack((self.s, evlp.s))

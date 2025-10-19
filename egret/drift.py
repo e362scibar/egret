@@ -27,6 +27,13 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
+# Optional Numba acceleration colocated in this file
+try:
+    from numba import njit
+    _NUMBA_AVAILABLE = True
+except Exception:
+    _NUMBA_AVAILABLE = False
+
 class Drift(Element):
     '''
     Drift space element.
@@ -72,7 +79,7 @@ class Drift(Element):
         tmat[2, 3] = self.length
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
@@ -86,11 +93,25 @@ class Drift(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
-        tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
-        tmat[:, 0, 1] = s
-        tmat[:, 2, 3] = s
-        return tmat, s
+        # try numba accelerated kernel first
+        if _NUMBA_AVAILABLE:
+            try:
+                tmat, s = _drift_transfer_matrix_array_numba(self.length, ds, endpoint)
+                return tmat, s
+            except Exception:
+                pass
+
+        # try numba-accelerated numeric kernel (or pure-python numeric helper)
+        try:
+            tmat, s = _drift_transfer_matrix_array(self.length, ds, endpoint)
+            return tmat, s
+        except Exception:
+            # fall back to original implementation
+            s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+            tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
+            tmat[:, 0, 1] = s
+            tmat[:, 2, 3] = s
+            return tmat, s
 
     @classmethod
     def transfer_matrix_from_length(cls, length: float) -> npt.NDArray[np.floating]:
@@ -109,7 +130,7 @@ class Drift(Element):
         return tmat
 
     @classmethod
-    def transfer_matrix_array_from_length(cls, length: float, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array_from_length(cls, length: float, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the drift space.
@@ -128,3 +149,68 @@ class Drift(Element):
         tmat[:, 0, 1] = s
         tmat[:, 2, 3] = s
         return tmat, s
+
+def _drift_transfer_matrix_array_py(length: float, ds: float, endpoint: bool):
+    # create s array similar to np.linspace used in original implementation
+    if ds <= 0.0:
+        raise ValueError('ds must be positive')
+    n = int(length // ds) + (1 if endpoint else 0) + 1
+    s = np.empty(n, dtype=np.float64)
+    if n == 1:
+        s[0] = 0.0
+    else:
+        for i in range(n):
+            s[i] = length * i / (n - 1)
+
+    tmat = np.empty((n, 4, 4), dtype=np.float64)
+    for i in range(n):
+        # identity
+        tmat[i, 0, 0] = 1.0
+        tmat[i, 1, 1] = 1.0
+        tmat[i, 2, 2] = 1.0
+        tmat[i, 3, 3] = 1.0
+        # zero others
+        tmat[i, 0, 1] = s[i]
+        tmat[i, 1, 0] = 0.0
+        tmat[i, 0, 2] = 0.0
+        tmat[i, 0, 3] = 0.0
+        tmat[i, 1, 2] = 0.0
+        tmat[i, 1, 3] = 0.0
+        tmat[i, 2, 0] = 0.0
+        tmat[i, 2, 1] = 0.0
+        tmat[i, 2, 3] = s[i]
+        tmat[i, 3, 0] = 0.0
+        tmat[i, 3, 1] = 0.0
+        tmat[i, 3, 2] = 0.0
+    return tmat, s
+
+# bind and optionally njit
+_drift_transfer_matrix_array = _drift_transfer_matrix_array_py
+if _NUMBA_AVAILABLE:
+    try:
+        _drift_transfer_matrix_array = njit(_drift_transfer_matrix_array_py, cache=True)
+    except Exception:
+        _drift_transfer_matrix_array = _drift_transfer_matrix_array_py
+
+def _drift_transfer_matrix_array_py(length: float, ds: float, endpoint: bool):
+    if ds <= 0.0:
+        raise ValueError('ds must be positive')
+    n = int(length // ds) + int(endpoint) + 1
+    s = np.empty(n, dtype=np.float64)
+    if n == 1:
+        s[0] = 0.0
+    else:
+        for i in range(n):
+            s[i] = length * i / (n - 1)
+    tmat = np.empty((n, 4, 4), dtype=np.float64)
+    for i in range(n):
+        tmat[i, :, :] = np.eye(4)
+        tmat[i, 0, 1] = s[i]
+        tmat[i, 2, 3] = s[i]
+    return tmat, s
+
+if _NUMBA_AVAILABLE:
+    try:
+        _drift_transfer_matrix_array_numba = njit(_drift_transfer_matrix_array_py, cache=True)
+    except Exception:
+        _drift_transfer_matrix_array_numba = _drift_transfer_matrix_array_py

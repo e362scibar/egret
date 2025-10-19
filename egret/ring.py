@@ -31,6 +31,13 @@ import numpy.typing as npt
 import scipy
 from typing import Tuple, List
 
+# Optional Numba flag for local helpers
+try:
+    from numba import njit
+    _NUMBA_AVAILABLE = True
+except Exception:
+    _NUMBA_AVAILABLE = False
+
 class Ring(Element):
     '''
     Ring accelerator.
@@ -223,22 +230,26 @@ class Ring(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        cood = cood0.copy()
-        s0 = 0.
-        tmat = np.eye(4)
-        sarray = []
-        tmatarray = []
-        for elem in self.elements:
-            tmat_elem, s_elem = elem.transfer_matrix_array(cood, ds, False)
-            tmatarray.append(np.moveaxis(np.matmul(tmat_elem, tmat), 0, 2))
-            sarray.append(s_elem + s0)
-            s0 += elem.length
-            tmat = np.dot(elem.transfer_matrix(cood), tmat)
-            cood = elem.transfer(cood)[0]
-        if endpoint:
-            tmatarray.append(tmat[:,:,np.newaxis])
-            sarray.append(np.array([s0]))
-        return np.moveaxis(np.dstack(tmatarray), 2, 0), np.hstack(sarray)
+        # try optimized assembly using a preallocated helper
+        try:
+            return _ring_transfer_matrix_array(self, cood0, ds, endpoint)
+        except Exception:
+            cood = cood0.copy()
+            s0 = 0.
+            tmat = np.eye(4)
+            sarray = []
+            tmatarray = []
+            for elem in self.elements:
+                tmat_elem, s_elem = elem.transfer_matrix_array(cood, ds, False)
+                tmatarray.append(np.moveaxis(np.matmul(tmat_elem, tmat), 0, 2))
+                sarray.append(s_elem + s0)
+                s0 += elem.length
+                tmat = np.dot(elem.transfer_matrix(cood), tmat)
+                cood = elem.transfer(cood)[0]
+            if endpoint:
+                tmatarray.append(tmat[:,:,np.newaxis])
+                sarray.append(np.array([s0]))
+            return np.moveaxis(np.dstack(tmatarray), 2, 0), np.hstack(sarray)
 
     def dispersion(self, cood0: Coordinate) -> Dispersion:
         '''
@@ -341,3 +352,40 @@ class Ring(Element):
         if result.nit == maxiter:
             raise RuntimeError('Failed to find closed orbit: Maximum number of iterations reached.')
         return cood
+
+def _ring_transfer_matrix_array_py(self: 'Ring', cood0: Coordinate, ds: float, endpoint: bool):
+    # Precompute per-element sample counts then preallocate
+    n_list = [int(elem.length // ds) + 1 for elem in self.elements]
+    total_n = sum(n_list) + (1 if endpoint else 0)
+
+    tmat_array = np.empty((total_n, 4, 4), dtype=np.float64)
+    s_array = np.empty((total_n,), dtype=np.float64)
+
+    cood = cood0.copy()
+    pos = 0
+    s0 = 0.0
+    tmat_running = np.eye(4)
+    for elem in self.elements:
+        tmat_elem, s_elem = elem.transfer_matrix_array(cood, ds, False)
+        n_i = tmat_elem.shape[0]
+        for j in range(n_i):
+            tmat_array[pos + j] = np.matmul(tmat_elem[j], tmat_running)
+            s_array[pos + j] = s_elem[j] + s0
+        pos += n_i
+        s0 += elem.length
+        tmat_running = np.dot(elem.transfer_matrix(cood), tmat_running)
+        cood = elem.transfer(cood)[0]
+
+    if endpoint:
+        tmat_array[pos] = tmat_running
+        s_array[pos] = s0
+
+    return tmat_array, s_array
+
+# bind and optionally njit
+_ring_transfer_matrix_array = _ring_transfer_matrix_array_py
+if _NUMBA_AVAILABLE:
+    try:
+        _ring_transfer_matrix_array = njit(_ring_transfer_matrix_array_py, cache=True)
+    except Exception:
+        _ring_transfer_matrix_array = _ring_transfer_matrix_array_py
