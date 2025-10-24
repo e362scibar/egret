@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+from .envelope import Envelope
+
 import numpy as np
 import numpy.typing as npt
 
@@ -97,17 +99,17 @@ class EnvelopeArray:
         Args:
             T npt.NDArray[np.floating]: 2x2xN coordinate transformation matrices for eigenmode. (Optional)
         '''
-        Sxx, Sxy, Syy = self.cov[0:2, 0:2, :], self.cov[0:2, 2:4, :], self.cov[2:4, 2:4, :]
+        Sxx, Sxy, Syy = self.cov[0:2, 0:2], self.cov[0:2, 2:4], self.cov[2:4, 2:4]
         if T is not None:
             self.T = T.copy()
         else:
             N = self.cov.shape[2]
             self.T = np.zeros((2, 2, N), dtype=self.cov.dtype)
             # Calculate T from the covariance matrix
-            mat = np.array([[-Sxx[0,0,:], -Sxx[0,1,:]-Syy[0,1,:], 0., Syy[0,0,:]],
-                            [0., -Syy[1,1,:], -Sxx[0,0,:], -Sxx[0,1,:]+Syy[0,1,:]],
-                            [-Sxx[0,1,:]+Syy[0,1,:], -Sxx[1,1,:], -Syy[0,0,:], 0.],
-                            [Syy[1,1,:], 0., -Sxx[0,1,:]-Syy[0,1,:], -Sxx[1,1,:]]]).transpose(2, 0, 1)  # (N, 4, 4)
+            mat = np.array([[-Sxx[0,0], -Sxx[0,1]-Syy[0,1], 0., Syy[0,0]],
+                            [0., -Syy[1,1], -Sxx[0,0], -Sxx[0,1,:]+Syy[0,1]],
+                            [-Sxx[0,1]+Syy[0,1], -Sxx[1,1], -Syy[0,0], 0.],
+                            [Syy[1,1], 0., -Sxx[0,1]-Syy[0,1], -Sxx[1,1]]]).transpose(2, 0, 1)  # (N, 4, 4)
             vec = Sxy.reshape(4, N).T  # (N, 4)
             try:
                 res = np.linalg.solve(mat, vec)
@@ -115,7 +117,7 @@ class EnvelopeArray:
                 res = np.zeros((N, 4))
             T = res.T.reshape(2, 2, N)
             self.T = T
-        T_ = np.array([[T[1,1,:], -T[0,1,:]], [-T[1,0,:], T[0,0,:]]])
+        T_ = np.array([[T[1,1], -T[0,1]], [-T[1,0], T[0,0]]])
         tau = np.sqrt(1. - np.linalg.det(T.transpose(2,0,1)))
         chi = 1. / (2. * tau**2 - 1.)
         sqrtchi = np.sqrt(chi)
@@ -138,3 +140,26 @@ class EnvelopeArray:
         '''
         self.cov = np.dstack((self.cov, evlp.cov))
         self.s = np.hstack((self.s, evlp.s))
+
+    @classmethod
+    def transport(cls, evlp0: Envelope, tmat: npt.NDArray[np.floating], s: npt.NDArray[np.floating]) -> EnvelopeArray:
+        '''
+        Transport the envelope array using the given transfer matrix.
+
+        Args:
+            evlp0 Envelope: Initial envelope.
+            tmat npt.NDArray[np.floating]: 4x4xN transfer matrices.
+            s npt.NDArray[np.floating]: Longitudinal positions [m] from evlp0.s with shape (N,).
+        '''
+        cov = np.einsum('nij,jk,nlk,->iln', tmat, evlp0.cov, tmat)
+        Mxx, Mxy, Myx, Myy = tmat[0:2,0:2], tmat[0:2,2:4], tmat[2:4,0:2], tmat[2:4,2:4]
+        Mxx_ = np.array([[Mxx[1,1], -Mxx[0,1]], [-Mxx[1,0], Mxx[0,0]]])
+        Mxy_ = np.array([[Mxy[1,1], -Mxy[0,1]], [-Mxy[1,0], Mxy[0,0]]])
+        T0, tau0 = evlp0.T, evlp0.tau
+        T0_ = np.array([[T0[1,1], -T0[0,1]], [-T0[1,0], T0[0,0]]])
+        tau = np.sqrt(0.5 * (np.linalg.det(tau0 * Myy + np.matmul(Myx, T0_)) + np.linalg.det(tau0 * Mxx - np.matmul(T0, Mxy))))
+        Mu = (tau0 * Mxx - np.matmul(Mxy, T0)) / tau
+        Mv = (tau0 * Myy + np.matmul(Myx, T0_)) / tau
+        Mu_ = np.array([[Mu[1,1], -Mu[0,1]], [-Mu[1,0], Mu[0,0]]])
+        T = 0.5 * (Mv @ (tau0 * Mxy_ + np.matmul(T0, Mxx_)) - (tau0 * Myx - np.matmul(Myy, T0)) @ Mu_)
+        return cls(cov, evlp0.s + s, T)

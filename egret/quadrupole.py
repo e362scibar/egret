@@ -142,10 +142,10 @@ class Quadrupole(Element):
             psi = sqrtk * s
             cospsi, sinpsi = np.cos(psi), np.sin(psi)
             coshpsi, sinhpsi = np.cosh(psi), np.sinh(psi)
-            mf = np.moveaxis(np.array([[cospsi, sinpsi/sqrtk],
-                                       [-sqrtk*sinpsi, cospsi]]), 2, 0)
-            md = np.moveaxis(np.array([[coshpsi, sinhpsi/sqrtk],
-                                       [sqrtk*sinhpsi, coshpsi]]), 2, 0)
+            mf = np.array([[cospsi, sinpsi/sqrtk],
+                           [-sqrtk*sinpsi, cospsi]]).transpose(2, 0, 1)
+            md = np.array([[coshpsi, sinhpsi/sqrtk],
+                           [sqrtk*sinhpsi, coshpsi]]).transpose(2, 0, 1)
             if k < 0.: # defocusing quadrupole
                 tmat[:, 0:2, 0:2] = md
                 tmat[:, 2:4, 2:4] = mf
@@ -213,10 +213,10 @@ def _quad_transfer_matrix_array_py(k: float, length: float, ds: float, endpoint:
     psi = sqrtk * s
     cospsi, sinpsi = np.cos(psi), np.sin(psi)
     coshpsi, sinhpsi = np.cosh(psi), np.sinh(psi)
-    mf = np.moveaxis(np.array([[cospsi, sinpsi/sqrtk],
-                               [-sqrtk*sinpsi, cospsi]]), 2, 0)
-    md = np.moveaxis(np.array([[coshpsi, sinhpsi/sqrtk],
-                               [sqrtk*sinhpsi, coshpsi]]), 2, 0)
+    mf = np.array([[cospsi, sinpsi/sqrtk],
+                   [-sqrtk*sinpsi, cospsi]]).transpose(2, 0, 1)
+    md = np.array([[coshpsi, sinhpsi/sqrtk],
+                   [sqrtk*sinhpsi, coshpsi]]).transpose(2, 0, 1)
     if k < 0.:
         tmat[:, 0:2, 0:2] = md
         tmat[:, 2:4, 2:4] = mf

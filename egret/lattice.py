@@ -211,7 +211,7 @@ class Lattice(Element):
             tmatarray = []
             for elem in self.elements:
                 tmat_elem, s_elem = elem.transfer_matrix_array(cood, ds, False)
-                tmatarray.append(np.moveaxis(np.matmul(tmat_elem, tmat), 0, 2))
+                tmatarray.append(np.matmul(tmat_elem, tmat).transpose(2,0,1))
                 sarray.append(s_elem + s0)
                 s0 += elem.length
                 tmat = np.dot(elem.transfer_matrix(cood), tmat)
@@ -219,7 +219,7 @@ class Lattice(Element):
             if endpoint:
                 tmatarray.append(tmat[:,:,np.newaxis])
                 sarray.append(np.array([s0]))
-            return np.moveaxis(np.dstack(tmatarray), 2, 0), np.hstack(sarray)
+            return np.dstack(tmatarray).transpose(2, 0, 1), np.hstack(sarray)
 
     def dispersion(self, cood0: Coordinate) -> Dispersion:
         '''

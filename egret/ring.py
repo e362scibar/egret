@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+from modules_for_beta_func import chi, tau
+
 from .element import Element
 from .coordinate import Coordinate
 from .envelope import Envelope
@@ -87,27 +89,42 @@ class Ring(Element):
         except RuntimeError as e:
             print(f'Warning: Failed to find closed orbit. Using zero coordinate. {e}')
             self.cood0 = Coordinate()
-        tmat = self.transfer_matrix(self.cood0)
+        M = self.transfer_matrix(self.cood0)
         # initial dispersion
         disp = self.dispersion(self.cood0)
-        disp0 = np.dot(np.linalg.inv(np.eye(4) - tmat), disp)
-        self.disp0 = Dispersion(disp0[0], disp0[1], disp0[2], disp0[3], 0.)
+        disp0 = np.dot(np.linalg.inv(np.eye(4) - M), disp)
+        self.disp0 = Dispersion(disp0, 0.)
         # initial beta function and tune
-        cospsix = 0.5 * (np.trace(tmat[0:2, 0:2]))
-        cospsiy = 0.5 * (np.trace(tmat[2:4, 2:4]))
-        sin2psix = np.linalg.det(tmat[0:2, 0:2] - np.eye(2) * cospsix)
-        sin2psiy = np.linalg.det(tmat[2:4, 2:4] - np.eye(2) * cospsiy)
-        sinpsix = np.sign(tmat[0, 1]-tmat[1, 0]) * np.sqrt(abs(sin2psix))
-        sinpsiy = np.sign(tmat[2, 3]-tmat[3, 2]) * np.sqrt(abs(sin2psiy))
-        psix = np.arctan2(sinpsix, cospsix)
-        psiy = np.arctan2(sinpsiy, cospsiy)
-        betax = tmat[0, 1] / sinpsix
-        betay = tmat[2, 3] / sinpsiy
-        alphax = (tmat[0, 0] - tmat[1, 1]) / (2.*sinpsix)
-        alphay = (tmat[2, 2] - tmat[3, 3]) / (2.*sinpsiy)
-        self.evlp0 = Envelope(betax, alphax, betay, alphay, 0.)
-        self.tune[0] = psix / (2.*np.pi)
-        self.tune[1] = psiy / (2.*np.pi)
+        Mxx, Mxy, Myx, Myy = M[0:2,0:2], M[0:2,2:4], M[2:4,0:2], M[2:4,2:4]
+        Mxy_ = np.array([[Mxy[1,1], -Mxy[0,1]], [-Mxy[1,0], Mxy[0,0]]])
+        chi = 1. + 4. * np.linalg.det(Myx + Mxy_) / np.linalg.trace(Mxx - Myy)**2
+        sqrtchi = np.sqrt(chi)
+        tau = np.sqrt(0.5 * (1. + 1./sqrtchi))
+        T = -(Myx + Mxy_) / (sqrtchi * tau * np.trace(Mxx - Myy))
+        T_ = np.array([[T[1,1], -T[0,1]], [-T[1,0], T[0,0]]])
+        U = np.sqrt(chi) * (tau**2 * Mxx - T_ @ Myy @ T)
+        V = np.sqrt(chi) * (tau**2 * Myy - T @ Mxx @ T_)
+        cos_u = 0.5 * np.trace(U)
+        sin_u = np.sign(U[0,1]-U[1,0]) * np.sqrt(np.linalg.det(U - cos_u * np.eye(2)))
+        cos_v = 0.5 * np.trace(V)
+        sin_v = np.sign(V[0,1]-V[1,0]) * np.sqrt(np.linalg.det(V - cos_v * np.eye(2)))
+        mu_u = np.arctan2(sin_u, cos_u)
+        mu_v = np.arctan2(sin_v, cos_v)
+        bu = U[0,1] / sin_u
+        au = (U[0,0] - U[1,1]) * 0.5 / sin_u
+        gu = -U[1,0] / sin_u
+        bv = V[0,1] / sin_v
+        av = (V[0,0] - V[1,1]) * 0.5 / sin_v
+        gv = -V[1,0] / sin_v
+        # TT = np.block([[tau * np.eye(2), -T_], [T, tau * np.eye(2)]])
+        TT_inv = np.block([[tau * np.eye(2), T_], [-T, tau * np.eye(2)]])
+        Su = np.array([[bu, -au], [-au, gu]])
+        Sv = np.array([[bv, -av], [-av, gv]])
+        SSuv = np.block([[Su, np.zeros((2,2))], [np.zeros((2,2)), Sv]])
+        SSxy = TT_inv @ SSuv @ TT_inv.T
+        self.evlp0 = Envelope(SSxy, 0., T)
+        self.tune[0] = mu_u / (2.*np.pi)
+        self.tune[1] = mu_v / (2.*np.pi)
         for i in range(2):
             if self.tune[i] < 0.:
                 self.tune[i] += 1.
@@ -344,7 +361,7 @@ class Ring(Element):
             Coordinate: Initial coordinate of the closed orbit.
         '''
         cood = guess.copy()
-        eval_func = lambda x: np.linalg.norm(self.transfer(Coordinate(x[0],x[1],x[2],x[3]))[0].vector - x)
+        eval_func = lambda x: np.linalg.norm(self.transfer(Coordinate(x))[0].vector - x)
         result = scipy.optimize.minimize(eval_func, cood.vector, method='Nelder-Mead', tol=tol, options={'maxiter': maxiter})
         if not result.success:
             raise RuntimeError('Failed to find closed orbit: ' + result.message)

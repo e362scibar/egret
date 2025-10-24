@@ -98,7 +98,7 @@ class Sextupole(Element):
                                                             getattr(self, 'k0y', 0.0),
                                                             cood0.vector, ds)
                 # build Coordinate from returned vector
-                cood2 = Coordinate(cood_vec[0], cood_vec[1], cood_vec[2], cood_vec[3])
+                cood2 = Coordinate(cood_vec, cood0.s + ds, cood0.z, cood0.delta)
                 return tmat_num, cood2
             except Exception:
                 # fall back to python implementation below
@@ -278,9 +278,10 @@ class Sextupole(Element):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        cood0err = Coordinate(cood0['x'] - self.dx, cood0['xp'],
-                              cood0['y'] - self.dy, cood0['yp'],
-                              cood0['s'] - self.ds, cood0['z'], cood0['delta'])
+        cood0err = cood0.copy()
+        cood0err.vector[0] -= self.dx
+        cood0err.vector[2] -= self.dy
+        cood0err.s -= self.ds
         n_step = int(self.length // ds) + 1
         s_step = self.length / n_step
         cood = cood0err.copy()
@@ -288,17 +289,19 @@ class Sextupole(Element):
         for _ in range(n_step):
             tmat_step, cood = self.transfer_matrix_by_midpoint_method(cood, s_step)
             tmat = tmat_step @ tmat
-        cood1 = Coordinate(cood['x'] + self.dx, cood['xp'], cood['y'] + self.dy, cood['yp'],
-                           cood0['s'] + self.length, cood0['z'], cood0['delta'])
+        cood1 = cood.copy()
+        cood1.vector[0] += self.dx
+        cood1.vector[2] += self.dy
+        cood1.s += self.ds
         if evlp0 is not None:
-            evlp = np.dot(self.envelope_transfer_matrix(tmat), evlp0.vector)
-            evlp1 = Envelope(evlp[0], evlp[1], evlp[3], evlp[4], cood0['s'] + self.length)
+            evlp1 = evlp0.copy()
+            evlp1.transfer(tmat)
         else:
             evlp1 = None
         if disp0 is not None:
             disp = Drift.transfer_matrix_from_length(self.length) @ cood0err.vector - cood.vector
             disp += np.dot(tmat, disp0.vector)
-            disp1 = Dispersion(disp[0], disp[1], disp[2], disp[3], cood0['s'] + self.length)
+            disp1 = Dispersion(disp, disp0.s + self.length)
         else:
             disp1 = None
         return cood1, evlp1, disp1
@@ -321,9 +324,10 @@ class Sextupole(Element):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        cood0err = Coordinate(cood0['x'] - self.dx, cood0['xp'],
-                              cood0['y'] - self.dy, cood0['yp'],
-                              cood0['s'] - self.ds, cood0['z'], cood0['delta'])
+        cood0err = cood0.copy()
+        cood0err.vector[0] -= self.dx
+        cood0err.vector[2] -= self.dy
+        cood0err.s -= self.ds
         n_step = int(self.length // ds) + 1
         s_step = self.length / n_step
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
@@ -336,25 +340,23 @@ class Sextupole(Element):
             tmat = tmat_step @ tmat
             cood_list.append(cood.vector.copy())
             tmat_list.append(tmat.copy())
-        cood_array = np.array(cood_list)
-        cood_array = CoordinateArray(cood_array[:, 0] + self.dx, cood_array[:, 1],
-                                     cood_array[:, 2] + self.dy, cood_array[:, 3],
-                                     cood0['s'] + s, np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
+        cood_array = np.array(cood_list).T
+        tmat_array = np.array(tmat_list).transpose(1, 2, 0)
+        cood_array[0] += self.dx
+        cood_array[2] += self.dy
+        cood1 = CoordinateArray(cood_array, s + cood0.s + self.ds,
+                                np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
         if evlp0 is not None:
-            evlp_array = np.matmul(self.envelope_transfer_matrix_array(np.array(tmat_list)), evlp0.vector)
-            evlp_array = EnvelopeArray(evlp_array[:, 0], evlp_array[:, 1], evlp_array[:, 3], evlp_array[:, 4],
-                                       s + cood0['s'])
+            evlp1 = EnvelopeArray.transport(evlp0, tmat_array, s)
         else:
-            evlp_array = None
+            evlp1 = None
         if disp0 is not None:
-            disp_array = np.matmul(np.array(tmat_list), disp0.vector)
-            tmat_drift, _ = Drift.transfer_matrix_array_from_length(self.length, ds, endpoint)
-            disp_array += np.matmul(tmat_drift, cood0err.vector) - np.array(cood_list)
-            disp_array = DispersionArray(disp_array[:, 0], disp_array[:, 1], disp_array[:, 2], disp_array[:, 3],
-                                         s + cood0['s'])
+            disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
+            disp = np.matmul(tmat_array.transpose(2, 0, 1), disp0.vector).T + disp_add.T
+            disp1 = DispersionArray(disp, s + disp0.s)
         else:
-            disp_array = None
-        return cood_array, evlp_array, disp_array
+            disp1 = None
+        return cood1, evlp1, disp1
 
     def set_steering(self, dxp: float = None, dyp: float = None) -> None:
         '''

@@ -120,6 +120,7 @@ class Envelope:
         sqrtchi = np.sqrt(chi)
         self.U = sqrtchi * (tau**2 * Sxx - T_ @ Syy @ T_.T)
         self.V = sqrtchi * (tau**2 * Syy - T @ Sxx @ T.T)
+        self.tau = tau
 
     def copy(self) -> Envelope:
         '''
@@ -129,3 +130,25 @@ class Envelope:
             Envelope: A copy of the envelope object.
         '''
         return Envelope(self.cov, self.s, self.T)
+
+    def transfer(self, tmat: npt.NDArray[np.floating]) -> None:
+        '''
+        Transfer the envelope using the given transfer matrix.
+
+        Args:
+            tmat npt.NDArray[np.floating]: 4x4 transfer matrix.
+        '''
+        self.cov = tmat @ self.cov @ tmat.T
+        Mxx, Mxy, Myx, Myy = tmat[0:2,0:2], tmat[0:2,2:4], tmat[2:4,0:2], tmat[2:4,2:4]
+        Mxx_ = np.array([[Mxx[1,1], -Mxx[0,1]], [-Mxx[1,0], Mxx[0,0]]])
+        Mxy_ = np.array([[Mxy[1,1], -Mxy[0,1]], [-Mxy[1,0], Mxy[0,0]]])
+        T0, tau0 = self.T, self.tau
+        T0_ = np.array([[T0[1,1], -T0[0,1]], [-T0[1,0], T0[0,0]]])
+        tau = np.sqrt(0.5 * (np.linalg.det(tau0 * Myy + Myx @ T0_) + np.linalg.det(tau0 * Mxx - Mxy @ T0)))
+        Mu = (tau0 * Mxx - Mxy @ T0) / tau
+        Mv = (tau0 * Myy + Myx @ T0_) / tau
+        Mu_ = np.array([[Mu[1,1], -Mu[0,1]], [-Mu[1,0], Mu[0,0]]])
+        self.T = 0.5 * (Mv @ (tau0 * Mxy_ + T0 @ Mxx_) - (tau0 * Myx - Myy @ T0) @ Mu_)
+        self.tau = tau
+        self.U = Mu @ self.U @ Mu.T
+        self.V = Mv @ self.V @ Mv.T

@@ -217,19 +217,18 @@ class Element(Object):
         else:
             tmat = self.transfer_matrix(cood0err)
             cood = np.dot(tmat, cood0err.vector)
-            cood1 = cood
+            cood1 = Coordinate(cood, cood0err.s + self.length, cood0err.z, cood0err.delta)
             cood1.vector[0] += self.dx
             cood1.vector[2] += self.dy
             cood1.s += self.ds
             if evlp0 is not None:
-                tmat_evlp = self.envelope_transfer_matrix(tmat)
-                cov = tmat_evlp.T @ evlp0.cov @ tmat_evlp
-                evlp1 = Envelope(cov, cood0.s + self.length)
+                evlp1 = evlp0.copy()
+                evlp1.transfer(tmat)
             else:
                 evlp1 = None
             if disp0 is not None:
                 disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err)
-                disp1 = Dispersion(disp, cood0.s + self.length)
+                disp1 = Dispersion(disp, disp0.s + self.length)
             else:
                 disp1 = None
         return cood1, evlp1, disp1
@@ -290,17 +289,16 @@ class Element(Object):
             cood = np.matmul(tmat, cood0err.vector)
             cood[0] += self.dx
             cood[2] += self.dy
-            cood1 = CoordinateArray(cood, s + cood0['s'] + self.ds,
-                                    np.full_like(s, cood0['z']), np.full_like(s, cood0['delta']))
+            cood1 = CoordinateArray(cood, s + cood0.s + self.ds,
+                                    np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
             if evlp0 is not None:
-                cov = np.einsum('nij,jk,nlk,->iln', tmat, evlp0.cov, tmat)
-                evlp1 = EnvelopeArray(cov, s + cood0['s'])
+                evlp1 = EnvelopeArray.transport(evlp0, tmat, s)
             else:
                 evlp1 = None
             if disp0 is not None:
                 disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
                 disp = np.matmul(tmat, disp0.vector) + disp_add.T
-                disp1 = DispersionArray(disp, s + cood0['s'])
+                disp1 = DispersionArray(disp, s + disp0.s)
             else:
                 disp1 = None
         return cood1, evlp1, disp1
