@@ -151,15 +151,17 @@ class EnvelopeArray:
             tmat npt.NDArray[np.floating]: 4x4xN transfer matrices.
             s npt.NDArray[np.floating]: Longitudinal positions [m] from evlp0.s with shape (N,).
         '''
-        cov = np.einsum('nij,jk,nlk,->iln', tmat, evlp0.cov, tmat)
-        Mxx, Mxy, Myx, Myy = tmat[0:2,0:2], tmat[0:2,2:4], tmat[2:4,0:2], tmat[2:4,2:4]
-        Mxx_ = np.array([[Mxx[1,1], -Mxx[0,1]], [-Mxx[1,0], Mxx[0,0]]])
-        Mxy_ = np.array([[Mxy[1,1], -Mxy[0,1]], [-Mxy[1,0], Mxy[0,0]]])
+        cov = np.einsum('nij,jk,nlk->iln', tmat, evlp0.cov, tmat)
+        Mxx, Mxy, Myx, Myy = tmat[:,0:2,0:2], tmat[:,0:2,2:4], tmat[:,2:4,0:2], tmat[:,2:4,2:4]
+        Mxx_ = np.array([[Mxx[:,1,1], -Mxx[:,0,1]], [-Mxx[:,1,0], Mxx[:,0,0]]]).transpose(2,0,1)
+        Mxy_ = np.array([[Mxy[:,1,1], -Mxy[:,0,1]], [-Mxy[:,1,0], Mxy[:,0,0]]]).transpose(2,0,1)
         T0, tau0 = evlp0.T, evlp0.tau
         T0_ = np.array([[T0[1,1], -T0[0,1]], [-T0[1,0], T0[0,0]]])
-        tau = np.sqrt(0.5 * (np.linalg.det(tau0 * Myy + np.matmul(Myx, T0_)) + np.linalg.det(tau0 * Mxx - np.matmul(T0, Mxy))))
-        Mu = (tau0 * Mxx - np.matmul(Mxy, T0)) / tau
-        Mv = (tau0 * Myy + np.matmul(Myx, T0_)) / tau
-        Mu_ = np.array([[Mu[1,1], -Mu[0,1]], [-Mu[1,0], Mu[0,0]]])
-        T = 0.5 * (Mv @ (tau0 * Mxy_ + np.matmul(T0, Mxx_)) - (tau0 * Myx - np.matmul(Myy, T0)) @ Mu_)
+        tauMu, tauMv = tau0 * Mxx - np.matmul(Mxy, T0), tau0 * Myy + np.matmul(Myx, T0_)
+        tau = np.sqrt(0.5 * (np.linalg.det(tauMu) + np.linalg.det(tauMv)))
+        tau_ = tau[:, np.newaxis, np.newaxis]
+        Mu, Mv = tauMu / tau_, tauMv / tau_
+        Mu_ = np.array([[Mu[:,1,1], -Mu[:,0,1]], [-Mu[:,1,0], Mu[:,0,0]]]).transpose(2,0,1)
+        Mv_T1, T1Mu = tau0 * Mxy_ + np.matmul(T0, Mxx_), -tau0 * Myx + np.matmul(Myy, T0)
+        T = 0.5 * (np.matmul(Mv, Mv_T1) + np.matmul(T1Mu, Mu_)).transpose(1,2,0)
         return cls(cov, evlp0.s + s, T)

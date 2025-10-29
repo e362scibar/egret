@@ -233,7 +233,7 @@ class Ring(Element):
             cood = elem.transfer(cood)[0]
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = True) \
+    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = True) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix along the ring.
@@ -284,7 +284,7 @@ class Ring(Element):
             cood, _, disp = elem.transfer(cood, None, disp)
         return disp.vector
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the ring.
@@ -365,7 +365,7 @@ class Ring(Element):
         result = scipy.optimize.minimize(eval_func, cood.vector, method='Nelder-Mead', tol=tol, options={'maxiter': maxiter})
         if not result.success:
             raise RuntimeError('Failed to find closed orbit: ' + result.message)
-        cood = Coordinate(result.x[0], result.x[1], result.x[2], result.x[3])
+        cood = Coordinate(result.x)
         if result.nit == maxiter:
             raise RuntimeError('Failed to find closed orbit: Maximum number of iterations reached.')
         return cood

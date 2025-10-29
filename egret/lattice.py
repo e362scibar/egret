@@ -185,7 +185,7 @@ class Lattice(Element):
             cood = elem.transfer(cood)[0]
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = True) \
+    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = True) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix along the lattice.
@@ -221,7 +221,7 @@ class Lattice(Element):
                 sarray.append(np.array([s0]))
             return np.dstack(tmatarray).transpose(2, 0, 1), np.hstack(sarray)
 
-    def dispersion(self, cood0: Coordinate) -> Dispersion:
+    def dispersion(self, cood0: Coordinate = Coordinate()) -> Dispersion:
         '''
         Additive dispersion of the lattice.
 
@@ -237,7 +237,7 @@ class Lattice(Element):
             cood, _, disp = elem.transfer(cood, None, disp)
         return disp.vector
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the lattice.

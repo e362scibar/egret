@@ -158,7 +158,7 @@ class Octupole(Element):
             tmat = tmat_step @ tmat
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
@@ -202,7 +202,7 @@ class Octupole(Element):
             _, cood = self.transfer_matrix_by_midpoint_method(cood, s_step)
         return Drift.transfer_matrix_from_length(self.length) @ cood0.vector - cood.vector
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the octupole.
@@ -274,7 +274,7 @@ class Octupole(Element):
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.01, endpoint: bool = False) \
+                       ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate, envelope, and dispersion arrays along the octupole.

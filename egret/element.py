@@ -80,7 +80,7 @@ class Element(Object):
         '''
         return np.eye(4)
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = True) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = True) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
@@ -165,7 +165,7 @@ class Element(Object):
         '''
         return np.zeros(4)
 
-    def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the element.

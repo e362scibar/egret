@@ -144,11 +144,12 @@ class Envelope:
         Mxy_ = np.array([[Mxy[1,1], -Mxy[0,1]], [-Mxy[1,0], Mxy[0,0]]])
         T0, tau0 = self.T, self.tau
         T0_ = np.array([[T0[1,1], -T0[0,1]], [-T0[1,0], T0[0,0]]])
-        tau = np.sqrt(0.5 * (np.linalg.det(tau0 * Myy + Myx @ T0_) + np.linalg.det(tau0 * Mxx - Mxy @ T0)))
-        Mu = (tau0 * Mxx - Mxy @ T0) / tau
-        Mv = (tau0 * Myy + Myx @ T0_) / tau
+        tauMu, tauMv = tau0 * Mxx - Mxy @ T0, tau0 * Myy + Myx @ T0_
+        tau = np.sqrt(0.5 * (np.linalg.det(tauMu) + np.linalg.det(tauMv)))
+        Mu, Mv = tauMu / tau, tauMv / tau
         Mu_ = np.array([[Mu[1,1], -Mu[0,1]], [-Mu[1,0], Mu[0,0]]])
-        self.T = 0.5 * (Mv @ (tau0 * Mxy_ + T0 @ Mxx_) - (tau0 * Myx - Myy @ T0) @ Mu_)
+        Mv_T1, T1Mu = tau0 * Mxy_ + T0 @ Mxx_, -tau0 * Myx + Myy @ T0
+        self.T = 0.5 * (Mv @ Mv_T1 + T1Mu @ Mu_)
         self.tau = tau
         self.U = Mu @ self.U @ Mu.T
         self.V = Mv @ self.V @ Mv.T

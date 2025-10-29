@@ -29,7 +29,7 @@ class Dispersion:
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, vector: npt.NDArray[np.floating], s: float = 0.):
+    def __init__(self, vector: npt.NDArray[np.floating] = np.zeros(4) , s: float = 0.):
         '''
         Args:
             vector npt.NDArray[np.floating]: 4D dispersion vector [eta_x, eta'_x, eta_y, eta'_y].

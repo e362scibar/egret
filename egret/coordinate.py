@@ -29,7 +29,7 @@ class Coordinate:
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, vector: npt.NDArray[np.floating],
+    def __init__(self, vector: npt.NDArray[np.floating] = np.zeros(4),
                  s: float = 0., z: float = 0., delta: float = 0.):
         '''
         Args:

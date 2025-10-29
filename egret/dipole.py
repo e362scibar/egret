@@ -130,7 +130,7 @@ class Dipole(Element):
                                            [-sqrtky*siny, cosy]])
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.01, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the dipole element.
@@ -213,7 +213,7 @@ class Dipole(Element):
                     + np.dot(tmat, cood0.vector)
         return disp
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.01, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion function along the dipole.
