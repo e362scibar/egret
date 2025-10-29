@@ -28,13 +28,6 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
-# Optional Numba acceleration (same-file placement)
-try:
-    from numba import njit
-    _NUMBA_AVAILABLE = True
-except Exception:
-    _NUMBA_AVAILABLE = False
-
 class Quadrupole(Element):
     '''
     Quadrupole magnet.
@@ -120,47 +113,38 @@ class Quadrupole(Element):
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        # try numeric helper (numba or pure-python)
-        try:
-            tmat, s = _quad_transfer_matrix_array(self.k1 if cood0 is None else self.k1 / (1. + cood0.delta),
-                                                  self.length, ds, endpoint, self.tilt)
+        delta = 0. if cood0 is None else cood0.delta
+        k = self.k1 / (1. + delta)
+        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
+        tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
+        if k == 0.: # drift
+            tmat[0,1,:] = s
+            tmat[2,3,:] = s
             return tmat, s
-        except Exception:
-            # fallback to original implementation
-            delta = 0. if cood0 is None else cood0.delta
-            k = self.k1 / (1. + delta)
-            s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
-            tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
-            if k == 0.: # drift
-                tmat[:, 0, 1] = s
-                tmat[:, 2, 3] = s
-                return tmat, s
-            sqrtk = np.sqrt(np.abs(k))
-            psi = sqrtk * s
-            cospsi, sinpsi = np.cos(psi), np.sin(psi)
-            coshpsi, sinhpsi = np.cosh(psi), np.sinh(psi)
-            mf = np.array([[cospsi, sinpsi/sqrtk],
-                           [-sqrtk*sinpsi, cospsi]]).transpose(2, 0, 1)
-            md = np.array([[coshpsi, sinhpsi/sqrtk],
-                           [sqrtk*sinhpsi, coshpsi]]).transpose(2, 0, 1)
-            if k < 0.: # defocusing quadrupole
-                tmat[:, 0:2, 0:2] = md
-                tmat[:, 2:4, 2:4] = mf
-            else: # focusing quadrupole
-                tmat[:, 0:2, 0:2] = mf
-                tmat[:, 2:4, 2:4] = md
-            if self.tilt != 0.:
-                ct = np.cos(self.tilt)
-                st = np.sin(self.tilt)
-                rmat = np.array([[ct, 0., st, 0.],
-                                 [0., ct, 0., st],
-                                 [-st, 0., ct, 0.],
-                                 [0., -st, 0., ct]])
-                tmat = np.einsum('ji,kjl,lm->kim', rmat, tmat, rmat)
-            return tmat, s
+        sqrtk = np.sqrt(np.abs(k))
+        psi = sqrtk * s
+        cospsi, sinpsi = np.cos(psi), np.sin(psi)
+        coshpsi, sinhpsi = np.cosh(psi), np.sinh(psi)
+        mf = np.array([[cospsi, sinpsi/sqrtk], [-sqrtk*sinpsi, cospsi]])
+        md = np.array([[coshpsi, sinhpsi/sqrtk], [sqrtk*sinhpsi, coshpsi]])
+        if k < 0.: # defocusing quadrupole
+            tmat[0:2,0:2,:] = md
+            tmat[2:4,2:4,:] = mf
+        else: # focusing quadrupole
+            tmat[0:2,0:2,:] = mf
+            tmat[2:4,2:4,:] = md
+        if self.tilt != 0.:
+            ct = np.cos(self.tilt)
+            st = np.sin(self.tilt)
+            rmat = np.array([[ct, 0., st, 0.],
+                             [0., ct, 0., st],
+                             [-st, 0., ct, 0.],
+                             [0., -st, 0., ct]])
+            tmat = np.einsum('ji,jkn,kl->iln', rmat, tmat, rmat)
+        return tmat, s
 
     def dispersion(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
         '''
@@ -191,53 +175,5 @@ class Quadrupole(Element):
         '''
         tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
         tmat_drift, _ = Drift.transfer_matrix_array_from_length(self.length, ds=ds, endpoint=endpoint)
-        disp = np.matmul(tmat_drift - tmat, cood0.vector).T
+        disp = np.matmul((tmat_drift - tmat).transpose(2,0,1), cood0.vector).T
         return disp, s
-
-def _quad_transfer_matrix_array_py(k: float, length: float, ds: float, endpoint: bool, tilt: float):
-    if ds <= 0.0:
-        raise ValueError('ds must be positive')
-    n = int(length // ds) + (1 if endpoint else 0) + 1
-    s = np.empty(n, dtype=np.float64)
-    if n == 1:
-        s[0] = 0.0
-    else:
-        for i in range(n):
-            s[i] = length * i / (n - 1)
-    tmat = np.repeat(np.eye(4)[np.newaxis,:,:], n, axis=0)
-    if k == 0.:
-        tmat[:, 0, 1] = s
-        tmat[:, 2, 3] = s
-        return tmat, s
-    sqrtk = np.sqrt(np.abs(k))
-    psi = sqrtk * s
-    cospsi, sinpsi = np.cos(psi), np.sin(psi)
-    coshpsi, sinhpsi = np.cosh(psi), np.sinh(psi)
-    mf = np.array([[cospsi, sinpsi/sqrtk],
-                   [-sqrtk*sinpsi, cospsi]]).transpose(2, 0, 1)
-    md = np.array([[coshpsi, sinhpsi/sqrtk],
-                   [sqrtk*sinhpsi, coshpsi]]).transpose(2, 0, 1)
-    if k < 0.:
-        tmat[:, 0:2, 0:2] = md
-        tmat[:, 2:4, 2:4] = mf
-    else:
-        tmat[:, 0:2, 0:2] = mf
-        tmat[:, 2:4, 2:4] = md
-    if tilt != 0.:
-        ct = np.cos(tilt)
-        st = np.sin(tilt)
-        rmat = np.array([[ct, 0., st, 0.],
-                         [0., ct, 0., st],
-                         [-st, 0., ct, 0.],
-                         [0., -st, 0., ct]])
-        tmat = np.einsum('ij,kjl,lm->kim', rmat.T, tmat, rmat)
-    return tmat, s
-
-
-# bind and optionally njit
-_quad_transfer_matrix_array = _quad_transfer_matrix_array_py
-if _NUMBA_AVAILABLE:
-    try:
-        _quad_transfer_matrix_array = njit(_quad_transfer_matrix_array_py, cache=True)
-    except Exception:
-        _quad_transfer_matrix_array = _quad_transfer_matrix_array_py

@@ -131,12 +131,13 @@ class Envelope:
         '''
         return Envelope(self.cov, self.s, self.T)
 
-    def transfer(self, tmat: npt.NDArray[np.floating]) -> None:
+    def transfer(self, tmat: npt.NDArray[np.floating], length: float) -> None:
         '''
         Transfer the envelope using the given transfer matrix.
 
         Args:
             tmat npt.NDArray[np.floating]: 4x4 transfer matrix.
+            length float: Length of the element [m].
         '''
         self.cov = tmat @ self.cov @ tmat.T
         Mxx, Mxy, Myx, Myy = tmat[0:2,0:2], tmat[0:2,2:4], tmat[2:4,0:2], tmat[2:4,2:4]
@@ -153,3 +154,4 @@ class Envelope:
         self.tau = tau
         self.U = Mu @ self.U @ Mu.T
         self.V = Mv @ self.V @ Mv.T
+        self.s += length

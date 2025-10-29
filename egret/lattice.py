@@ -30,13 +30,6 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple, List
 
-# Optional Numba flag for potential future use in-file
-try:
-    from numba import njit
-    _NUMBA_AVAILABLE = True
-except Exception:
-    _NUMBA_AVAILABLE = False
-
 class Lattice(Element):
     '''
     Lattice element.
@@ -196,30 +189,25 @@ class Lattice(Element):
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: 6x6xN array of transfer matrices along the lattice.
+            npt.NDArray[np.floating]: 4x4xN array of transfer matrices along the lattice.
             npt.NDArray[np.floating]: Longitudinal positions along the lattice [m].
         '''
-        # try optimized preallocated assembly of transfer-matrix array
-        try:
-            return _lattice_transfer_matrix_array(self, cood0, ds, endpoint)
-        except Exception:
-            # fallback: original implementation
-            s0 = 0.
-            tmat = np.eye(4)
-            cood = cood0.copy()
-            sarray = []
-            tmatarray = []
-            for elem in self.elements:
-                tmat_elem, s_elem = elem.transfer_matrix_array(cood, ds, False)
-                tmatarray.append(np.matmul(tmat_elem, tmat).transpose(2,0,1))
-                sarray.append(s_elem + s0)
-                s0 += elem.length
-                tmat = np.dot(elem.transfer_matrix(cood), tmat)
-                cood = elem.transfer(cood)[0]
-            if endpoint:
-                tmatarray.append(tmat[:,:,np.newaxis])
-                sarray.append(np.array([s0]))
-            return np.dstack(tmatarray).transpose(2, 0, 1), np.hstack(sarray)
+        s0 = 0.
+        tmat = np.eye(4)
+        cood = cood0.copy()
+        sarray = []
+        tmatarray = []
+        for elem in self.elements:
+            tmat_elem, s_elem = elem.transfer_matrix_array(cood, ds, False)
+            tmatarray.append(np.matmul(tmat_elem.transpose(2,0,1), tmat).transpose(1,2,0))
+            sarray.append(s_elem + s0)
+            s0 += elem.length
+            tmat = np.dot(elem.transfer_matrix(cood), tmat)
+            cood, _, _ = elem.transfer(cood)
+        if endpoint:
+            tmatarray.append(tmat[:,:,np.newaxis])
+            sarray.append(np.array([s0]))
+        return np.dstack(tmatarray), np.hstack(sarray)
 
     def dispersion(self, cood0: Coordinate = Coordinate()) -> Dispersion:
         '''
@@ -297,47 +285,3 @@ class Lattice(Element):
             I5 += i5
             cood, evlp, disp = elem.transfer(cood, evlp, disp)
         return I2, I4, I5
-
-def _lattice_transfer_matrix_array_py(self: 'Lattice', cood0: Coordinate, ds: float, endpoint: bool):
-    # Precompute sizes to preallocate arrays and avoid repeated concatenation
-    # For each element, number of samples n_i = int(length//ds) + 1 (endpoint False)
-    n_list = []
-    for elem in self.elements:
-        n_i = int(elem.length // ds) + 1
-        n_list.append(n_i)
-    total_n = sum(n_list) + (1 if endpoint else 0)
-
-    tmat_array = np.empty((total_n, 4, 4), dtype=np.float64)
-    s_array = np.empty((total_n,), dtype=np.float64)
-
-    cood = cood0.copy()
-    pos = 0
-    s0 = 0.0
-    tmat_running = np.eye(4)
-    for idx, elem in enumerate(self.elements):
-        # request element transfer-matrix array with endpoint=False
-        tmat_elem, s_elem = elem.transfer_matrix_array(cood, ds, False)
-        n_i = tmat_elem.shape[0]
-        # multiply each tmat_elem by running tmat and store
-        for j in range(n_i):
-            tmat_array[pos + j] = np.matmul(tmat_elem[j], tmat_running)
-            s_array[pos + j] = s_elem[j] + s0
-        pos += n_i
-        s0 += elem.length
-        # update running transfer matrix and coordinate
-        tmat_running = np.dot(elem.transfer_matrix(cood), tmat_running)
-        cood = elem.transfer(cood)[0]
-
-    if endpoint:
-        tmat_array[pos] = tmat_running
-        s_array[pos] = s0
-
-    return tmat_array, s_array
-
-# bind and optionally njit (keep pure-Python for safety)
-_lattice_transfer_matrix_array = _lattice_transfer_matrix_array_py
-if _NUMBA_AVAILABLE:
-    try:
-        _lattice_transfer_matrix_array = njit(_lattice_transfer_matrix_array_py, cache=True)
-    except Exception:
-        _lattice_transfer_matrix_array = _lattice_transfer_matrix_array_py

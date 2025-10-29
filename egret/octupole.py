@@ -107,7 +107,7 @@ class Octupole(Element):
             # get first quad
             quad1 = Quadrupole(self.name+'_quad1', ds, np.abs(k1a), dx=offset.real, dy=offset.imag, tilt=tilt)
             # get coordinate after first quad
-            cood1, _, _ = quad1.transfer(Coordinate(np.array([0., xp0, 0., yp0])))
+            cood1, _, _ = quad1.transfer(Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.))
             x1, y1 = cood1['x'] + x0, cood1['y'] + y0
         # dipole strength after the first quad
         k0b = k3 * (x1**3 / 6. - 0.5 * x1 * y1**2 + 1.j * (y1**3 / 6. - 0.5 * x1**2 * y1)) \
@@ -123,7 +123,8 @@ class Octupole(Element):
         if np.abs(k1) < 1.e-20:
             # no quadrupole, just dipole kick
             cood2 = Coordinate(np.array([x0 + (xp0 - 0.5*k0.real*ds) * ds, xp0 - k0.real * ds,
-                                         y0 + (yp0 - 0.5*k0.imag*ds) * ds, yp0 - k0.imag * ds]))
+                                         y0 + (yp0 - 0.5*k0.imag*ds) * ds, yp0 - k0.imag * ds]),
+                               cood0.s + ds, cood0.z, cood0.delta)
             tmat = Drift.transfer_matrix_from_length(ds)
         else:
             # transverse offset to generate dipole kick
@@ -131,7 +132,7 @@ class Octupole(Element):
             # get second quad
             quad2 = Quadrupole(self.name+'_quad2', ds, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
             # get coordinate after second quad
-            cood2, _, _ = quad2.transfer(Coordinate(np.array([0., xp0, 0., yp0])))
+            cood2, _, _ = quad2.transfer(Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.))
             cood2['x'] += x0
             cood2['y'] += y0
             # get transfer matrix of the second quad
@@ -169,7 +170,7 @@ class Octupole(Element):
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal position array of shape (N,).
         '''
         n_step = int(self.length // ds) + 1
@@ -182,7 +183,7 @@ class Octupole(Element):
             tmat_step, cood = self.transfer_matrix_by_midpoint_method(cood, s_step)
             tmat = tmat_step @ tmat
             tmat_list.append(tmat.copy())
-        return np.array(tmat_list), s
+        return np.dstack(tmat_list), s
 
     def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
@@ -226,8 +227,8 @@ class Octupole(Element):
             _, cood = self.transfer_matrix_by_midpoint_method(cood, s_step)
             cood_list.append(cood.vector.copy())
         tmat_drift, _ = Drift.transfer_matrix_array_from_length(self.length, ds, endpoint)
-        disp = np.matmul(tmat_drift, cood0.vector) - np.array(cood_list)
-        return disp, s
+        disp = np.matmul(tmat_drift.transpose(2,0,1), cood0.vector) - np.array(cood_list)
+        return disp.T, s
 
     def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
         -> Tuple[Coordinate, Envelope, Dispersion]:
@@ -262,7 +263,7 @@ class Octupole(Element):
         cood1.s += self.ds
         if evlp0 is not None:
             evlp1 = evlp0.copy()
-            evlp1.transfer(tmat)
+            evlp1.transfer(tmat, self.length)
         else:
             evlp1 = None
         if disp0 is not None:
@@ -319,7 +320,7 @@ class Octupole(Element):
             evlp1 = None
         if disp0 is not None:
             disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
-            disp = np.matmul(tmat_array.transpose(2, 0, 1), disp0.vector).T + disp_add.T
+            disp = np.matmul(tmat_array.transpose(2, 0, 1), disp0.vector).T + disp_add
             disp1 = DispersionArray(disp, s + disp0.s)
         else:
             disp1 = None

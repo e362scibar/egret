@@ -106,11 +106,12 @@ class EnvelopeArray:
             N = self.cov.shape[2]
             self.T = np.zeros((2, 2, N), dtype=self.cov.dtype)
             # Calculate T from the covariance matrix
-            mat = np.array([[-Sxx[0,0], -Sxx[0,1]-Syy[0,1], 0., Syy[0,0]],
-                            [0., -Syy[1,1], -Sxx[0,0], -Sxx[0,1,:]+Syy[0,1]],
-                            [-Sxx[0,1]+Syy[0,1], -Sxx[1,1], -Syy[0,0], 0.],
-                            [Syy[1,1], 0., -Sxx[0,1]-Syy[0,1], -Sxx[1,1]]]).transpose(2, 0, 1)  # (N, 4, 4)
-            vec = Sxy.reshape(4, N).T  # (N, 4)
+            zeros = np.zeros_like(self.s)
+            mat = np.array([[-Sxx[0,0], -Sxx[0,1]-Syy[0,1], zeros, Syy[0,0]],
+                            [zeros, -Syy[1,1], -Sxx[0,0], -Sxx[0,1,:]+Syy[0,1]],
+                            [-Sxx[0,1]+Syy[0,1], -Sxx[1,1], -Syy[0,0], zeros],
+                            [Syy[1,1], zeros, -Sxx[0,1]-Syy[0,1], -Sxx[1,1]]]).transpose(2, 0, 1)  # (N, 4, 4)
+            vec = Sxy.reshape(4, N).T[:,:,np.newaxis]  # (N, 4, 1)
             try:
                 res = np.linalg.solve(mat, vec)
             except np.linalg.LinAlgError:
@@ -118,11 +119,11 @@ class EnvelopeArray:
             T = res.T.reshape(2, 2, N)
             self.T = T
         T_ = np.array([[T[1,1], -T[0,1]], [-T[1,0], T[0,0]]])
-        tau = np.sqrt(1. - np.linalg.det(T.transpose(2,0,1)))
+        tau = np.sqrt(1. - np.linalg.det(T.transpose(2,0,1)))[np.newaxis, np.newaxis, :]
         chi = 1. / (2. * tau**2 - 1.)
         sqrtchi = np.sqrt(chi)
-        self.U = sqrtchi * (tau**2 * Sxx - np.matmul(T_.transpose(2, 0, 1), np.matmul(Syy.transpose(2, 0, 1), T_.transpose(2, 0, 1)))).transpose(1,2,0)
-        self.V = sqrtchi * (tau**2 * Syy - np.matmul(T.transpose(2, 0, 1), np.matmul(Sxx.transpose(2, 0, 1), T.transpose(2, 0, 1)))).transpose(1,2,0)
+        self.U = sqrtchi * (tau**2 * Sxx - np.einsum('ijn,jkn,lkn->iln', T_, Syy, T_))
+        self.V = sqrtchi * (tau**2 * Syy - np.einsum('ijn,jkn,lkn->iln', T, Sxx, T))
 
     def copy(self) -> EnvelopeArray:
         '''
@@ -150,18 +151,24 @@ class EnvelopeArray:
             evlp0 Envelope: Initial envelope.
             tmat npt.NDArray[np.floating]: 4x4xN transfer matrices.
             s npt.NDArray[np.floating]: Longitudinal positions [m] from evlp0.s with shape (N,).
+
+        Returns:
+            EnvelopeArray: Transported envelope array.
         '''
-        cov = np.einsum('nij,jk,nlk->iln', tmat, evlp0.cov, tmat)
-        Mxx, Mxy, Myx, Myy = tmat[:,0:2,0:2], tmat[:,0:2,2:4], tmat[:,2:4,0:2], tmat[:,2:4,2:4]
-        Mxx_ = np.array([[Mxx[:,1,1], -Mxx[:,0,1]], [-Mxx[:,1,0], Mxx[:,0,0]]]).transpose(2,0,1)
-        Mxy_ = np.array([[Mxy[:,1,1], -Mxy[:,0,1]], [-Mxy[:,1,0], Mxy[:,0,0]]]).transpose(2,0,1)
+        cov = np.einsum('ijn,jk,lkn->iln', tmat, evlp0.cov, tmat)
+        Mxx, Mxy, Myx, Myy = tmat[0:2,0:2], tmat[0:2,2:4], tmat[2:4,0:2], tmat[2:4,2:4]
+        Mxx_ = np.array([[Mxx[1,1], -Mxx[0,1]], [-Mxx[1,0], Mxx[0,0]]])
+        Mxy_ = np.array([[Mxy[1,1], -Mxy[0,1]], [-Mxy[1,0], Mxy[0,0]]])
         T0, tau0 = evlp0.T, evlp0.tau
         T0_ = np.array([[T0[1,1], -T0[0,1]], [-T0[1,0], T0[0,0]]])
-        tauMu, tauMv = tau0 * Mxx - np.matmul(Mxy, T0), tau0 * Myy + np.matmul(Myx, T0_)
-        tau = np.sqrt(0.5 * (np.linalg.det(tauMu) + np.linalg.det(tauMv)))
-        tau_ = tau[:, np.newaxis, np.newaxis]
+        tauMu = tau0 * Mxx - np.matmul(Mxy.transpose(2,0,1), T0).transpose(1,2,0)
+        tauMv = tau0 * Myy + np.matmul(Myx.transpose(2,0,1), T0_).transpose(1,2,0)
+        tau = np.sqrt(0.5 * (np.linalg.det(tauMu.transpose(2,0,1)) + np.linalg.det(tauMv.transpose(2,0,1))))
+        tau_ = tau[np.newaxis, np.newaxis, :]
         Mu, Mv = tauMu / tau_, tauMv / tau_
-        Mu_ = np.array([[Mu[:,1,1], -Mu[:,0,1]], [-Mu[:,1,0], Mu[:,0,0]]]).transpose(2,0,1)
-        Mv_T1, T1Mu = tau0 * Mxy_ + np.matmul(T0, Mxx_), -tau0 * Myx + np.matmul(Myy, T0)
-        T = 0.5 * (np.matmul(Mv, Mv_T1) + np.matmul(T1Mu, Mu_)).transpose(1,2,0)
+        Mu_ = np.array([[Mu[1,1], -Mu[0,1]], [-Mu[1,0], Mu[0,0]]])
+        Mv_T1 = tau0 * Mxy_ + np.matmul(T0, Mxx_.transpose(2,0,1)).transpose(1,2,0)
+        T1Mu = -tau0 * Myx + np.matmul(Myy.transpose(2,0,1), T0).transpose(1,2,0)
+        T = 0.5 * (np.matmul(Mv.transpose(2,0,1), Mv_T1.transpose(2,0,1))
+                   + np.matmul(T1Mu.transpose(2,0,1), Mu_.transpose(2,0,1))).transpose(1,2,0)
         return cls(cov, evlp0.s + s, T)
