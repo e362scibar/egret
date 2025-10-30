@@ -215,7 +215,7 @@ class Sextupole(Element):
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
         cood = cood0.copy()
         tmat = np.eye(4)
-        cood_list = [np.zeros(4)]
+        cood_list = [cood0.vector.copy()]
         for _ in range(n_step - int(not endpoint)):
             _, cood = self.transfer_matrix_by_midpoint_method(cood, s_step)
             cood_list.append(cood.vector.copy())

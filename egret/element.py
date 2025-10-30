@@ -209,8 +209,7 @@ class Element(Object):
             disp = disp0.copy() if disp0 is not None else None
             for elem in self.elements:
                 cood, evlp, disp = elem.transfer(cood, evlp, disp)
-            cood1 = cood
-            disp1, evlp1 = disp, evlp
+            cood1, evlp1, disp1 = cood, evlp, disp
         else:
             tmat = self.transfer_matrix(cood0err)
             cood = np.dot(tmat, cood0err.vector)

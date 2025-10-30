@@ -96,8 +96,7 @@ class Dipole(Element):
         if self.k1 == 0.: # simple dipole
             phi = self.angle / (1. + delta)
             cosphi, sinphi = np.cos(phi), np.sin(phi)
-            tmat[0:2, 0:2] = np.array([[cosphi, rho*sinphi],
-                                       [-sinphi/rho, cosphi]])
+            tmat[0:2, 0:2] = np.array([[cosphi, rho*sinphi], [-sinphi/rho, cosphi]])
             tmat[2, 3] = self.length
         else: # combined-function dipole
             k1 = self.k1 / (1. + delta)
@@ -110,24 +109,18 @@ class Dipole(Element):
             if kx < 0.: # defocusing dipole
                 coshx, sinhx = np.cosh(psix), np.sinh(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
-                tmat[0:2, 0:2] = np.array([[coshx, sinhx/sqrtkx],
-                                           [sqrtkx*sinhx, coshx]])
-                tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky],
-                                           [-sqrtky*siny, cosy]])
+                tmat[0:2, 0:2] = np.array([[coshx, sinhx/sqrtkx], [sqrtkx*sinhx, coshx]])
+                tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]])
             elif ky < 0.: # focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 coshy, sinhy = np.cosh(psiy), np.sinh(psiy)
-                tmat[0:2, 0:2] = np.array([[cosx, sinx/sqrtkx],
-                                           [-sqrtkx*sinx, cosx]])
-                tmat[2:4, 2:4] = np.array([[coshy, sinhy/sqrtky],
-                                           [sqrtky*sinhy, coshy]])
+                tmat[0:2, 0:2] = np.array([[cosx, sinx/sqrtkx], [-sqrtkx*sinx, cosx]])
+                tmat[2:4, 2:4] = np.array([[coshy, sinhy/sqrtky], [sqrtky*sinhy, coshy]])
             else: # both focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
-                tmat[0:2, 0:2] = np.array([[cosx, sinx/sqrtkx],
-                                           [-sqrtkx*sinx, cosx]])
-                tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky],
-                                           [-sqrtky*siny, cosy]])
+                tmat[0:2, 0:2] = np.array([[cosx, sinx/sqrtkx], [-sqrtkx*sinx, cosx]])
+                tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]])
         return tmat
 
     def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
