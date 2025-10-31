@@ -156,8 +156,28 @@ class Quadrupole(Element):
         Returns:
             npt.NDArray[np.floating]: 4-element dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
         '''
-        tmat = Drift.transfer_matrix_from_length(self.length) - self.transfer_matrix(cood0)
-        return np.matmul(tmat, cood0.vector)
+        k = self.k1 / (1. + cood0.delta)
+        disp = np.zeros(4)
+        if k == 0.: # drift
+            return disp
+        cood0vec = cood0.vector.copy()
+        cood0vec[0] -= self.dx
+        cood0vec[2] -= self.dy
+        sqrtk = np.sqrt(np.abs(k))
+        psi = sqrtk * self.length
+        cospsi, sinpsi = np.cos(psi), np.sin(psi)
+        coshpsi, sinhpsi = np.cosh(psi), np.sinh(psi)
+        Mf1 = np.array([[sinpsi, -cospsi/sqrtk], [sqrtk*cospsi, sinpsi]]) * 0.5 * self.length * sqrtk
+        Mf2 = np.array([[0., sinpsi/sqrtk], [sqrtk*sinpsi, 0.]]) * 0.5
+        Md1 = np.array([[-sinhpsi, -coshpsi/sqrtk], [-sqrtk*coshpsi, -sinhpsi]]) * 0.5 * self.length * sqrtk
+        Md2 = np.array([[0., sinhpsi/sqrtk], [-sqrtk*sinhpsi, 0.]]) * 0.5
+        if k < 0.: # defocusing quadrupole
+            disp[0:2] = np.dot(Md1 + Md2, cood0vec[0:2])
+            disp[2:4] = np.dot(Mf1 + Mf2, cood0vec[2:4])
+        else: # focusing quadrupole
+            disp[0:2] = np.dot(Mf1 + Mf2, cood0vec[0:2])
+            disp[2:4] = np.dot(Md1 + Md2, cood0vec[2:4])
+        return disp
 
     def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
@@ -173,7 +193,26 @@ class Quadrupole(Element):
             npt.NDArray[np.floating]: Dispersion array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
-        tmat_drift, _ = Drift.transfer_matrix_array_from_length(self.length, ds=ds, endpoint=endpoint)
-        disp = np.matmul((tmat_drift - tmat).transpose(2,0,1), cood0.vector).T
+        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
+        k = self.k1 / (1. + cood0.delta)
+        disp = np.zeros((4, len(s)))
+        if k == 0.: # drift
+            return disp, s
+        cood0vec = cood0.vector.copy()
+        cood0vec[0] -= self.dx
+        cood0vec[2] -= self.dy
+        sqrtk = np.sqrt(np.abs(k))
+        psi = sqrtk * s
+        cospsi, sinpsi = np.cos(psi), np.sin(psi)
+        coshpsi, sinhpsi = np.cosh(psi), np.sinh(psi)
+        Mf1 = np.array([[sinpsi, -cospsi/sqrtk], [sqrtk*cospsi, sinpsi]]) * 0.5 * s[np.newaxis,np.newaxis,:] * sqrtk
+        Mf2 = np.array([[np.zeros_like(s), sinpsi/sqrtk], [sinpsi*sqrtk, np.zeros_like(s)]]) * 0.5
+        Md1 = np.array([[-sinhpsi, -coshpsi/sqrtk], [-sqrtk*coshpsi, -sinhpsi]]) * 0.5 * s[np.newaxis,np.newaxis,:] * sqrtk
+        Md2 = np.array([[np.zeros_like(s), sinhpsi/sqrtk], [-sinhpsi*sqrtk, np.zeros_like(s)]]) * 0.5
+        if k < 0.: # defocusing quadrupole
+            disp[0:2,:] = np.matmul((Md1 + Md2).transpose(2,0,1), cood0vec[0:2]).T
+            disp[2:4,:] = np.matmul((Mf1 + Mf2).transpose(2,0,1), cood0vec[2:4]).T
+        else: # focusing quadrupole
+            disp[0:2,:] = np.matmul((Mf1 + Mf2).transpose(2,0,1), cood0vec[0:2]).T
+            disp[2:4,:] = np.matmul((Md1 + Md2).transpose(2,0,1), cood0vec[2:4]).T
         return disp, s
