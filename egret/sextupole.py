@@ -205,8 +205,6 @@ class Sextupole(Element):
         n_step = int(self.length // ds) + 1
         s_step = self.length / n_step
         cood = cood0.copy()
-        cood.vector[0] -= self.dx
-        cood.vector[2] -= self.dy
         dispout = np.zeros(4)
         for _ in range(n_step):
             tmat, cood, disp = self.transfer_matrix_by_midpoint_method(cood, s_step, dispflag=True)
@@ -231,8 +229,6 @@ class Sextupole(Element):
         s_step = self.length / n_step
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
         cood = cood0.copy()
-        cood.vector[0] -= self.dx
-        cood.vector[2] -= self.dy
         disp_list = [np.zeros(4)]
         for _ in range(n_step - int(not endpoint)):
             tmat, cood, disp = self.transfer_matrix_by_midpoint_method(cood, s_step, dispflag=True)

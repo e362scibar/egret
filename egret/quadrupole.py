@@ -159,8 +159,6 @@ class Quadrupole(Element):
         if k == 0.: # drift
             return disp
         cood0vec = cood0.vector.copy()
-        cood0vec[0] -= self.dx
-        cood0vec[2] -= self.dy
         sqrtk = np.sqrt(np.abs(k))
         psi = sqrtk * self.length
         cospsi, sinpsi = np.cos(psi), np.sin(psi)
@@ -197,8 +195,6 @@ class Quadrupole(Element):
         if k == 0.: # drift
             return disp, s
         cood0vec = cood0.vector.copy()
-        cood0vec[0] -= self.dx
-        cood0vec[2] -= self.dy
         sqrtk = np.sqrt(np.abs(k))
         psi = sqrtk * s
         cospsi, sinpsi = np.cos(psi), np.sin(psi)
