@@ -144,6 +144,7 @@ class Octupole(Element):
             cood2, _, _ = quad2.transfer(cood)
             cood2['x'] += x0
             cood2['y'] += y0
+            cood2.delta = cood0.delta
             # get transfer matrix of the second quad
             if tmatflag:
                 tmat = quad2.transfer_matrix()

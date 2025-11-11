@@ -84,7 +84,7 @@ class Dipole(Element):
         Transfer matrix of the dipole element.
 
         Args:
-            cood0 Coordinate: Initial coordinate (not used in the dipole class).
+            cood0 Coordinate: Initial coordinate (only delta is used in the dipole class).
             ds float: Maximum step size [m] for integration. (not used in the dipole class).
 
         Returns:
@@ -129,7 +129,7 @@ class Dipole(Element):
         Transfer matrix array along the dipole element.
 
         Args:
-            cood0 Coordinate: Initial coordinate (not used in the dipole class).
+            cood0 Coordinate: Initial coordinate (only delta is used in the dipole class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
 
@@ -296,6 +296,46 @@ class Dipole(Element):
                 My2 = np.array([[np.zeros_like(s), siny/sqrtky], [sqrtky*siny, np.zeros_like(s)]]) * 0.5
                 disp[2:4,:] += np.matmul((My1 + My2).transpose(2,0,1), cood0vec[2:4]).T
         return disp, s
+
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
+        -> Tuple[Coordinate, Envelope, Dispersion]:
+        '''
+        Calculate the coordinate, envelope, and dispersion after the element.
+
+        Args:
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m] for integration (not used in the Dipole class).
+
+        Returns:
+            Coordinate: Coordinate after the element.
+            Envelope: Beam envelope after the element (if evlp0 is provided).
+            Dispersion: Dispersion after the element (if disp0 is provided).
+        '''
+        cood0err = cood0.copy()
+        cood0err.delta = 0.
+        disp = self.dispersion(cood0)
+        cood0err.vector[0] -= self.dx
+        cood0err.vector[2] -= self.dy
+        cood0err.s -= self.ds
+        tmat = self.transfer_matrix(cood0err)
+        cood = np.dot(tmat, cood0err.vector)
+        cood1 = Coordinate(cood, cood0err.s + self.length, cood0err.z, cood0err.delta)
+        if evlp0 is not None:
+            evlp1 = evlp0.copy()
+            evlp1.transfer(tmat, self.length)
+        else:
+            evlp1 = None
+        if disp0 is not None:
+            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0)
+            disp1 = Dispersion(disp, disp0.s + self.length)
+        else:
+            disp1 = None
+        cood1.vector[0] += self.dx
+        cood1.vector[2] += self.dy
+        cood1.s += self.ds
+        return cood1, evlp1, disp1
 
     def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
         -> Tuple[float, float, float]:

@@ -220,7 +220,7 @@ class Element(Object):
             else:
                 evlp1 = None
             if disp0 is not None:
-                disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err)
+                disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0)
                 disp1 = Dispersion(disp, disp0.s + self.length)
             else:
                 disp1 = None
@@ -292,7 +292,7 @@ class Element(Object):
             else:
                 evlp1 = None
             if disp0 is not None:
-                disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
+                disp_add, _ = self.dispersion_array(cood0, ds, endpoint)
                 disp = np.matmul(tmat.transpose(2,0,1), disp0.vector).T + disp_add
                 disp1 = DispersionArray(disp, s + disp0.s)
             else:

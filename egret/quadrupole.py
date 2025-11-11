@@ -82,10 +82,8 @@ class Quadrupole(Element):
         psi = sqrtk * self.length
         cospsi, sinpsi = np.cos(psi), np.sin(psi)
         coshpsi, sinhpsi = np.cosh(psi), np.sinh(psi)
-        mf = np.array([[cospsi, sinpsi/sqrtk],
-                       [-sqrtk*sinpsi, cospsi]])
-        md = np.array([[coshpsi, sinhpsi/sqrtk],
-                       [sqrtk*sinhpsi, coshpsi]])
+        mf = np.array([[cospsi, sinpsi/sqrtk], [-sqrtk*sinpsi, cospsi]])
+        md = np.array([[coshpsi, sinhpsi/sqrtk], [sqrtk*sinhpsi, coshpsi]])
         if k < 0.: # defocusing quadrupole
             tmat[0:2, 0:2] = md
             tmat[2:4, 2:4] = mf
