@@ -268,20 +268,21 @@ class Lattice(Element):
             ds float: Maximum step size [m].
 
         Returns:
-            Tuple[float, float, float]: Radiation integrals (I2, I4, I5).
+            Tuple[float, float, float, float, float, float]: Radiation integrals (I2, I4, I5u, I5v, I4u, I4v).
         '''
-        I2 = 0.
-        I4 = 0.
-        I5 = 0.
+        I2, I4, I5u, I5v, I4u, I4v = 0., 0., 0., 0., 0., 0.
         cood = cood0.copy()
         evlp = evlp0.copy()
         disp = disp0.copy()
         for elem in self.elements:
             if elem.length == 0.:
                 continue
-            i2, i4, i5 = elem.radiation_integrals(cood, evlp, disp, ds)
+            i2, i4, i5u, i5v, i4u, i4v = elem.radiation_integrals(cood, evlp, disp, ds)
             I2 += i2
             I4 += i4
-            I5 += i5
+            I5u += i5u
+            I5v += i5v
+            I4u += i4u
+            I4v += i4v
             cood, evlp, disp = elem.transfer(cood, evlp, disp)
-        return I2, I4, I5
+        return I2, I4, I5u, I5v, I4u, I4v

@@ -276,7 +276,7 @@ class Element(Object):
             if endpoint:
                 cood1.append(CoordinateArray(cood.vector[:, np.newaxis], np.array([cood.s])))
                 if evlp0 is not None:
-                    evlp1.append(EnvelopeArray(evlp.cov[:, :, np.newaxis], np.array([evlp.s])))
+                    evlp1.append(EnvelopeArray(evlp.cov[:, :, np.newaxis], np.array([evlp.s]), evlp.T[:, :, np.newaxis]))
                 if disp0 is not None:
                     disp1.append(DispersionArray(disp.vector[:, np.newaxis], np.array([disp.s])))
             cood1.vector[0] += self.dx
@@ -313,6 +313,6 @@ class Element(Object):
             ds float: Maximum step size [m].
 
         Returns:
-            float, float, float: Radiation integrals I2, I4, and I5.
+            Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
         '''
-        return 0., 0., 0.
+        return 0., 0., 0., 0., 0., 0.

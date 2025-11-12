@@ -318,7 +318,9 @@ class Dipole(Element):
         tmat = self.transfer_matrix(cood0err)
         disp = self.dispersion(Coordinate())
         cood = np.dot(tmat, cood0err.vector) + disp * cood0.delta
-        cood1 = Coordinate(cood, cood0err.s + self.length, cood0err.z, cood0err.delta)
+        cood[0] += self.dx
+        cood[2] += self.dy
+        cood1 = Coordinate(cood, cood0err.s + self.length + self.ds, cood0err.z, cood0err.delta)
         if evlp0 is not None:
             evlp1 = evlp0.copy()
             evlp1.transfer(tmat, self.length)
@@ -329,9 +331,6 @@ class Dipole(Element):
             disp1 = Dispersion(disp, disp0.s + self.length)
         else:
             disp1 = None
-        cood1.vector[0] += self.dx
-        cood1.vector[2] += self.dy
-        cood1.s += self.ds
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
@@ -386,12 +385,16 @@ class Dipole(Element):
             ds float: Step size for numerical integration.
 
         Returns:
-            float, float, float: Radiation integrals I2, I4, and I5.
+            Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
         '''
         kappa = 1./self.radius
         k = self.k1
         _, evlp, disp = self.transfer_array(cood0, evlp0, disp0, ds, endpoint=True)
+        dispuv = np.matvec(evlp.T_matrix().transpose(2, 0, 1), disp.vector.T).T
         I2 = self.length * kappa**2
         I4 = scipy.integrate.simpson(disp['x'] * kappa * (kappa**2 + 2. * k), x=disp.s)
-        I5 = scipy.integrate.simpson(kappa**3 * (evlp['bx'] * disp['xp']**2 + 2. * evlp['ax'] * disp['x'] * disp['xp'] + evlp['gx'] * disp['x']**2), x=disp.s)
-        return I2, I4, I5
+        I4u = scipy.integrate.simpson(evlp.tau * dispuv[0] * kappa * (kappa**2 + 2. * k), x=disp.s)
+        I4v = I4 - I4u
+        I5u = scipy.integrate.simpson(kappa**3 * (evlp['bu'] * dispuv[1]**2 + 2. * evlp['au'] * dispuv[0] * dispuv[1] + evlp['gu'] * dispuv[0]**2), x=disp.s)
+        I5v = scipy.integrate.simpson(kappa**3 * (evlp['bv'] * dispuv[3]**2 + 2. * evlp['av'] * dispuv[2] * dispuv[3] + evlp['gv'] * dispuv[2]**2), x=disp.s)
+        return I2, I4, I5u, I5v, I4u, I4v

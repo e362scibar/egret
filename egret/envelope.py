@@ -155,3 +155,15 @@ class Envelope:
         self.U = Mu @ self.U @ Mu.T
         self.V = Mv @ self.V @ Mv.T
         self.s += length
+
+    def T_matrix(self) -> npt.NDArray[np.floating]:
+        '''
+        Get the 4x4 transformation matrix for eigenmode.
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transformation matrix.
+        '''
+        mat = np.eye(4) * self.tau
+        mat[2:4,0:2] = self.T
+        mat[0:2,2:4] = -np.array([[self.T[1,1], -self.T[0,1]], [-self.T[1,0], self.T[0,0]]])
+        return mat

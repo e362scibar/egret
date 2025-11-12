@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+from .dispersion import Dispersion
+
 import numpy as np
 import numpy.typing as npt
 
@@ -90,3 +92,22 @@ class DispersionArray:
         '''
         self.vector = np.hstack((self.vector, disp.vector))
         self.s = np.hstack((self.s, disp.s))
+
+    def from_s(self, s: float) -> Dispersion:
+        '''
+        Get dispersion at the specified longitudinal position by linear interpolation.
+
+        Args:
+            s float: Longitudinal position [m]
+
+        Returns:
+            Coordinate: Coordinate at the specified position.
+        '''
+        idx = np.searchsorted(self.s, s)
+        if idx == len(self.s) - 1:
+            raise ValueError(f'Out of range: s={s}, max={self.s[-1]}')
+        s0, s1 = self.s[idx], self.s[idx+1]
+        ds = s1 - s0
+        a = np.array([(s1-s)/ds, (s-s0)/ds])
+        vec = np.sum(self.vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
+        return Dispersion(vec, s)

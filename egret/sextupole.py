@@ -138,7 +138,7 @@ class Sextupole(Element):
             cood2['x'] += x0
             cood2['y'] += y0
             cood2.delta = cood0.delta
-            # get transfer matrix and addirive dispersion of the second quad
+            # get transfer matrix and additive dispersion of the second quad
             if tmatflag:
                 tmat = quad2.transfer_matrix()
             if dispflag:

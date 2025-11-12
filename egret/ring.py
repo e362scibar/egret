@@ -67,9 +67,12 @@ class Ring(Element):
         '''
         return Ring(self.name, self.elements, self.energy, self.info)
 
-    def update(self):
+    def update(self, delta: float = 0.):
         '''
         Update transfer matrix, dispersion, and emittance.
+
+        Args:
+            delta float: Relative momentum deviation (default: 0.).
         '''
         for elem in self.elements:
             try:
@@ -78,10 +81,11 @@ class Ring(Element):
                 pass
         # initial coordinate of closed orbit
         try:
-            self.cood0 = self.find_initial_coordinate_of_closed_orbit(tol=1.e-7)
+            cood_guess = Coordinate(delta=delta)
+            self.cood0 = self.find_initial_coordinate_of_closed_orbit(guess=cood_guess, tol=1.e-7)
         except RuntimeError as e:
             print(f'Warning: Failed to find closed orbit. Using zero coordinate. {e}')
-            self.cood0 = Coordinate()
+            self.cood0 = Coordinate(delta=delta)
         M = self.transfer_matrix(self.cood0)
         # initial dispersion
         disp = self.dispersion(self.cood0)
@@ -121,10 +125,10 @@ class Ring(Element):
         for i in range(2):
             if self.tune[i] < 0.:
                 self.tune[i] += 1.
-        self.I2, self.I4, self.I5 = self.radiation_integrals(self.cood0, self.evlp0, self.disp0)
-        self.emittance = self.C_q * (self.energy / self.m_e_eV)**2 * self.I5 / (self.I2 - self.I4)
-        self.Jx = 1. - self.I4 / self.I2
-        self.Jy = 1.
+        self.I2, self.I4, self.I5u, self.I5v, self.I4u, self.I4v = self.radiation_integrals(self.cood0, self.evlp0, self.disp0)
+        self.emittance = self.C_q * (self.energy / self.m_e_eV)**2 * np.array([self.I5u / (self.I2 - self.I4u), self.I5v / (self.I2 - self.I4v)])
+        self.Jx = 1. - self.I4u / self.I2
+        self.Jy = 1. - self.I4v / self.I2
         self.Jz = 2. + self.I4 / self.I2
 
     def get_element(self, key: int | Tuple[int, ...]) -> Element:
@@ -320,21 +324,22 @@ class Ring(Element):
             I4 float: Fourth radiation integral.
             I5 float: Fifth radiation integral.
         '''
-        I2 = 0.
-        I4 = 0.
-        I5 = 0.
+        I2, I4, I5u, I5v, I4u, I4v = 0., 0., 0., 0., 0., 0.
         cood = cood0.copy()
         evlp = evlp0.copy()
         disp = disp0.copy()
         for elem in self.elements:
             if elem.length == 0.:
                 continue
-            i2, i4, i5 = elem.radiation_integrals(cood, evlp, disp, ds)
+            i2, i4, i5u, i5v, i4u, i4v = elem.radiation_integrals(cood, evlp, disp, ds)
             I2 += i2
             I4 += i4
-            I5 += i5
+            I5u += i5u
+            I5v += i5v
+            I4u += i4u
+            I4v += i4v
             cood, evlp, disp = elem.transfer(cood, evlp, disp)
-        return I2, I4, I5
+        return I2, I4, I5u, I5v, I4u, I4v
 
     def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = Coordinate(),
         tol: float = None, maxiter: int = 500) -> Coordinate:
@@ -350,11 +355,11 @@ class Ring(Element):
             Coordinate: Initial coordinate of the closed orbit.
         '''
         cood = guess.copy()
-        eval_func = lambda x: np.linalg.norm(self.transfer(Coordinate(x))[0].vector - x)
+        eval_func = lambda x: np.linalg.norm(self.transfer(Coordinate(x, delta=guess.delta))[0].vector - x)
         result = scipy.optimize.minimize(eval_func, cood.vector, method='Nelder-Mead', tol=tol, options={'maxiter': maxiter})
         if not result.success:
             raise RuntimeError('Failed to find closed orbit: ' + result.message)
-        cood = Coordinate(result.x)
+        cood = Coordinate(result.x, delta=guess.delta)
         if result.nit == maxiter:
             raise RuntimeError('Failed to find closed orbit: Maximum number of iterations reached.')
         return cood

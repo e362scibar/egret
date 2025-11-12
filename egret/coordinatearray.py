@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+from .coordinate import Coordinate
+
 import numpy as np
 import numpy.typing as npt
 
@@ -111,3 +113,24 @@ class CoordinateArray:
         self.s = np.hstack((self.s, cood.s))
         self.z = np.hstack((self.z, cood.z))
         self.delta = np.hstack((self.delta, cood.delta))
+
+    def from_s(self, s: float) -> Coordinate:
+        '''
+        Get coordinate at the specified longitudinal position by linear interpolation.
+
+        Args:
+            s float: Longitudinal position [m]
+
+        Returns:
+            Coordinate: Coordinate at the specified position.
+        '''
+        idx = np.searchsorted(self.s, s)
+        if idx == len(self.s) - 1:
+            raise ValueError(f'Out of range: s={s}, max={self.s[-1]}')
+        s0, s1 = self.s[idx], self.s[idx+1]
+        ds = s1 - s0
+        a = np.array([(s1-s)/ds, (s-s0)/ds])
+        vec = np.sum(self.vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
+        z = np.sum(self.z[idx:idx+2] * a)
+        delta = np.sum(self.delta[idx:idx+2] * a)
+        return Coordinate(vec, s, z, delta)

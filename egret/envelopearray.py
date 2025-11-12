@@ -119,9 +119,9 @@ class EnvelopeArray:
             T = res.T.reshape(2, 2, N)
             self.T = T
         T_ = np.array([[T[1,1], -T[0,1]], [-T[1,0], T[0,0]]])
-        tau = np.sqrt(1. - np.linalg.det(T.transpose(2,0,1)))[np.newaxis, np.newaxis, :]
-        chi = 1. / (2. * tau**2 - 1.)
-        sqrtchi = np.sqrt(chi)
+        self.tau = np.sqrt(1. - np.linalg.det(T.transpose(2,0,1)))
+        tau = self.tau[np.newaxis, np.newaxis, :]
+        sqrtchi = 1. / np.sqrt(2. * tau**2 - 1.)
         self.U = sqrtchi * (tau**2 * Sxx - np.einsum('ijn,jkn,lkn->iln', T_, Syy, T_))
         self.V = sqrtchi * (tau**2 * Syy - np.einsum('ijn,jkn,lkn->iln', T, Sxx, T))
 
@@ -141,6 +141,8 @@ class EnvelopeArray:
         '''
         self.cov = np.dstack((self.cov, evlp.cov))
         self.s = np.hstack((self.s, evlp.s))
+        self.T = np.dstack((self.T, evlp.T))
+        self.tau = np.hstack((self.tau, evlp.tau))
 
     @classmethod
     def transport(cls, evlp0: Envelope, tmat: npt.NDArray[np.floating], s: npt.NDArray[np.floating]) -> EnvelopeArray:
@@ -172,3 +174,37 @@ class EnvelopeArray:
         T = 0.5 * (np.matmul(Mv.transpose(2,0,1), Mv_T1.transpose(2,0,1))
                    + np.matmul(T1Mu.transpose(2,0,1), Mu_.transpose(2,0,1))).transpose(1,2,0)
         return cls(cov, evlp0.s + s, T)
+
+    def from_s(self, s: float) -> Envelope:
+        '''
+        Get the envelope at the specified longitudinal position by linear interpolation.
+
+        Args:
+            s float: Longitudinal position [m].
+
+        Returns:
+            Envelope: Interpolated envelope at the specified longitudinal position.
+        '''
+        idx = np.searchsorted(self.s, s) - 1
+        if idx < 0:
+            idx = 0
+        elif idx >= len(self.s) - 1:
+            idx = len(self.s) - 2
+        s0, s1 = self.s[idx], self.s[idx+1]
+        ds = s1 - s0
+        a = np.array([(s1-s)/ds, (s-s0)/ds])
+        cov = np.sum(self.cov[:, :, idx:idx+2] * a[np.newaxis, np.newaxis, :], axis=2)
+        T = np.sum(self.T[:, :, idx:idx+2] * a[np.newaxis, np.newaxis, :], axis=2)
+        return Envelope(cov, s, T)
+
+    def T_matrix(self) -> npt.NDArray[np.floating]:
+        '''
+        Get the coordinate transformation matrices for eigenmode.
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4xN coordinate transformation matrices for eigenmode.
+        '''
+        mat = np.eye(4)[:, :, np.newaxis] * self.tau[np.newaxis, np.newaxis, :]
+        mat[2:4, 0:2, :] = self.T
+        mat[0:2, 2:4, :] = -np.array([[self.T[1,1,:], -self.T[0,1,:]], [-self.T[1,0,:], self.T[0,0,:]]])
+        return mat
