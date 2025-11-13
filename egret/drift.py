@@ -67,10 +67,7 @@ class Drift(Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
-        tmat = np.eye(4)
-        tmat[0, 1] = self.length
-        tmat[2, 3] = self.length
-        return tmat
+        return Drift.transfer_matrix_from_length(self.length)
 
     def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
@@ -86,11 +83,7 @@ class Drift(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
-        tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
-        tmat[0,1,:] = s
-        tmat[2,3,:] = s
-        return tmat, s
+        return Drift.transfer_matrix_array_from_length(self.length, ds, endpoint)
 
     @classmethod
     def transfer_matrix_from_length(cls, length: float) -> npt.NDArray[np.floating]:
@@ -123,42 +116,8 @@ class Drift(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., length, int(length//ds) + int(endpoint) + 1, endpoint)
+        s = np.linspace(0., length, int(length//ds) + int(endpoint) + 1, endpoint) if np.abs(length) > 0. else np.array([0.])
         tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
         tmat[0,1,:] = s
         tmat[2,3,:] = s
         return tmat, s
-
-def _drift_transfer_matrix_array_py(length: float, ds: float, endpoint: bool):
-    # create s array similar to np.linspace used in original implementation
-    if ds <= 0.0:
-        raise ValueError('ds must be positive')
-    n = int(length // ds) + (1 if endpoint else 0) + 1
-    s = np.empty(n, dtype=np.float64)
-    if n == 1:
-        s[0] = 0.0
-    else:
-        for i in range(n):
-            s[i] = length * i / (n - 1)
-
-    tmat = np.empty((n, 4, 4), dtype=np.float64)
-    for i in range(n):
-        # identity
-        tmat[i, 0, 0] = 1.0
-        tmat[i, 1, 1] = 1.0
-        tmat[i, 2, 2] = 1.0
-        tmat[i, 3, 3] = 1.0
-        # zero others
-        tmat[i, 0, 1] = s[i]
-        tmat[i, 1, 0] = 0.0
-        tmat[i, 0, 2] = 0.0
-        tmat[i, 0, 3] = 0.0
-        tmat[i, 1, 2] = 0.0
-        tmat[i, 1, 3] = 0.0
-        tmat[i, 2, 0] = 0.0
-        tmat[i, 2, 1] = 0.0
-        tmat[i, 2, 3] = s[i]
-        tmat[i, 3, 0] = 0.0
-        tmat[i, 3, 1] = 0.0
-        tmat[i, 3, 2] = 0.0
-    return tmat, s

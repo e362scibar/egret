@@ -28,6 +28,7 @@ from .dipole import Dipole
 from .quadrupole import Quadrupole
 from .sextupole import Sextupole
 from .octupole import Octupole
+from .steering import Steering
 
 from .lattice import Lattice
 
