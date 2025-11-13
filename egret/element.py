@@ -67,6 +67,19 @@ class Element(Object):
         '''
         return Element(self.name, self.length, self.dx, self.dy, self.ds, self.tilt, self.info)
 
+    def set_index(self, index: Tuple[int, ...] | None = None) -> None:
+        '''
+        Set the index of the element in the lattice.
+
+        Args:
+            index Tuple[int, ...] | None: Index tuple representing the position of the element in the lattice.
+        '''
+        self.index = index
+        if hasattr(self, 'elements'):
+            for i, elem in enumerate(self.elements):
+                next_index = index + (i,) if index is not None else (i,)
+                elem.set_index(next_index)
+
     def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.

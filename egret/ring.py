@@ -56,6 +56,7 @@ class Ring(Element):
         self.tune = np.zeros(2)
         self.elements = copy.deepcopy(elements)
         self.energy = energy
+        self.set_index()
         self.update()
 
     def copy(self) -> Ring:
@@ -153,12 +154,12 @@ class Ring(Element):
         else:
             raise TypeError('Index must be int or tuple of int.')
 
-    def get_s(self, key: int | Tuple[int, ...]) -> float:
+    def get_s(self, key: int | Tuple[int, ...] | Element) -> float:
         '''
         Get longitudinal position by index or tuple of indices.
 
         Args:
-            key int or tuple of int: Index or tuple of indices.
+            key int or tuple of int or Element: Index, tuple of indices, or Element.
 
         Returns:
             float: Longitudinal position [m].
@@ -181,8 +182,10 @@ class Ring(Element):
             if len(key) > 1 and hasattr(self.elements[key[0]], 'elements'):
                 s += self.elements[key[0]].get_s(key[1:])
             return s
+        elif isinstance(key, Element):
+            return self.get_s(key.index)
         else:
-            raise TypeError('Index must be int or tuple of int.')
+            raise TypeError('Index must be int, tuple of int, or Element.')
 
     def find_index(self, name: str | Tuple[str, ...]) -> Tuple[int, ...]:
         '''

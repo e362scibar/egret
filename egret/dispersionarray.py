@@ -104,10 +104,12 @@ class DispersionArray:
             Coordinate: Coordinate at the specified position.
         '''
         idx = np.searchsorted(self.s, s)
+        if isinstance(idx, np.ndarray):
+            idx = idx[0]
         if idx == len(self.s) - 1:
             raise ValueError(f'Out of range: s={s}, max={self.s[-1]}')
         s0, s1 = self.s[idx], self.s[idx+1]
         ds = s1 - s0
-        a = np.array([(s1-s)/ds, (s-s0)/ds])
+        a = np.array([(s1-s)/ds, (s-s0)/ds]) if ds != 0. else np.array([0.5, 0.5])
         vec = np.sum(self.vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
         return Dispersion(vec, s)

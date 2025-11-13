@@ -229,3 +229,14 @@ class Steering(Element):
         else:
             disp1 = None
         return cood1, evlp1, disp1
+
+    def set_steering(self, dxp: float, dyp: float) -> None:
+        '''
+        Set the steering angles.
+
+        Args:
+            dxp float: Horizontal deflection angle [rad].
+            dyp float: Vertical deflection angle [rad].
+        '''
+        self.dxp = dxp
+        self.dyp = dyp

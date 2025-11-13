@@ -185,14 +185,14 @@ class EnvelopeArray:
         Returns:
             Envelope: Interpolated envelope at the specified longitudinal position.
         '''
-        idx = np.searchsorted(self.s, s) - 1
-        if idx < 0:
-            idx = 0
-        elif idx >= len(self.s) - 1:
-            idx = len(self.s) - 2
+        idx = np.searchsorted(self.s, s)
+        if isinstance(idx, np.ndarray):
+            idx = idx[0]
+        if idx == len(self.s) - 1:
+            raise ValueError(f'Out of range: s={s}, max={self.s[-1]}')
         s0, s1 = self.s[idx], self.s[idx+1]
         ds = s1 - s0
-        a = np.array([(s1-s)/ds, (s-s0)/ds])
+        a = np.array([(s1-s)/ds, (s-s0)/ds]) if ds != 0. else np.array([0.5, 0.5])
         cov = np.sum(self.cov[:, :, idx:idx+2] * a[np.newaxis, np.newaxis, :], axis=2)
         T = np.sum(self.T[:, :, idx:idx+2] * a[np.newaxis, np.newaxis, :], axis=2)
         return Envelope(cov, s, T)
