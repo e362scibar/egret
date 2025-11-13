@@ -161,12 +161,13 @@ class Lattice(Element):
             raise KeyError(f'Element starting with name {name} not found.')
         return index_list
 
-    def transfer_matrix(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the lattice.
 
         Args:
             cood0 Coordinate: Initial coordinate.
+            ds float: Maximum step size [m].
 
         Returns:
             npt.NDArray[np.floating]: 6x6 transfer matrix of the lattice.
@@ -174,8 +175,8 @@ class Lattice(Element):
         tmat = np.eye(4)
         cood = cood0.copy()
         for elem in self.elements:
-            tmat = np.dot(elem.transfer_matrix(cood), tmat)
-            cood = elem.transfer(cood)[0]
+            tmat = np.dot(elem.transfer_matrix(cood, ds), tmat)
+            cood = elem.transfer(cood, ds=ds)[0]
         return tmat
 
     def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = True) \

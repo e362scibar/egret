@@ -329,3 +329,60 @@ class Element(Object):
             Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
         '''
         return 0., 0., 0., 0., 0., 0.
+
+    def get_element_from_s(self, s: float) -> Tuple[Element, float]:
+        '''
+        Get element and local longitudinal position by longitudinal position.
+
+        Args:
+            s float: Longitudinal position [m].
+
+        Returns:
+            Element: Element at the specified longitudinal position.
+            float: Local longitudinal position in the element [m].
+        '''
+        if s < 0. or s >= self.length:
+            raise ValueError('Longitudinal position out of range.')
+        if hasattr(self, 'elements'):
+            s0 = 0.
+            for elem in self.elements:
+                if s < s0 + elem.length:
+                    return elem.get_element_from_s(s - s0)
+                s0 += elem.length
+            raise ValueError('Longitudinal position out of range.')
+        else:
+            return self, s
+
+    def transfer_matrix_from_s(self, s: float, cood0: Coordinate = Coordinate(), ds: float = 0.1) \
+        -> npt.NDArray[np.floating]:
+        '''
+        Transfer matrices from the given longitudinal position to the end of the element.
+
+        Args:
+            s float: Longitudinal position [m].
+            cood0 Coordinate: Initial coordinate (not used in the base class).
+            ds float: Maximum step size [m] for integration (not used in the base class).
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix from s to the end of the element.
+        '''
+        if s < 0. or s > self.length:
+            raise ValueError('Longitudinal position out of range.')
+        if hasattr(self, 'elements'):
+            s0 = 0.
+            cood = cood0.copy()
+            for elem in self.elements:
+                if s >= s0 and s < s0 + elem.length:
+                    tmat = elem.transfer_matrix_from_s(s - s0, cood, ds)
+                    coodvec = np.dot(tmat, cood.vector)
+                    cood = Coordinate(coodvec, cood.s + elem.length - (s - s0), cood.z, cood.delta)
+                elif s < s0:
+                    tmat_elem = elem.transfer_matrix(cood, ds)
+                    tmat = np.dot(tmat_elem, tmat)
+                    cood, _, _ = elem.transfer(cood)
+                s0 += elem.length
+            return tmat
+        else:
+            elem = self.copy()
+            elem.length -= s
+            return elem.transfer_matrix(cood0, ds)
