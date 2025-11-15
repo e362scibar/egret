@@ -27,6 +27,8 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
+from ._pyegret_bridge import available as _pyegret_available, drift_transfer_matrix as _py_drift_tmat
+
 class Drift(Element):
     '''
     Drift space element.
@@ -96,6 +98,12 @@ class Drift(Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
+        if _pyegret_available():
+            try:
+                return _py_drift_tmat(length)
+            except Exception:
+                # fall back to Python implementation
+                pass
         tmat = np.eye(4)
         tmat[0, 1] = length
         tmat[2, 3] = length

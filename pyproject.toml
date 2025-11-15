@@ -1,16 +1,29 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "numpy", "scipy", "latticejson"]
-build-backend = "setuptools.build_meta"
+requires = [
+	"scikit-build-core>=0.11.6",
+	"pybind11",
+	"wheel",
+	"setuptools>=61.0",
+	"numpy",
+	"scipy",
+	"latticejson",
+]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "egret"
-dynamic = ["version"]
+version = "0.2.0"
 description = "A general-purpose beam dynamics simulation code. (Egret: Engine for General Research in Energetic-beam Tracking.)"
 authors = [{name="Hirokazu Maesaka", email="maesaka@spring8.or.jp"}]
-license = "GPL-3.0-or-later"
-license-files = ["LICEN[CS]E*"]
+license = { text = "GPL-3.0-or-later" }
 readme = "README.md"
 dependencies = ["numpy"]
 
-[tool.setuptools.dynamic]
-version = { attr = "egret.version.__version__" }
+[tool.setuptools.packages.find]
+exclude = ["cpp*"]
+
+[tool.scikit-build.cmake]
+# Use the `cpp` subdirectory as the CMake source dir where our C++ CMakeLists lives
+source-dir = "cpp"
+# Default CMake args passed to the build; ensure the pyext target is built
+args = ["-DBUILD_PYEXT=ON", "-DCMAKE_BUILD_TYPE=Release"]

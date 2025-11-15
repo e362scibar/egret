@@ -34,6 +34,8 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
+from ._pyegret_bridge import available as _pyegret_available, sextupole_transfer_matrix as _py_sextupole_tmat, sextupole_dispersion as _py_sextupole_disp
+
 class Sextupole(Element):
     '''
     Sextupole magnet.
@@ -156,6 +158,13 @@ class Sextupole(Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
+        # Prefer compiled kernel when available
+        if _pyegret_available() and cood0 is not None:
+            try:
+                return _py_sextupole_tmat(cood0, self.length, self.k2, ds)
+            except Exception:
+                # fall back to Python implementation
+                pass
         n_step = int(self.length // ds) + 1
         s_step = self.length / n_step
         cood = cood0.copy()
@@ -202,6 +211,12 @@ class Sextupole(Element):
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
         '''
+        # Prefer compiled kernel
+        if _pyegret_available():
+            try:
+                return _py_sextupole_disp(cood0, self.length, self.k2, ds)
+            except Exception:
+                pass
         n_step = int(self.length // ds) + 1
         s_step = self.length / n_step
         cood = cood0.copy()

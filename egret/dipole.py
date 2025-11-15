@@ -33,6 +33,7 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 import scipy
+from ._pyegret_bridge import available as _pyegret_available, dipole_transfer_matrix as _py_dipole_tmat, dipole_transfer_matrix_array as _py_dipole_tmat_array
 
 class Dipole(Element):
     '''
@@ -93,6 +94,13 @@ class Dipole(Element):
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
         delta = 0. if cood0 is None else cood0.delta
+        # Prefer compiled kernel when available
+        if _pyegret_available():
+            try:
+                return _py_dipole_tmat(self.length, self.angle, self.k1, delta)
+            except Exception:
+                # fall back to Python implementation on any error
+                pass
         rho = self.radius * (1. + delta)
         tmat = np.eye(4)
         if self.k1 == 0.: # simple dipole
@@ -140,6 +148,12 @@ class Dipole(Element):
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         delta = 0. if cood0 is None else cood0.delta
+        # Prefer compiled kernel if available
+        if _pyegret_available():
+            try:
+                return _py_dipole_tmat_array(self.length, self.angle, self.k1, delta, ds, endpoint)
+            except Exception:
+                pass
         rho = self.radius * (1. + delta)
         s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
         tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)

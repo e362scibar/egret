@@ -297,7 +297,22 @@ class Element(Object):
             cood1.s += self.ds
         else:
             tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint)
-            cood = np.matmul(tmat.transpose(2,0,1), cood0err.vector).T
+            # Use compiled bulk-apply helper when available to speed up applying (4,4,N) to vectors
+            try:
+                from ._pyegret_bridge import apply_transfer_matrix_array
+                cood = apply_transfer_matrix_array(tmat, cood0err.vector)
+                # apply_transfer_matrix_array returns (4,N) for single vector or (4,M,N) for multiple
+                # Ensure result has shape (4, N)
+                if cood.ndim == 2 and cood.shape[0] == 4 and cood.shape[1] == s.shape[0]:
+                    pass
+                elif cood.ndim == 3 and cood.shape[0] == 4:
+                    # multiple vectors; choose first by default to preserve original behavior
+                    cood = cood[:,0,:]
+                else:
+                    # fallback to numpy matmul if shapes unexpected
+                    cood = np.matmul(tmat.transpose(2,0,1), cood0err.vector).T
+            except Exception:
+                cood = np.matmul(tmat.transpose(2,0,1), cood0err.vector).T
             cood[0] += self.dx
             cood[2] += self.dy
             cood1 = CoordinateArray(cood, s + cood0.s + self.ds,

@@ -23,6 +23,7 @@ from __future__ import annotations
 from .element import Element
 from .coordinate import Coordinate
 from .drift import Drift
+from ._pyegret_bridge import available as _pyegret_available, quadrupole_transfer_matrix as _py_quadrupole_tmat, quadrupole_transfer_matrix_array as _py_quadrupole_tmat_array
 
 import numpy as np
 import numpy.typing as npt
@@ -73,6 +74,13 @@ class Quadrupole(Element):
         '''
         delta = 0. if cood0 is None else cood0.delta
         k = self.k1 / (1. + delta)
+        # If compiled kernels are available, prefer them for performance
+        if _pyegret_available():
+            try:
+                return _py_quadrupole_tmat(self.length, self.k1, self.tilt, delta)
+            except Exception:
+                # fall back to Python implementation on any error
+                pass
         tmat = np.eye(4)
         if k == 0.: # drift
             tmat[0, 1] = self.length
@@ -116,6 +124,13 @@ class Quadrupole(Element):
         '''
         delta = 0. if cood0 is None else cood0.delta
         k = self.k1 / (1. + delta)
+        # Prefer compiled kernel if available
+        if _pyegret_available():
+            try:
+                return _py_quadrupole_tmat_array(self.length, self.k1, self.tilt, delta, ds, endpoint)
+            except Exception:
+                # fall back to Python implementation
+                pass
         s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
         tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
         if k == 0.: # drift
