@@ -1,0 +1,8 @@
+// version.hpp
+//
+// Auto-generated at configure time. Provides the Python package version
+// to C++ code so both sides use the same version string.
+//
+#pragma once
+
+#define EGRET_PY_VERSION "@EGRET_PY_VERSION@"

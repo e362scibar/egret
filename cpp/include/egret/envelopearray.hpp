@@ -1,4 +1,4 @@
-// steering.hpp
+// envelopearray.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 //
@@ -21,14 +21,32 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include "egret/drift.hpp"
+#include <vector>
+#include <algorithm>
+#include "egret/envelope.hpp"
 
 namespace egret {
 
-class Steering : public Drift {
+class EnvelopeArray {
+protected:
+    // 4 x N matrix
+    Eigen::Matrix<double, 4, Eigen::Dynamic> cov;
+    std::vector<double> s;
+    std::vector<double> z;
+    std::vector<double> delta;
+
 public:
-    // Tilted kick handling belongs to higher-level element, but basic transport is drift-like
-    // We'll reuse Drift implementations; additional helpers could be added here.
+    EnvelopeArray();
+    EnvelopeArray(const Eigen::Matrix<double,4,Eigen::Dynamic>& cov,
+                    const std::vector<double>& s_,
+                    const std::vector<double>& z_ = {},
+                    const std::vector<double>& delta_ = {});
+
+    // Efficient append (reserve + copy)
+    void append(const EnvelopeArray &other);
+
+    // linear interpolation like Python's from_s
+    Envelope from_s(double sval) const;
 };
 
 } // namespace egret

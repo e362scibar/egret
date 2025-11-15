@@ -1,4 +1,7 @@
-// steering.hpp
+/**
+ * @brief Class representing a particle coordinate in phase space
+ */
+// envelope.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 //
@@ -21,14 +24,15 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include "egret/drift.hpp"
 
 namespace egret {
 
-class Steering : public Drift {
+class Envelope {
+protected:
+    Eigen::Matrix4d cov;
 public:
-    // Tilted kick handling belongs to higher-level element, but basic transport is drift-like
-    // We'll reuse Drift implementations; additional helpers could be added here.
+    Envelope() : cov(Eigen::Matrix4d::Identity()) {}
+    Envelope(const Eigen::Matrix4d &cov): cov(cov) {}
 };
 
 } // namespace egret

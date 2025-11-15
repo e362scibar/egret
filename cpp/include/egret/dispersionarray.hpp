@@ -1,4 +1,4 @@
-// steering.hpp
+// dispersionarray.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 //
@@ -21,14 +21,25 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include "egret/drift.hpp"
+#include <vector>
+#include <algorithm>
+#include "egret/dispersion.hpp"
 
 namespace egret {
 
-class Steering : public Drift {
+class DispersionArray {
+protected:
+    // 4 x N matrix
+    Eigen::Matrix<double, 4, Eigen::Dynamic> vector;
+
 public:
-    // Tilted kick handling belongs to higher-level element, but basic transport is drift-like
-    // We'll reuse Drift implementations; additional helpers could be added here.
+    DispersionArray();
+    DispersionArray(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec);
+    // Efficient append (reserve + copy)
+    void append(const DispersionArray &other);
+
+    // linear interpolation like Python's from_s
+    Dispersion from_s(double sval) const;
 };
 
 } // namespace egret

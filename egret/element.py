@@ -110,62 +110,6 @@ class Element(Object):
         s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint)
         return np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2), s
 
-    @classmethod
-    def envelope_transfer_matrix(cls, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
-        '''
-        Compute the transformation matrix for the beam envelope from the 4x4 transfer matrix.
-
-        Args:
-            tmat (npt.NDArray[np.floating]): 4x4 transfer matrix.
-
-        Returns:
-            npt.NDArray[np.floating]: 6x6 transformation matrix for the beam envelope.
-        '''
-        Cx = tmat[0, 0]
-        Sx = tmat[0, 1]
-        Cpx = tmat[1, 0]
-        Spx = tmat[1, 1]
-        Cy = tmat[2, 2]
-        Sy = tmat[2, 3]
-        Cpy = tmat[3, 2]
-        Spy = tmat[3, 3]
-        tmatb = np.zeros((6, 6))
-        tmatb[0:3, 0:3] = np.array([[Cx**2, -2.*Cx*Sx, Sx**2],
-                                    [-Cx*Cpx, Cx*Spx+Cpx*Sx, -Sx*Spx],
-                                    [Cpx**2, -2.*Cpx*Spx, Spx**2]])
-        tmatb[3:6, 3:6] = np.array([[Cy**2, -2.*Cy*Sy, Sy**2],
-                                    [-Cy*Cpy, Cy*Spy+Cpy*Sy, -Sy*Spy],
-                                    [Cpy**2, -2.*Cpy*Spy, Spy**2]])
-        return tmatb
-
-    @classmethod
-    def envelope_transfer_matrix_array(cls, tmat: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
-        '''
-        Compute the transformation matrix array for the beam envelope from the 4x4 transfer matrix array.
-
-        Args:
-            tmat npt.NDArray[np.floating]: Nx4x4 transfer matrix.
-
-        Returns:
-            npt.NDArray[np.floating]: Nx6x6 transformation matrix array for the beam envelope.
-        '''
-        Cx = tmat[:, 0, 0]
-        Sx = tmat[:, 0, 1]
-        Cpx = tmat[:, 1, 0]
-        Spx = tmat[:, 1, 1]
-        Cy = tmat[:, 2, 2]
-        Sy = tmat[:, 2, 3]
-        Cpy = tmat[:, 3, 2]
-        Spy = tmat[:, 3, 3]
-        tmatb = np.zeros((tmat.shape[0], 6, 6))
-        tmatb[:, 0:3, 0:3] = np.moveaxis(np.array([[Cx**2, -2.*Cx*Sx, Sx**2],
-                                                   [-Cx*Cpx, Cx*Spx+Cpx*Sx, -Sx*Spx],
-                                                   [Cpx**2, -2.*Cpx*Spx, Spx**2]]), 2, 0)
-        tmatb[:, 3:6, 3:6] = np.moveaxis(np.array([[Cy**2, -2.*Cy*Sy, Sy**2],
-                                                   [-Cy*Cpy, Cy*Spy+Cpy*Sy, -Sy*Spy],
-                                                   [Cpy**2, -2.*Cpy*Spy, Spy**2]]), 2, 0)
-        return tmatb
-
     def dispersion(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the element.

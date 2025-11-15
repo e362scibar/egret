@@ -1,4 +1,4 @@
-// steering.hpp
+// dispersion.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 //
@@ -21,14 +21,15 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include "egret/drift.hpp"
 
 namespace egret {
 
-class Steering : public Drift {
+class Dispersion {
+protected:
+    Eigen::Vector4d vector;
 public:
-    // Tilted kick handling belongs to higher-level element, but basic transport is drift-like
-    // We'll reuse Drift implementations; additional helpers could be added here.
+    Dispersion() : vector(Eigen::Vector4d::Zero()) {}
+    Dispersion(const Eigen::Vector4d &v) : vector(v) {}
 };
 
 } // namespace egret

@@ -1,5 +1,4 @@
 // coordinatearray.hpp
-// coordinatearray.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 //
@@ -24,23 +23,24 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <algorithm>
-#include "coordinate.hpp"
+#include "egret/coordinate.hpp"
 
 namespace egret {
 
 class CoordinateArray {
-public:
+protected:
     // 4 x N matrix
     Eigen::Matrix<double, 4, Eigen::Dynamic> vector;
     std::vector<double> s;
     std::vector<double> z;
     std::vector<double> delta;
 
+public:
     CoordinateArray();
     CoordinateArray(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec,
-                   const std::vector<double>& s_,
-                   const std::vector<double>& z_ = {},
-                   const std::vector<double>& delta_ = {});
+                    const std::vector<double>& s_,
+                    const std::vector<double>& z_ = {},
+                    const std::vector<double>& delta_ = {});
 
     // Efficient append (reserve + copy)
     void append(const CoordinateArray &other);
