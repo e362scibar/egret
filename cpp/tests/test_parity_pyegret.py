@@ -8,7 +8,38 @@ build_dir = os.path.join(repo_root, 'build')
 sys.path.insert(0, build_dir)
 sys.path.insert(0, repo_root)
 
-import pyegret
+import importlib
+import importlib.util
+import glob
+import sys
+import os
+
+
+def load_pyegret():
+    # Prefer normal import; if the local package shadows the installed extension,
+    # search sys.path entries for an `egret/pyegret*.so` and load it directly.
+    try:
+        return importlib.import_module('egret.pyegret')
+    except ModuleNotFoundError:
+        for p in list(sys.path):
+            candidate_dir = os.path.join(p, 'egret')
+            if not os.path.isdir(candidate_dir):
+                continue
+            matches = glob.glob(os.path.join(candidate_dir, 'pyegret*.so'))
+            if not matches:
+                # some systems may use different suffixes
+                matches = glob.glob(os.path.join(candidate_dir, 'pyegret*.cpython-310-*.so'))
+            if matches:
+                path = matches[0]
+                spec = importlib.util.spec_from_file_location('egret.pyegret', path)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                return mod
+        # re-raise original error if not found
+        raise
+
+
+pyegret = load_pyegret()
 
 
 def test_quadrupole_parity():

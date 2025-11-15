@@ -165,7 +165,7 @@ class Sextupole(Element):
             except Exception:
                 # fall back to Python implementation
                 pass
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         cood = cood0.copy()
         tmat = np.eye(4)
@@ -188,7 +188,7 @@ class Sextupole(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal position array of shape (N,).
         '''
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
         cood = cood0.copy()
@@ -217,7 +217,7 @@ class Sextupole(Element):
                 return _py_sextupole_disp(cood0, self.length, self.k2, ds)
             except Exception:
                 pass
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         cood = cood0.copy()
         dispout = np.zeros(4)
@@ -240,7 +240,7 @@ class Sextupole(Element):
             npt.NDArray[np.floating]: 4xN Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
             npt.NDArray[np.floating]: Longitudinal position array [s].
         '''
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
         cood = cood0.copy()
@@ -270,7 +270,7 @@ class Sextupole(Element):
         cood.vector[0] -= self.dx
         cood.vector[2] -= self.dy
         cood.s -= self.ds
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         tmat = np.eye(4) if evlp0 is not None else None
         dispvec = disp0.vector.copy() if disp0 is not None else None
@@ -317,7 +317,7 @@ class Sextupole(Element):
         cood.vector[0] -= self.dx
         cood.vector[2] -= self.dy
         cood.s -= self.ds
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
         cood_list = [cood.vector.copy()]

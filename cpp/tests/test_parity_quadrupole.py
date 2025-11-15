@@ -13,7 +13,34 @@ print('Repository root:', repo_root)
 print('Build dir:', build_dir)
 
 from egret.quadrupole import Quadrupole as PyQuadrupole
-import pyegret
+import importlib
+import importlib.util
+import glob
+import sys
+import os
+
+
+def load_pyegret():
+    try:
+        return importlib.import_module('egret.pyegret')
+    except ModuleNotFoundError:
+        for p in list(sys.path):
+            candidate_dir = os.path.join(p, 'egret')
+            if not os.path.isdir(candidate_dir):
+                continue
+            matches = glob.glob(os.path.join(candidate_dir, 'pyegret*.so'))
+            if not matches:
+                matches = glob.glob(os.path.join(candidate_dir, 'pyegret*.cpython-310-*.so'))
+            if matches:
+                path = matches[0]
+                spec = importlib.util.spec_from_file_location('egret.pyegret', path)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                return mod
+        raise
+
+
+pyegret = load_pyegret()
 
 def compare_quadrupole(length=0.5, k1=1.2, tilt=0.13, delta=0.0):
     q_py = PyQuadrupole('Q', length, k1, tilt=tilt)

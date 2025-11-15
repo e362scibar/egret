@@ -42,7 +42,8 @@ Eigen::Matrix4d Quadrupole::transfer_matrix(double length, double k1, double til
 
 std::pair<Eigen::Tensor<double,3>, std::vector<double>> Quadrupole::transfer_matrix_array(double length, double k1, double tilt, double delta, double ds, bool endpoint) {
     double k = k1 / (1.0 + delta);
-    int n = static_cast<int>(length / ds) + static_cast<int>(endpoint) + 1;
+    int n_base = static_cast<int>(std::floor(length / ds));
+    int n = n_base + static_cast<int>(endpoint) + 1;
     if (length == 0.0) {
         n = 1;
     }

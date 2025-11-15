@@ -141,7 +141,7 @@ class Steering(Element):
             npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint) if np.abs(self.length) > 0. else np.array([0.])
+        s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint) if np.abs(self.length) > 0. else np.array([0.])
         dxp, dyp = self._tilted_kick(cood0.delta)
         if np.abs(self.length) > 0.:
             eta_xp = -dxp * s / self.length

@@ -40,6 +40,14 @@ if(BUILD_PYEXT)
     target_link_libraries(pyegret PRIVATE OpenMP::OpenMP_CXX)
     target_compile_definitions(pyegret PRIVATE USE_OPENMP)
   endif()
+  # Install python extension into a relative `egret` directory under the
+  # install prefix. scikit-build-core sets the install prefix to a temporary
+  # directory when building a wheel, so installing to the relative path
+  # `egret/` ensures the shared object ends up in the package directory.
+  install(TARGETS pyegret
+    LIBRARY DESTINATION egret
+    RUNTIME DESTINATION egret
+    ARCHIVE DESTINATION egret)
 endif()
 
 add_executable(egret_cli src/cli_quadrupole.cpp)

@@ -1,6 +1,7 @@
 // drift.cpp
 #include "egret/drift.hpp"
 #include <vector>
+#include <cmath>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
 
@@ -16,7 +17,8 @@ Eigen::Matrix4d Drift::transfer_matrix_from_length(double length) {
 std::pair<Eigen::Tensor<double,3>, std::vector<double>> Drift::transfer_matrix_array_from_length(double length, double ds, bool endpoint) {
     std::vector<double> s;
     if (std::abs(length) > 0.0) {
-        int n = static_cast<int>(length / ds) + static_cast<int>(endpoint) + 1;
+        int n_base = static_cast<int>(std::floor(length / ds));
+        int n = n_base + static_cast<int>(endpoint) + 1;
         s.reserve(n);
         for (int i = 0; i < n; ++i) s.push_back((static_cast<double>(i) * length) / (n - 1));
     } else {

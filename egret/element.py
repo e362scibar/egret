@@ -107,7 +107,7 @@ class Element(Object):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+        s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint)
         return np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2), s
 
     @classmethod
@@ -192,7 +192,7 @@ class Element(Object):
             npt.NDArray[np.floating]: Dispersion array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        n = int(self.length//ds) + int(endpoint) + 1
+        n = int(self.length / ds) + int(endpoint) + 1
         s = np.linspace(0., self.length, n, endpoint)
         return np.zeros((4, n)), s
 

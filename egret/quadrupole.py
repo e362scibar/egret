@@ -131,7 +131,7 @@ class Quadrupole(Element):
             except Exception:
                 # fall back to Python implementation
                 pass
-        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
+        s = np.linspace(0., self.length, int(self.length / ds)+int(endpoint)+1, endpoint)
         tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
         if k == 0.: # drift
             tmat[0,1,:] = s
@@ -204,7 +204,7 @@ class Quadrupole(Element):
             npt.NDArray[np.floating]: Dispersion array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., self.length, int(self.length//ds)+int(endpoint)+1, endpoint)
+        s = np.linspace(0., self.length, int(self.length / ds)+int(endpoint)+1, endpoint)
         k = self.k1 / (1. + cood0.delta)
         disp = np.zeros((4, len(s)))
         if k == 0.: # drift

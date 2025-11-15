@@ -20,25 +20,61 @@
 
 from .version import __version__
 
-from .object import Object
+# Lazy import a number of submodules and names to keep `import egret`
+# lightweight. Accessing attributes below will import the backing
+# submodule on demand. This avoids importing workspace-top-level
+# helper modules when the package is only used to access compiled
+# bindings via `_pyegret_bridge`.
 
-from .element import Element
-from .drift import Drift
-from .dipole import Dipole
-from .quadrupole import Quadrupole
-from .sextupole import Sextupole
-from .octupole import Octupole
-from .steering import Steering
+__all__ = [
+	"__version__",
+	"Object",
+	"Element",
+	"Drift",
+	"Dipole",
+	"Quadrupole",
+	"Sextupole",
+	"Octupole",
+	"Steering",
+	"Lattice",
+	"Ring",
+	"read_ring",
+	"Coordinate",
+	"CoordinateArray",
+	"Envelope",
+	"EnvelopeArray",
+	"Dispersion",
+	"DispersionArray",
+]
 
-from .lattice import Lattice
+_LAZY_MAP = {
+	'Object': ('.object', 'Object'),
+	'Element': ('.element', 'Element'),
+	'Drift': ('.drift', 'Drift'),
+	'Dipole': ('.dipole', 'Dipole'),
+	'Quadrupole': ('.quadrupole', 'Quadrupole'),
+	'Sextupole': ('.sextupole', 'Sextupole'),
+	'Octupole': ('.octupole', 'Octupole'),
+	'Steering': ('.steering', 'Steering'),
+	'Lattice': ('.lattice', 'Lattice'),
+	'Ring': ('.ring', 'Ring'),
+	'read_ring': ('.readring', 'read_ring'),
+	'Coordinate': ('.coordinate', 'Coordinate'),
+	'CoordinateArray': ('.coordinatearray', 'CoordinateArray'),
+	'Envelope': ('.envelope', 'Envelope'),
+	'EnvelopeArray': ('.envelopearray', 'EnvelopeArray'),
+	'Dispersion': ('.dispersion', 'Dispersion'),
+	'DispersionArray': ('.dispersionarray', 'DispersionArray'),
+}
 
-from .ring import Ring
+def __getattr__(name: str):
+	if name in _LAZY_MAP:
+		submod, attr = _LAZY_MAP[name]
+		module = __import__(f"{__name__}{submod}", fromlist=[attr])
+		val = getattr(module, attr)
+		globals()[name] = val
+		return val
+	raise AttributeError(f"module {__name__} has no attribute {name}")
 
-from .readring import read_ring
-
-from .coordinate import Coordinate
-from .coordinatearray import CoordinateArray
-from .envelope import Envelope
-from .envelopearray import EnvelopeArray
-from .dispersion import Dispersion
-from .dispersionarray import DispersionArray
+def __dir__():
+	return sorted(list(globals().keys()) + list(_LAZY_MAP.keys()))

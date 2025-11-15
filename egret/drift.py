@@ -124,7 +124,7 @@ class Drift(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., length, int(length//ds) + int(endpoint) + 1, endpoint) if np.abs(length) > 0. else np.array([0.])
+        s = np.linspace(0., length, int(length / ds) + int(endpoint) + 1, endpoint) if np.abs(length) > 0. else np.array([0.])
         tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
         tmat[0,1,:] = s
         tmat[2,3,:] = s

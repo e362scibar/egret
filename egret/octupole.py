@@ -163,7 +163,7 @@ class Octupole(Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         cood = cood0.copy()
         tmat = np.eye(4)
@@ -186,7 +186,7 @@ class Octupole(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal position array of shape (N,).
         '''
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
         cood = cood0.copy()
@@ -209,7 +209,7 @@ class Octupole(Element):
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
         '''
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         cood = cood0.copy()
         dispout = np.zeros(4)
@@ -232,7 +232,7 @@ class Octupole(Element):
             npt.NDArray[np.floating]: Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
             npt.NDArray[np.floating]: Longitudinal position array [s].
         '''
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
         cood = cood0.copy()
@@ -262,7 +262,7 @@ class Octupole(Element):
         cood.vector[0] -= self.dx
         cood.vector[2] -= self.dy
         cood.s -= self.ds
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         tmat = np.eye(4) if evlp0 is not None else None
         dispvec = disp0.vector.copy() if disp0 is not None else None
@@ -309,7 +309,7 @@ class Octupole(Element):
         cood.vector[0] -= self.dx
         cood.vector[2] -= self.dy
         cood.s -= self.ds
-        n_step = int(self.length // ds) + 1
+        n_step = int(self.length / ds) + 1
         s_step = self.length / n_step
         s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
         cood_list = [cood.vector.copy()]

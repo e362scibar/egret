@@ -50,7 +50,8 @@ Eigen::Matrix4d Dipole::transfer_matrix(double length, double angle, double k1, 
 
 std::pair<Eigen::Tensor<double,3>, std::vector<double>> Dipole::transfer_matrix_array(double length, double angle, double k1, double delta, double ds, bool endpoint) {
     double rho = (length / angle) * (1.0 + delta);
-    int n = static_cast<int>(length / ds) + static_cast<int>(endpoint) + 1;
+    int n_base = static_cast<int>(std::floor(length / ds));
+    int n = n_base + static_cast<int>(endpoint) + 1;
     if (length == 0.0) n = 1;
     std::vector<double> s(n);
     if (n==1) s[0]=0.0; else for (int i=0;i<n;++i) s[i] = (static_cast<double>(i) * length) / (n - 1);

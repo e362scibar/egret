@@ -7,6 +7,7 @@
 #include "egret/quadrupole.hpp"
 #include "egret/dipole.hpp"
 #include "egret/sextupole.hpp"
+#include "egret/element.hpp"
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -14,8 +15,99 @@
 
 namespace py = pybind11;
 
+// Thin C++ wrapper types to provide Python-friendly element objects
+// that store element parameters and delegate to existing static C++ APIs.
+// These wrappers are local to bindings and are only intended to make
+// the pybind11 interface more natural for Python callers.
+struct QuadrupoleWrapper : public egret::Element {
+    double length;
+    double k1;
+    double tilt;
+    QuadrupoleWrapper(double length_, double k1_, double tilt_ = 0.0)
+        : length(length_), k1(k1_), tilt(tilt_) {}
+    // implement Element virtuals
+    py::object transfer(const egret::Coordinate &cood0, double ds) override {
+        (void) ds;
+        Eigen::Matrix4d t = egret::Quadrupole::transfer_matrix(length, k1, tilt, cood0.delta);
+        Eigen::Vector4d v = t * cood0.vector;
+        egret::Coordinate out(v, cood0.s + length, cood0.z, cood0.delta);
+        return py::make_tuple(out, py::none(), py::none());
+    }
+    py::object transfer_array(const egret::Coordinate &cood0, double ds, bool endpoint) override {
+        auto pr = egret::Quadrupole::transfer_matrix_array(length, k1, tilt, cood0.delta, ds, endpoint);
+        auto &tensor = pr.first; auto &svec = pr.second;
+        int n = static_cast<int>(tensor.dimension(2));
+        py::array_t<double> arr({4,4,n});
+        auto buf = arr.mutable_unchecked<3>();
+        for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
+        py::array_t<double> sarr({n});
+        auto sbuf = sarr.mutable_unchecked<1>();
+        for (int i=0;i<n;++i) sbuf(i) = svec[i];
+        return py::make_tuple(arr, sarr);
+    }
+};
+
+struct DipoleWrapper : public egret::Element {
+    double length;
+    double angle;
+    double k1;
+    DipoleWrapper(double length_, double angle_, double k1_ = 0.0)
+        : length(length_), angle(angle_), k1(k1_) {}
+    py::object transfer(const egret::Coordinate &cood0, double ds) override {
+        (void) ds;
+        Eigen::Matrix4d t = egret::Dipole::transfer_matrix(length, angle, k1, cood0.delta);
+        Eigen::Vector4d v = t * cood0.vector;
+        egret::Coordinate out(v, cood0.s + length, cood0.z, cood0.delta);
+        return py::make_tuple(out, py::none(), py::none());
+    }
+    py::object transfer_array(const egret::Coordinate &cood0, double ds, bool endpoint) override {
+        auto pr = egret::Dipole::transfer_matrix_array(length, angle, k1, cood0.delta, ds, endpoint);
+        auto &tensor = pr.first; auto &svec = pr.second;
+        int n = static_cast<int>(tensor.dimension(2));
+        py::array_t<double> arr({4,4,n});
+        auto buf = arr.mutable_unchecked<3>();
+        for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
+        py::array_t<double> sarr({n});
+        auto sbuf = sarr.mutable_unchecked<1>();
+        for (int i=0;i<n;++i) sbuf(i) = svec[i];
+        return py::make_tuple(arr, sarr);
+    }
+};
+
+struct SextupoleWrapper : public egret::Element {
+    double length;
+    double k2;
+    double dx;
+    double dy;
+    double ds;
+    SextupoleWrapper(double length_, double k2_, double dx_ = 0.0, double dy_ = 0.0, double ds_ = 0.1)
+        : length(length_), k2(k2_), dx(dx_), dy(dy_), ds(ds_) {}
+    py::object transfer(const egret::Coordinate &cood0, double ds_in) override {
+        Eigen::Matrix4d t = egret::Sextupole::transfer_matrix(cood0, length, k2, ds_in);
+        Eigen::Vector4d v = t * cood0.vector;
+        egret::Coordinate out(v, cood0.s + length, cood0.z, cood0.delta);
+        return py::make_tuple(out, py::none(), py::none());
+    }
+    py::object transfer_array(const egret::Coordinate &cood0, double ds_in, bool endpoint) override {
+        auto pr = egret::Sextupole::transfer_matrix_array(cood0, length, k2, ds_in, endpoint);
+        auto &tensor = pr.first; auto &svec = pr.second;
+        int n = static_cast<int>(tensor.dimension(2));
+        py::array_t<double> arr({4,4,n});
+        auto buf = arr.mutable_unchecked<3>();
+        for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
+        py::array_t<double> sarr({n});
+        auto sbuf = sarr.mutable_unchecked<1>();
+        for (int i=0;i<n;++i) sbuf(i) = svec[i];
+        return py::make_tuple(arr, sarr);
+    }
+};
+
+namespace py = pybind11;
+
 PYBIND11_MODULE(pyegret, m) {
     m.doc() = "pybind11 bindings for egret";
+
+    // (Element base/trampoline omitted for now — element wrappers are Python-subclassable via shared_ptr + dynamic_attr)
 
     py::class_<egret::Coordinate>(m, "Coordinate")
         .def(py::init<>())
@@ -28,6 +120,222 @@ PYBIND11_MODULE(pyegret, m) {
         .def(py::init<>())
         .def("append", &egret::CoordinateArray::append)
         .def("from_s", &egret::CoordinateArray::from_s);
+
+    // Simple container types for envelope and dispersion (numpy-backed)
+    struct Envelope {
+        py::array_t<double> beta_x;
+        py::array_t<double> beta_y;
+        py::array_t<double> s;
+        Envelope(py::array_t<double> bx, py::array_t<double> by, py::array_t<double> ss)
+            : beta_x(bx), beta_y(by), s(ss) {}
+    };
+
+    struct Dispersion {
+        py::array_t<double> eta_x;
+        py::array_t<double> eta_y;
+        py::array_t<double> s;
+        Dispersion(py::array_t<double> ex, py::array_t<double> ey, py::array_t<double> ss)
+            : eta_x(ex), eta_y(ey), s(ss) {}
+    };
+
+    py::class_<Envelope>(m, "Envelope")
+        .def(py::init<py::array_t<double>, py::array_t<double>, py::array_t<double>>())
+        .def_readwrite("beta_x", &Envelope::beta_x)
+        .def_readwrite("beta_y", &Envelope::beta_y)
+        .def_readwrite("s", &Envelope::s)
+        .def(py::pickle(
+            [](const Envelope &e) {
+                return py::make_tuple(e.beta_x, e.beta_y, e.s);
+            },
+            [](py::tuple t) {
+                if (t.size() != 3) throw std::runtime_error("Invalid Envelope pickle");
+                return Envelope(t[0].cast<py::array_t<double>>(), t[1].cast<py::array_t<double>>(), t[2].cast<py::array_t<double>>());
+            }
+        ));
+
+    py::class_<Dispersion>(m, "Dispersion")
+        .def(py::init<py::array_t<double>, py::array_t<double>, py::array_t<double>>())
+        .def_readwrite("eta_x", &Dispersion::eta_x)
+        .def_readwrite("eta_y", &Dispersion::eta_y)
+        .def_readwrite("s", &Dispersion::s)
+        .def(py::pickle(
+            [](const Dispersion &d) {
+                return py::make_tuple(d.eta_x, d.eta_y, d.s);
+            },
+            [](py::tuple t) {
+                if (t.size() != 3) throw std::runtime_error("Invalid Dispersion pickle");
+                return Dispersion(t[0].cast<py::array_t<double>>(), t[1].cast<py::array_t<double>>(), t[2].cast<py::array_t<double>>());
+            }
+        ));
+
+    // Provide a lightweight trampoline class for egret::Element so Python can
+    // subclass and C++ can call virtuals implemented in Python.
+    struct PyElement : egret::Element {
+        /* In the trampoline we use the pybind11 macros to forward calls */
+        using egret::Element::Element;
+        py::object transfer(const egret::Coordinate &cood0, double ds) override {
+            PYBIND11_OVERRIDE_PURE(py::object, egret::Element, transfer, cood0, ds);
+        }
+        py::object transfer_array(const egret::Coordinate &cood0, double ds, bool endpoint) override {
+            PYBIND11_OVERRIDE_PURE(py::object, egret::Element, transfer_array, cood0, ds, endpoint);
+        }
+    };
+
+    // Bind Element base to allow C++ -> Python virtual dispatch
+    py::class_<egret::Element, PyElement, std::shared_ptr<egret::Element>>(m, "Element")
+        .def(py::init<>())
+        .def("transfer", &egret::Element::transfer)
+        .def("transfer_array", &egret::Element::transfer_array);
+
+    // Bind thin wrapper classes for element objects (use shared_ptr and dynamic_attr to allow Python subclassing)
+    py::class_<QuadrupoleWrapper, egret::Element, std::shared_ptr<QuadrupoleWrapper>>(m, "Quadrupole", py::dynamic_attr())
+        .def(py::init<double, double, double>(), py::arg("length"), py::arg("k1"), py::arg("tilt") = 0.0)
+        .def_readwrite("length", &QuadrupoleWrapper::length)
+        .def_readwrite("k1", &QuadrupoleWrapper::k1)
+        .def_readwrite("tilt", &QuadrupoleWrapper::tilt)
+        .def("transfer_matrix",
+             [] (const QuadrupoleWrapper &self, const egret::Coordinate &cood0, double ds) {
+                 (void) ds;
+                 return egret::Quadrupole::transfer_matrix(self.length, self.k1, self.tilt, cood0.delta);
+             }, py::arg("cood0"), py::arg("ds") = 0.1)
+        .def("transfer",
+             [] (const QuadrupoleWrapper &self, const egret::Coordinate &cood0, double ds) {
+                 (void) ds;
+                 Eigen::Matrix4d t = egret::Quadrupole::transfer_matrix(self.length, self.k1, self.tilt, cood0.delta);
+                 Eigen::Vector4d v = t * cood0.vector;
+                 egret::Coordinate out(v, cood0.s + self.length, cood0.z, cood0.delta);
+                 return py::make_tuple(out, py::none(), py::none());
+             }, py::arg("cood0"), py::arg("ds") = 0.1)
+        .def("transfer_matrix_array",
+             [] (const QuadrupoleWrapper &self, const egret::Coordinate &cood0, double ds, bool endpoint) {
+                 auto pr = egret::Quadrupole::transfer_matrix_array(self.length, self.k1, self.tilt, cood0.delta, ds, endpoint);
+                 auto &tensor = pr.first;
+                 auto &svec = pr.second;
+                 int n = static_cast<int>(tensor.dimension(2));
+                 py::array_t<double> arr({4,4,n});
+                 auto buf = arr.mutable_unchecked<3>();
+                 for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
+                 py::array_t<double> sarr({n});
+                 auto sbuf = sarr.mutable_unchecked<1>();
+                 for (int i=0;i<n;++i) sbuf(i) = svec[i];
+                 return py::make_tuple(arr, sarr);
+             }, py::arg("cood0"), py::arg("ds") = 0.1, py::arg("endpoint") = true)
+        .def("dispersion",
+             [] (const QuadrupoleWrapper &self, const egret::Coordinate &cood0) {
+                 return egret::Quadrupole::dispersion(cood0.vector, self.length, self.k1, cood0.delta);
+             }, py::arg("cood0"))
+        .def(py::pickle(
+            [](const QuadrupoleWrapper &q) {
+                return py::make_tuple(q.length, q.k1, q.tilt);
+            },
+            [](py::tuple t) {
+                if (t.size() != 3) throw std::runtime_error("Invalid Quadrupole pickle");
+                return std::make_shared<QuadrupoleWrapper>(t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
+            }
+        ));
+
+    py::class_<DipoleWrapper, egret::Element, std::shared_ptr<DipoleWrapper>>(m, "Dipole", py::dynamic_attr())
+        .def(py::init<double, double, double>(), py::arg("length"), py::arg("angle"), py::arg("k1") = 0.0)
+        .def_readwrite("length", &DipoleWrapper::length)
+        .def_readwrite("angle", &DipoleWrapper::angle)
+        .def_readwrite("k1", &DipoleWrapper::k1)
+        .def("transfer_matrix",
+             [] (const DipoleWrapper &self, const egret::Coordinate &cood0, double ds) {
+                 (void) ds;
+                 return egret::Dipole::transfer_matrix(self.length, self.angle, self.k1, cood0.delta);
+             }, py::arg("cood0"), py::arg("ds") = 0.1)
+        .def("transfer",
+             [] (const DipoleWrapper &self, const egret::Coordinate &cood0, double ds) {
+                 (void) ds;
+                 Eigen::Matrix4d t = egret::Dipole::transfer_matrix(self.length, self.angle, self.k1, cood0.delta);
+                 Eigen::Vector4d v = t * cood0.vector;
+                 egret::Coordinate out(v, cood0.s + self.length, cood0.z, cood0.delta);
+                 return py::make_tuple(out, py::none(), py::none());
+             }, py::arg("cood0"), py::arg("ds") = 0.1)
+        .def("transfer_matrix_array",
+             [] (const DipoleWrapper &self, const egret::Coordinate &cood0, double ds, bool endpoint) {
+                 auto pr = egret::Dipole::transfer_matrix_array(self.length, self.angle, self.k1, cood0.delta, ds, endpoint);
+                 auto &tensor = pr.first;
+                 auto &svec = pr.second;
+                 int n = static_cast<int>(tensor.dimension(2));
+                 py::array_t<double> arr({4,4,n});
+                 auto buf = arr.mutable_unchecked<3>();
+                 for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
+                 py::array_t<double> sarr({n});
+                 auto sbuf = sarr.mutable_unchecked<1>();
+                 for (int i=0;i<n;++i) sbuf(i) = svec[i];
+                 return py::make_tuple(arr, sarr);
+             }, py::arg("cood0"), py::arg("ds") = 0.1, py::arg("endpoint") = true)
+        .def("dispersion",
+             [] (const DipoleWrapper &self, const egret::Coordinate &cood0) {
+                 // Some dipole implementations may not use cood0; delegate to static API
+                 return egret::Dipole::transfer_matrix(self.length, self.angle, self.k1, cood0.delta), py::none();
+             }, py::arg("cood0"))
+        .def(py::pickle(
+            [](const DipoleWrapper &d) {
+                return py::make_tuple(d.length, d.angle, d.k1);
+            },
+            [](py::tuple t) {
+                if (t.size() != 3) throw std::runtime_error("Invalid Dipole pickle");
+                return std::make_shared<DipoleWrapper>(t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>());
+            }
+        ));
+
+    py::class_<SextupoleWrapper, egret::Element, std::shared_ptr<SextupoleWrapper>>(m, "Sextupole", py::dynamic_attr())
+        .def(py::init<double, double, double, double, double>(), py::arg("length"), py::arg("k2"), py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.1)
+        .def_readwrite("length", &SextupoleWrapper::length)
+        .def_readwrite("k2", &SextupoleWrapper::k2)
+        .def_readwrite("dx", &SextupoleWrapper::dx)
+        .def_readwrite("dy", &SextupoleWrapper::dy)
+        .def_readwrite("ds", &SextupoleWrapper::ds)
+        .def("transfer_matrix_by_midpoint_method",
+             [] (const SextupoleWrapper &self, const egret::Coordinate &cood0, double k0x, double k0y, double dx, double dy, double ds, bool tmatflag, bool dispflag) {
+                 return egret::Sextupole::transfer_matrix_by_midpoint_method(cood0, self.length, self.k2, k0x, k0y, dx, dy, ds, tmatflag, dispflag);
+             }, py::arg("cood0"), py::arg("k0x") = 0.0, py::arg("k0y") = 0.0, py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.1, py::arg("tmatflag") = true, py::arg("dispflag") = false)
+        .def("transfer_matrix",
+             [] (const SextupoleWrapper &self, const egret::Coordinate &cood0, double ds) {
+                 return egret::Sextupole::transfer_matrix(cood0, self.length, self.k2, ds);
+             }, py::arg("cood0"), py::arg("ds") = 0.1)
+        .def("transfer_matrix_array",
+             [] (const SextupoleWrapper &self, const egret::Coordinate &cood0, double ds, bool endpoint) {
+                 auto pr = egret::Sextupole::transfer_matrix_array(cood0, self.length, self.k2, ds, endpoint);
+                 auto &tensor = pr.first;
+                 auto &svec = pr.second;
+                 int n = static_cast<int>(tensor.dimension(2));
+                 py::array_t<double> arr({4,4,n});
+                 auto buf = arr.mutable_unchecked<3>();
+                 for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
+                 return py::make_tuple(arr, svec);
+             }, py::arg("cood0"), py::arg("ds") = 0.1, py::arg("endpoint") = true)
+        .def("transfer",
+             [] (const SextupoleWrapper &self, const egret::Coordinate &cood0, double ds) {
+                 Eigen::Matrix4d t = egret::Sextupole::transfer_matrix(cood0, self.length, self.k2, ds);
+                 Eigen::Vector4d v = t * cood0.vector;
+                 egret::Coordinate out(v, cood0.s + self.length, cood0.z, cood0.delta);
+                 return py::make_tuple(out, py::none(), py::none());
+             }, py::arg("cood0"), py::arg("ds") = 0.1)
+        .def("dispersion",
+             [] (const SextupoleWrapper &self, const egret::Coordinate &cood0, double ds) {
+                 return egret::Sextupole::dispersion(cood0, self.length, self.k2, ds);
+             }, py::arg("cood0"), py::arg("ds") = 0.1)
+        .def(py::pickle(
+            [](const SextupoleWrapper &s) {
+                return py::make_tuple(s.length, s.k2, s.dx, s.dy, s.ds);
+            },
+            [](py::tuple t) {
+                if (t.size() != 5) throw std::runtime_error("Invalid Sextupole pickle");
+                return std::make_shared<SextupoleWrapper>(t[0].cast<double>(), t[1].cast<double>(), t[2].cast<double>(), t[3].cast<double>(), t[4].cast<double>());
+            }
+        ));
+
+    // Helper to call Element::transfer from Python to exercise C++ -> Python dispatch
+    m.def("call_element_transfer", [] (std::shared_ptr<egret::Element> elem, const egret::Coordinate &cood0, double ds) {
+        return elem->transfer(cood0, ds);
+    });
+
+    m.def("call_element_transfer_array", [] (std::shared_ptr<egret::Element> elem, const egret::Coordinate &cood0, double ds, bool endpoint) {
+        return elem->transfer_array(cood0, ds, endpoint);
+    });
 
         m.def("quadrupole_transfer_matrix", &egret::Quadrupole::transfer_matrix,
             "Compute 4x4 transfer matrix for a quadrupole",
@@ -43,10 +351,13 @@ PYBIND11_MODULE(pyegret, m) {
                 py::array_t<double> arr({4,4,n});
                 auto buf = arr.mutable_unchecked<3>();
                 for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
-                return py::make_tuple(arr, svec);
+                py::array_t<double> sarr({n});
+                auto sbuf = sarr.mutable_unchecked<1>();
+                for (int i=0;i<n;++i) sbuf(i) = svec[i];
+                return py::make_tuple(arr, sarr);
             },
             "Compute transfer matrix array for a quadrupole",
-            py::arg("length"), py::arg("k1"), py::arg("tilt") = 0.0, py::arg("delta") = 0.0, py::arg("ds") = 0.1, py::arg("endpoint") = false);
+            py::arg("length"), py::arg("k1"), py::arg("tilt") = 0.0, py::arg("delta") = 0.0, py::arg("ds") = 0.1, py::arg("endpoint") = true);
 
         m.def("dipole_transfer_matrix", &egret::Dipole::transfer_matrix,
             "Compute 4x4 transfer matrix for a dipole",
@@ -61,10 +372,16 @@ PYBIND11_MODULE(pyegret, m) {
                 py::array_t<double> arr({4,4,n});
                 auto buf = arr.mutable_unchecked<3>();
                 for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
-                return py::make_tuple(arr, svec);
+                {
+                    int ns = static_cast<int>(svec.size());
+                    py::array_t<double> sarr({ns});
+                    auto sbuf = sarr.mutable_unchecked<1>();
+                    for (int i=0;i<ns;++i) sbuf(i) = svec[i];
+                    return py::make_tuple(arr, sarr);
+                }
             },
             "Compute transfer matrix array for a dipole",
-            py::arg("length"), py::arg("angle"), py::arg("k1") = 0.0, py::arg("delta") = 0.0, py::arg("ds") = 0.1, py::arg("endpoint") = false);
+            py::arg("length"), py::arg("angle"), py::arg("k1") = 0.0, py::arg("delta") = 0.0, py::arg("ds") = 0.1, py::arg("endpoint") = true);
 
             m.def("sextupole_transfer_matrix_by_midpoint_method", &egret::Sextupole::transfer_matrix_by_midpoint_method,
                 "Single-step midpoint transfer for sextupole",
@@ -84,10 +401,16 @@ PYBIND11_MODULE(pyegret, m) {
                     py::array_t<double> arr({4,4,n});
                     auto buf = arr.mutable_unchecked<3>();
                     for (int k=0;k<n;++k) for (int i=0;i<4;++i) for (int j=0;j<4;++j) buf(i,j,k) = tensor(i,j,k);
-                    return py::make_tuple(arr, svec);
+                    {
+                        int ns = static_cast<int>(svec.size());
+                        py::array_t<double> sarr({ns});
+                        auto sbuf = sarr.mutable_unchecked<1>();
+                        for (int i=0;i<ns;++i) sbuf(i) = svec[i];
+                        return py::make_tuple(arr, sarr);
+                    }
                 },
                 "Transfer matrix array of sextupole",
-                py::arg("cood0"), py::arg("length"), py::arg("k2"), py::arg("ds") = 0.1, py::arg("endpoint") = false);
+                py::arg("cood0"), py::arg("length"), py::arg("k2"), py::arg("ds") = 0.1, py::arg("endpoint") = true);
 
             m.def("sextupole_dispersion", &egret::Sextupole::dispersion,
                 "Dispersion of sextupole",

@@ -98,9 +98,10 @@ Eigen::Matrix4d Sextupole::transfer_matrix(const Coordinate &cood0, double lengt
 }
 
 std::pair<Eigen::Tensor<double,3>, std::vector<double>> Sextupole::transfer_matrix_array(const Coordinate &cood0, double length, double k2, double ds, bool endpoint) {
-    int n_step = static_cast<int>(length / ds) + 1;
+    int n_base = static_cast<int>(std::floor(length / ds));
+    int n_step = n_base + 1;
     double s_step = length / n_step;
-    int n = n_step + static_cast<int>(endpoint);
+    int n = n_base + static_cast<int>(endpoint) + 1;
     std::vector<double> s(n);
     for (int i=0;i<n;++i) s[i] = (static_cast<double>(i) * length) / (n - 1);
     Eigen::Tensor<double,3> tmat(4,4,n);
@@ -123,7 +124,8 @@ std::pair<Eigen::Tensor<double,3>, std::vector<double>> Sextupole::transfer_matr
 }
 
 Eigen::Vector4d Sextupole::dispersion(const Coordinate &cood0, double length, double k2, double ds) {
-    int n_step = static_cast<int>(length / ds) + 1;
+    int n_base = static_cast<int>(std::floor(length / ds));
+    int n_step = n_base + 1;
     double s_step = length / n_step;
     Coordinate cood = cood0;
     Eigen::Vector4d dispout = Eigen::Vector4d::Zero();

@@ -155,7 +155,7 @@ class Dipole(Element):
             except Exception:
                 pass
         rho = self.radius * (1. + delta)
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+        s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint)
         tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
         if self.k1 == 0.: # simple dipole
             phi = s / rho
@@ -261,7 +261,7 @@ class Dipole(Element):
         '''
         rho = self.radius * (1. + cood0.delta)
         cood0vec = cood0.vector.copy()
-        s = np.linspace(0., self.length, int(self.length//ds) + int(endpoint) + 1, endpoint)
+        s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint)
         if self.k1 == 0.: # simple dipole
             phi = s / rho
             cosphi, sinphi = np.cos(phi), np.sin(phi)
