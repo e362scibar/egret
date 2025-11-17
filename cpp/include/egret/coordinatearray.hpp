@@ -1,3 +1,9 @@
+/**
+ * @file coordinatearray.hpp
+ * @brief Class representing an array of particle coordinates in phase space.
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // coordinatearray.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -26,27 +32,34 @@
 #include "egret/coordinate.hpp"
 
 namespace egret {
+    class CoordinateArray;
+}
 
-class CoordinateArray {
+/**
+ * @brief Class representing an array of particle coordinates in phase space.
+ */
+class egret::CoordinateArray {
 protected:
-    // 4 x N matrix
-    Eigen::Matrix<double, 4, Eigen::Dynamic> vector;
-    std::vector<double> s;
-    std::vector<double> z;
-    std::vector<double> delta;
+    //! 4 x N matrix of particle coordinates (x, xp, y, yp)
+    Eigen::Matrix<double, 4, Eigen::Dynamic> vector_array_;
+    //! Longitudinal positions
+    Eigen::ArrayXd s_array_;
+    //! Longitudinal displacements
+    Eigen::ArrayXd z_array_;
+    //! Relative momentum deviations
+    Eigen::ArrayXd delta_array_;
 
 public:
-    CoordinateArray();
-    CoordinateArray(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec,
-                    const std::vector<double>& s_,
-                    const std::vector<double>& z_ = {},
-                    const std::vector<double>& delta_ = {});
+    // Constructor
+    CoordinateArray(
+        const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array,
+        const Eigen::ArrayXd& s_array,
+        const Eigen::ArrayXd& z_array = Eigen::ArrayXd(),
+        const Eigen::ArrayXd& delta_array = Eigen::ArrayXd());
 
     // Efficient append (reserve + copy)
     void append(const CoordinateArray &other);
 
-    // linear interpolation like Python's from_s
-    Coordinate from_s(double sval) const;
+    // Get Coordinate from linear interpolation
+    Coordinate from_s(double s) const;
 };
-
-} // namespace egret

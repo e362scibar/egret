@@ -1,3 +1,9 @@
+/**
+ * @file coordinatearray.cpp
+ * @brief Implementation of the CoordinateArray class representing an array of particle coordinates in phase space.
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // coordinatearray.cpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -20,47 +26,104 @@
 
 #include "egret/coordinatearray.hpp"
 #include <stdexcept>
+#include <algorithm>
+#include <optional>
+#include <utility>
 
-namespace egret {
-
-CoordinateArray::CoordinateArray()
-    : vector(Eigen::Matrix<double,4,Eigen::Dynamic>(4,0)) {}
-
-CoordinateArray::CoordinateArray(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec,
-                                 const std::vector<double>& s_,
-                                 const std::vector<double>& z_,
-                                 const std::vector<double>& delta_)
-    : vector(vec), s(s_), z(z_), delta(delta_) {}
-
-void CoordinateArray::append(const CoordinateArray &other) {
-    auto n0 = vector.cols();
-    auto n1 = other.vector.cols();
-    Eigen::Matrix<double,4,Eigen::Dynamic> tmp(4, n0 + n1);
-    tmp << vector, other.vector;
-    vector.swap(tmp);
-    s.insert(s.end(), other.s.begin(), other.s.end());
-    z.insert(z.end(), other.z.begin(), other.z.end());
-    delta.insert(delta.end(), other.delta.begin(), other.delta.end());
-}
-
-Coordinate CoordinateArray::from_s(double sval) const {
-    if (s.empty()) throw std::out_of_range("CoordinateArray is empty");
-    auto it = std::lower_bound(s.begin(), s.end(), sval);
-    size_t idx = std::distance(s.begin(), it);
-    if (idx == s.size()) {
-        if (idx == 0) throw std::out_of_range("Out of range");
-        idx = s.size() - 1;
+/**
+ * @brief Construct a new egret::CoordinateArray::CoordinateArray object.
+ * @param vector_array Array of particle coordinates (4 x N matrix)
+ * @param s_array Longitudinal positions
+ * @param z_array Longitudinal displacements
+ * @param delta_array Relative momentum deviations
+ */
+egret::CoordinateArray::CoordinateArray(
+    const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array,
+    const Eigen::ArrayXd& s_array,
+    const Eigen::ArrayXd& z_array,
+    const Eigen::ArrayXd& delta_array) :
+    vector_array_(vector_array), s_array_(s_array),
+    z_array_(z_array), delta_array_(delta_array) {
+    // Check consistency of input sizes
+    const size_t n = vector_array_.cols();
+    if (s_array_.size() != n) {
+        throw std::invalid_argument("Size of s_array does not match number of columns in vector_array");
+    } else if (!std::is_sorted(s_array_.data(), s_array_.data() + s_array_.size())) {
+        throw std::invalid_argument("s_array must be non-decreasing");
     }
-    if (idx == s.size() - 1) throw std::out_of_range("Out of range");
-    double s0 = s[idx];
-    double s1 = s[idx+1];
-    double ds = s1 - s0;
-    double a0 = (s1 - sval) / (ds == 0. ? 2. : ds);
-    double a1 = (sval - s0) / (ds == 0. ? 2. : ds);
-    Eigen::Vector4d vec = a0 * vector.col(idx) + a1 * vector.col(idx+1);
-    double zval = a0 * z[idx] + a1 * z[idx+1];
-    double dval = a0 * delta[idx] + a1 * delta[idx+1];
-    return Coordinate(vec, sval, zval, dval);
+    if (z_array_.size() == 0) {
+        z_array_ = Eigen::ArrayXd::Zero(n);
+    } else if (z_array_.size() != n) {
+        throw std::invalid_argument("Size of z_array does not match number of columns in vector_array");
+    }
+    if (delta_array_.size() == 0) {
+        delta_array_ = Eigen::ArrayXd::Zero(n);
+    } else if (delta_array_.size() != n) {
+        throw std::invalid_argument("Size of delta_array does not match number of columns in vector_array");
+    }
 }
 
-} // namespace egret
+/**
+ * @brief Append another CoordinateArray to this one.
+ * @param other The other CoordinateArray to append.
+ */
+void egret::CoordinateArray::append(const CoordinateArray &other) {
+    const auto n = vector_array_.cols() + other.vector_array_.cols();
+    Eigen::Matrix<double,4,Eigen::Dynamic> new_vector_array(4, n);
+    new_vector_array << vector_array_, other.vector_array_;
+    vector_array_.swap(new_vector_array);
+    Eigen::ArrayXd new_s_array(n);
+    new_s_array << s_array_, other.s_array_;
+    s_array_.swap(new_s_array);
+    Eigen::ArrayXd new_z_array(n);
+    new_z_array << z_array_, other.z_array_;
+    z_array_.swap(new_z_array);
+    Eigen::ArrayXd new_delta_array(n);
+    new_delta_array << delta_array_, other.delta_array_;
+    delta_array_.swap(new_delta_array);
+}
+
+/**
+ * @brief Get Coordinate from linear interpolation.
+ * @param s Longitudinal position to interpolate at.
+ * @return egret::Coordinate
+ */
+egret::Coordinate egret::CoordinateArray::from_s(double s) const {
+    const auto n = s_array_.size();
+    if (n < 2) {
+        throw std::out_of_range("CoordinateArray must contain at least two points for interpolation");
+    }
+    if (s < s_array_(0) || s > s_array_(n - 1)) {
+        throw std::out_of_range("s value is out of the range of the s_array");
+    }
+    // binary search to find the right interval
+    const double *begin = s_array_.data();
+    const double *end = s_array_.data() + n;
+    const double *it = std::upper_bound(begin, end, s);
+    size_t idx = std::distance(begin, it);
+    if (idx == 0) {
+        throw std::out_of_range("Out of range");
+    }
+    if (idx == n) {
+        idx = n - 1;
+    }
+    if (idx == n - 1) {
+        throw std::out_of_range("Out of range");
+    }
+    const double s0 = s_array_[idx - 1];
+    const double s1 = s_array_[idx];
+    const double ds = s1 - s0;
+    if (ds == 0.) {
+        // Degenerate case: s0 == s1
+        Eigen::Vector4d vec = 0.5 * (vector_array_.col(idx - 1) + vector_array_.col(idx));
+        double zval = 0.5 * (z_array_[idx - 1] + z_array_[idx]);
+        double dval = 0.5 * (delta_array_[idx - 1] + delta_array_[idx]);
+        return Coordinate(vec, s, zval, dval);
+    }
+    const double a0 = (s1 - s) / ds;
+    const double a1 = (s - s0) / ds;
+    const Eigen::Vector4d vec = a0 * vector_array_.col(idx - 1) + a1 * vector_array_.col(idx);
+    const double zval = a0 * z_array_[idx - 1] + a1 * z_array_[idx];
+    const double dval = a0 * delta_array_[idx - 1] + a1 * delta_array_[idx];
+    return Coordinate(vec, s, zval, dval);
+}
