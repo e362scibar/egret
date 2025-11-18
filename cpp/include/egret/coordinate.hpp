@@ -40,7 +40,7 @@ protected:
     //! Particle coordinate vector: (x, xp, y, yp)
     Eigen::Vector4d vector_;
     //! Longitudinal position s, longitudinal displacement z, and relative momentum deviation delta
-    double s_{0.0}, z_{0.0}, delta_{0.0};
+    double s_, z_, delta_;
 public:
     /**
      * @brief Construct a new Coordinate object.
@@ -55,6 +55,12 @@ public:
      * @brief Destroy the Coordinate object.
      */
     virtual ~Coordinate() = default;
+
+    /**
+     * @brief Get the particle coordinate vector (x, xp, y, yp).
+     * @return const Eigen::Vector4d& Particle coordinate vector.
+     */
+    const Eigen::Vector4d& vector() const { return vector_; }
     /**
      * @brief Get the x coordinate.
      * @return double x coordinate
@@ -90,39 +96,45 @@ public:
      * @return double Relative momentum deviation delta
      */
     double delta() const { return delta_; }
+
+    /**
+     * @brief Set the particle coordinate vector (x, xp, y, yp).
+     * @param vector Particle coordinate vector.
+     */
+    void vector(const Eigen::Vector4d &vector) { vector_ = vector; }
     /**
      * @brief Set the x coordinate.
-     * @param val x coordinate value
+     * @param x x coordinate value
      */
-    void x(double val) { vector_(0) = val; }
+    void x(double x) { vector_(0) = x; }
     /**
      * @brief Set the x' coordinate.
-     * @param val x' coordinate value
+     * @param xp x' coordinate value
      */
-    void xp(double val) { vector_(1) = val; }
+    void xp(double xp) { vector_(1) = xp; }
     /**
      * @brief Set the y coordinate.
-     * @param val y coordinate value
+     * @param y y coordinate value
      */
-    void y(double val) { vector_(2) = val; }
+    void y(double y) { vector_(2) = y; }
     /**
      * @brief Set the y' coordinate.
-     * @param val y' coordinate value
+     * @param yp y' coordinate value
      */
-    void yp(double val) { vector_(3) = val; }
+    void yp(double yp) { vector_(3) = yp; }
     /**
      * @brief Set the longitudinal position s.
-     * @param val longitudinal position s value
+     * @param s longitudinal position s value
      */
-    void s(double val) { s_ = val; }
+    void s(double s) { s_ = s; }
     /**
      * @brief Set the longitudinal displacement z.
-     * @param val longitudinal displacement z value
+     * @param z longitudinal displacement z value
      */
-    void z(double val) { z_ = val; }
+    void z(double z) { z_ = z; }
     /**
      * @brief Set the relative momentum deviation delta.
-     * @param val relative momentum deviation delta value
+     * @param delta relative momentum deviation delta value
      */
-    void delta(double val) { delta_ = val; }
+    void delta(double delta) { delta_ = delta; }
 };

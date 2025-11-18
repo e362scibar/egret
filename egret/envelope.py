@@ -36,7 +36,9 @@ class Envelope:
             s float: Longitudinal position [m].
             T npt.NDArray[np.floating]: 2x2 coordinate transformation matrix for eigenmode. (Optional)
         '''
-        self.set(cov, s, T)
+        self.cov = cov.copy()
+        self.s = s
+        self.calc_eigenmode(T)
 
     def __getitem__(self, key):
         '''
@@ -77,19 +79,6 @@ class Envelope:
                 return self.s
             case _:
                 raise KeyError(f'Invalid key: {key}')
-
-    def set(self, cov: npt.NDArray[np.floating], s: float, T: npt.NDArray[np.floating] = None):
-        '''
-        Set envelope parameters.
-
-        Args:
-            cov npt.NDArray[np.floating]: 4x4 positive-definite covariance matrix with the determinant of unity.
-            s float: Longitudinal position [m].
-            T npt.NDArray[np.floating]: 4x4 coordinate transformation matrix for eigenmode. (Optional)
-        '''
-        self.cov = cov.copy()
-        self.s = s
-        self.calc_eigenmode(T)
 
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None):
         '''

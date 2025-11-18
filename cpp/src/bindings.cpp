@@ -130,16 +130,50 @@ PYBIND11_MODULE(pyegret, m) {
     // (Element base/trampoline omitted for now — element wrappers are Python-subclassable via shared_ptr + dynamic_attr)
 
     py::class_<egret::Coordinate>(m, "Coordinate")
-        .def(py::init<>())
-        .def_readwrite("vector", &egret::Coordinate::vector)
-        .def_readwrite("s", &egret::Coordinate::s)
-        .def_readwrite("z", &egret::Coordinate::z)
-        .def_readwrite("delta", &egret::Coordinate::delta);
+        .def(py::init<const Eigen::Vector4d&, double, double, double>(),
+             py::arg("vector") = Eigen::Vector4d::Zero(),
+             py::arg("s") = 0.0,
+             py::arg("z") = 0.0,
+             py::arg("delta") = 0.0)
+        .def_property("vector",
+            static_cast<const Eigen::Vector4d&(egret::Coordinate::*)() const>(&egret::Coordinate::vector),
+            static_cast<void(egret::Coordinate::*)(const Eigen::Vector4d&)>(&egret::Coordinate::vector))
+        .def_property("x",
+            static_cast<double(egret::Coordinate::*)() const>(&egret::Coordinate::x),
+            static_cast<void(egret::Coordinate::*)(double)>(&egret::Coordinate::x))
+        .def_property("xp",
+            static_cast<double(egret::Coordinate::*)() const>(&egret::Coordinate::xp),
+            static_cast<void(egret::Coordinate::*)(double)>(&egret::Coordinate::xp))
+        .def_property("y",
+            static_cast<double(egret::Coordinate::*)() const>(&egret::Coordinate::y),
+            static_cast<void(egret::Coordinate::*)(double)>(&egret::Coordinate::y))
+        .def_property("yp",
+            static_cast<double(egret::Coordinate::*)() const>(&egret::Coordinate::yp),
+            static_cast<void(egret::Coordinate::*)(double)>(&egret::Coordinate::yp))
+        .def_property("s",
+            static_cast<double(egret::Coordinate::*)() const>(&egret::Coordinate::s),
+            static_cast<void(egret::Coordinate::*)(double)>(&egret::Coordinate::s))
+        .def_property("z",
+            static_cast<double(egret::Coordinate::*)() const>(&egret::Coordinate::z),
+            static_cast<void(egret::Coordinate::*)(double)>(&egret::Coordinate::z))
+        .def_property("delta",
+            static_cast<double(egret::Coordinate::*)() const>(&egret::Coordinate::delta),
+            static_cast<void(egret::Coordinate::*)(double)>(&egret::Coordinate::delta));
 
     py::class_<egret::CoordinateArray>(m, "CoordinateArray")
-        .def(py::init<>())
-        .def("append", &egret::CoordinateArray::append)
-        .def("from_s", &egret::CoordinateArray::from_s);
+        .def(py::init<const Eigen::Matrix<double,4,Eigen::Dynamic>&,
+            const Eigen::ArrayXd&, const Eigen::ArrayXd&, const Eigen::ArrayXd&>(),
+            py::arg("vector_array"),
+            py::arg("s_array"),
+            py::arg("z_array") = Eigen::ArrayXd(),
+            py::arg("delta_array") = Eigen::ArrayXd())
+        .def_property_readonly("size", &egret::CoordinateArray::size)
+        .def_property_readonly("vector_array", &egret::CoordinateArray::vector_array)
+        .def_property_readonly("s_array", &egret::CoordinateArray::s_array)
+        .def_property_readonly("z_array", &egret::CoordinateArray::z_array)
+        .def_property_readonly("delta_array", &egret::CoordinateArray::delta_array)
+        .def("append", &egret::CoordinateArray::append, py::arg("other"))
+        .def("from_s", &egret::CoordinateArray::from_s, py::arg("s"));
 
     // Simple container types for envelope and dispersion (numpy-backed)
     struct Envelope {

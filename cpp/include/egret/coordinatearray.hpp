@@ -27,8 +27,6 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <vector>
-#include <algorithm>
 #include "egret/coordinate.hpp"
 
 namespace egret {
@@ -55,11 +53,38 @@ public:
         const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array,
         const Eigen::ArrayXd& s_array,
         const Eigen::ArrayXd& z_array = Eigen::ArrayXd(),
-        const Eigen::ArrayXd& delta_array = Eigen::ArrayXd());
+        const Eigen::ArrayXd& delta_array = Eigen::ArrayXd()) noexcept(false);
+
+    /**
+     * @brief Get the size of the CoordinateArray.
+     * @return size_t
+     */
+    size_t size() const { return vector_array_.cols(); }
+
+    /**
+     * @brief Get the array of particle coordinate vectors.
+     * @return const Eigen::Matrix<double,4,Eigen::Dynamic>& Array of particle coordinate vectors
+     */
+    const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array() const { return vector_array_; }
+    /**
+     * @brief Get the array of longitudinal positions.
+     * @return const Eigen::ArrayXd& Array of longitudinal positions
+     */
+    const Eigen::ArrayXd& s_array() const { return s_array_; }
+    /**
+     * @brief Get the array of longitudinal displacements.
+     * @return const Eigen::ArrayXd& Array of longitudinal displacements
+    */
+    const Eigen::ArrayXd& z_array() const { return z_array_; }
+    /**
+     * @brief Get the array of relative momentum deviations.
+     * @return const Eigen::ArrayXd& Array of relative momentum deviations
+     */
+    const Eigen::ArrayXd& delta_array() const { return delta_array_; }
 
     // Efficient append (reserve + copy)
-    void append(const CoordinateArray &other);
+    void append(const CoordinateArray &other) noexcept(false);
 
     // Get Coordinate from linear interpolation
-    Coordinate from_s(double s) const;
+    Coordinate from_s(double s) const noexcept(false);
 };

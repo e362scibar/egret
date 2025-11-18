@@ -1,10 +1,10 @@
 /**
- * @file coordinatearray.cpp
- * @brief Implementation of the CoordinateArray class representing an array of particle coordinates in phase space.
+ * @file envelopearray.cpp
+ * @brief Implementation of the EnvelopeArray class representing an array of phase space envelopes.
  * @author Hirokazu Maesaka
  * @date 2025
  */
-// coordinatearray.cpp
+// envelopearray.cpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 //
@@ -24,22 +24,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "egret/coordinatearray.hpp"
+#include "egret/envelopearray.hpp"
 #include <stdexcept>
 #include <algorithm>
 #include <optional>
 #include <utility>
 
 /**
- * @brief Construct a new egret::CoordinateArray::CoordinateArray object.
- * @param vector_array Array of particle coordinates (4 x N matrix)
+ * @brief Construct a new egret::EnvelopeArray object.
+ * @param cov_array Array of covariance matrices (4 x 4 x N tensor)
  * @param s_array Longitudinal positions
  * @param z_array Longitudinal displacements
  * @param delta_array Relative momentum deviations
  * @throws std::invalid_argument if input sizes are inconsistent.
  * @throws std::invalid_argument if s_array is not non-decreasing.
  */
-egret::CoordinateArray::CoordinateArray(
+egret::EnvelopeArray::EnvelopeArray(
     const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array,
     const Eigen::ArrayXd& s_array,
     const Eigen::ArrayXd& z_array,
@@ -66,10 +66,10 @@ egret::CoordinateArray::CoordinateArray(
 }
 
 /**
- * @brief Append another CoordinateArray to this one.
- * @param other The other CoordinateArray to append.
+ * @brief Append another EnvelopeArray to this one.
+ * @param other The other EnvelopeArray to append.
  */
-void egret::CoordinateArray::append(const CoordinateArray &other) noexcept(false) {
+void egret::EnvelopeArray::append(const EnvelopeArray &other) noexcept(false) {
     const auto n = vector_array_.cols() + other.vector_array_.cols();
     Eigen::Matrix<double,4,Eigen::Dynamic> new_vector_array(4, n);
     new_vector_array << vector_array_, other.vector_array_;
@@ -86,15 +86,15 @@ void egret::CoordinateArray::append(const CoordinateArray &other) noexcept(false
 }
 
 /**
- * @brief Get Coordinate from linear interpolation.
+ * @brief Get Envelope from linear interpolation.
  * @param s Longitudinal position to interpolate at.
- * @return egret::Coordinate
+ * @return egret::Envelope
  * @throws std::out_of_range if s is out of the range of s_array.
  */
-egret::Coordinate egret::CoordinateArray::from_s(double s) const noexcept(false) {
+egret::Envelope egret::EnvelopeArray::from_s(double s) const noexcept(false) {
     const auto n = s_array_.size();
     if (n < 2) {
-        throw std::out_of_range("CoordinateArray must contain at least two points for interpolation");
+        throw std::out_of_range("EnvelopeArray must contain at least two points for interpolation");
     }
     if (s < s_array_(0) || s > s_array_(n - 1)) {
         throw std::out_of_range("s value is out of the range of the s_array");
@@ -128,5 +128,5 @@ egret::Coordinate egret::CoordinateArray::from_s(double s) const noexcept(false)
     const Eigen::Vector4d vec = a0 * vector_array_.col(idx - 1) + a1 * vector_array_.col(idx);
     const double zval = a0 * z_array_[idx - 1] + a1 * z_array_[idx];
     const double dval = a0 * delta_array_[idx - 1] + a1 * delta_array_[idx];
-    return Coordinate(vec, s, zval, dval);
+    return Envelope(vec, s, zval, dval);
 }

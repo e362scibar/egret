@@ -21,8 +21,6 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <vector>
-#include <algorithm>
 #include "egret/envelope.hpp"
 
 namespace egret {

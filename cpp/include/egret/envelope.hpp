@@ -24,15 +24,36 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <optional>
 
 namespace egret {
 
 class Envelope {
 protected:
-    Eigen::Matrix4d cov;
+    //! 4x4 covariance matrix of the beam envelope
+    Eigen::Matrix4d cov_;
+    //! Longitudinal position s
+    double s_;
+    //! 2x2 coordinate transformation matrix for eigenmode
+    Eigen::Matrix2d T_;
+    //! Factor for eigenmode normalization
+    double tau_{1.0};
+    //! Matrices for eigenmode parameters
+    Eigen::Matrix2d U_{Eigen::Matrix2d::Identity()};
+    Eigen::Matrix2d V_{Eigen::Matrix2d::Identity()};
+
 public:
-    Envelope() : cov(Eigen::Matrix4d::Identity()) {}
-    Envelope(const Eigen::Matrix4d &cov): cov(cov) {}
+    // Constructor
+    Envelope(
+        const Eigen::Matrix4d &cov = Eigen::Matrix4d::Identity(),
+        double s = 0.,
+        std::optional<const Eigen::Matrix2d&> T = std::nullopt)
+        noexcept(false);
+
+    // Calculate eigenmode parameters
+    void calc_eigenmode(
+        std::optional<const Eigen::Matrix2d&> T = std::nullopt)
+        noexcept(false);
 };
 
 } // namespace egret
