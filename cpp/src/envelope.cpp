@@ -42,9 +42,26 @@ egret::Envelope::Envelope(
     double s,
     std::optional<const Eigen::Matrix2d&> T) noexcept(false) :
     cov_(cov), s_(s), T_(T.value_or(Eigen::Matrix2d::Zero())) {
-    calc_eigenmode(T)
+    calc_eigenmode(T);
 }
 
+/**
+ * @brief Get the adjoint of the given matrix.
+ * @param M Input 2x2 matrix.
+ * @return Eigen::Matrix2d Adjoint of M.
+ */
+Eigen::Matrix2d egret::Envelope::adjoint(const Eigen::Matrix2d& M) noexcept {
+    Eigen::Matrix2d M_s;
+    M_s << M(1,1), -M(0,1),
+           -M(1,0), M(0,0);
+    return M_s;
+}
+
+/**
+ * @brief Calculate the eigenmode of the envelope.
+ * @param T Transformation matrix (optional)
+ * @throws std::runtime_error if eigenmode calculation fails.
+ */
 void egret::Envelope::calc_eigenmode(
     std::optional<const Eigen::Matrix2d&> T) noexcept(false) {
     // If T is provided, use it
@@ -72,9 +89,7 @@ void egret::Envelope::calc_eigenmode(
         T_ = Eigen::Map<const Eigen::Matrix2d>(res.data());
     }
     // calculate tau, U, V
-    Eigen::Matrix2d T_s; // adjoint of T
-    T_s << T_(1,1), -T_(0,1),
-            -T_(1,0), T_(0,0);
+    Eigen::Matrix2d T_s = adjoint(T_); // adjoint of T
     tau_ = std::sqrt(1.0 - T_.determinant());
     const double chi = 1.0 / (2.0 * tau_ * tau_ - 1.0);
     const double sqrtchi = std::sqrt(chi);
@@ -82,4 +97,48 @@ void egret::Envelope::calc_eigenmode(
     const Eigen::Matrix2d Syy = cov_.block<2, 2>(2, 2);
     U_ = sqrtchi * (tau_ * tau_ * Sxx - T_s * Syy * T_s.transpose());
     V_ = sqrtchi * (tau_ * tau_ * Syy - T_ * Sxx * T_.transpose());
+}
+
+/**
+ * @brief Get 4 x 4 Transformation matrix for full phase space.
+ * @return Eigen::Matrix4d Transformation matrix.
+ */
+Eigen::Matrix4d egret::Envelope::T_matrix() const noexcept {
+    const Eigen::Matrix2d T_s = adjoint(T_); // adjoint of T_
+    Eigen::Matrix4d T_full = Eigen::Matrix4d::Identity() * tau_;
+    T_full.block<2,2>(0,2) = -T_s;
+    T_full.block<2,2>(2,0) = T_;
+    return T_full;
+}
+
+/**
+ * @brief Transfer the envelope by a given transfer matrix.
+ * @param M Transfer matrix (4 x 4)
+ * @param length Length of the element
+ */
+void egret::Envelope::transfer(const Eigen::Matrix4d &M, double length) noexcept {
+    // Update covariance matrix
+    cov_ = M * cov_ * M.transpose();
+    // Update longitudinal position
+    s_ += length;
+    // Update T_, tau_, U_, V_
+    const Eigen::Matrix2d Mxx = M.block<2,2>(0,0);
+    const Eigen::Matrix2d Mxy = M.block<2,2>(0,2);
+    const Eigen::Matrix2d Myx = M.block<2,2>(2,0);
+    const Eigen::Matrix2d Myy = M.block<2,2>(2,2);
+    const Eigen::Matrix2d Mxx_s = adjoint(Mxx); // adjoint of Mxx
+    const Eigen::Matrix2d Mxy_s = adjoint(Mxy); // adjoint of Mxy
+    const Eigen::Matrix2d T_s = adjoint(T_); // adjoint of T_
+    const Eigen::Matrix2d tauMu = tau_ * Mxx - Mxy * T_;
+    const Eigen::Matrix2d tauMv = tau_ * Myy + Myx * T_s;
+    const double tau = std::sqrt(0.5 * (tauMu.determinant() + tauMv.determinant()));
+    const Eigen::Matrix2d Mu = tauMu / tau;
+    const Eigen::Matrix2d Mv = tauMv / tau;
+    const Eigen::Matrix2d Mu_s = adjoint(Mu); // adjoint of Mu
+    const Eigen::Matrix2d Mv_T1 = tau_ * Mxy_s + T_ * Mxx_s;
+    const Eigen::Matrix2d T1Mu = -tau_ * Myx + Myy * T_;
+    T_ = 0.5 * (Mv * Mv_T1 + T1Mu * Mu_s);
+    tau_ = tau;
+    U_ = Mu * U_ * Mu.transpose();
+    V_ = Mv * V_ * Mv.transpose();
 }

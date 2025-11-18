@@ -1,3 +1,9 @@
+/**
+ * @file envelopearray.hpp
+ * @brief Class representing an array of beam envelopes in phase space
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // envelopearray.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -24,10 +30,15 @@
 #include "egret/envelope.hpp"
 
 namespace egret {
+    class EnvelopeArray;
+}
 
-class EnvelopeArray {
+/**
+ * @brief Class representing an array of beam envelopes in phase space.
+ */
+class egret::EnvelopeArray {
 protected:
-    // 4 x N matrix
+    // 4 x 4 x N tensor
     Eigen::Matrix<double, 4, Eigen::Dynamic> cov;
     std::vector<double> s;
     std::vector<double> z;
@@ -46,5 +57,3 @@ public:
     // linear interpolation like Python's from_s
     Envelope from_s(double sval) const;
 };
-
-} // namespace egret
