@@ -27,7 +27,9 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <vector>
 #include "egret/envelope.hpp"
+#include "egret/basearray.hpp"
 
 namespace egret {
     class EnvelopeArray;
@@ -36,24 +38,34 @@ namespace egret {
 /**
  * @brief Class representing an array of beam envelopes in phase space.
  */
-class egret::EnvelopeArray {
+class egret::EnvelopeArray: public BaseArray {
 protected:
-    // 4 x 4 x N tensor
-    Eigen::Matrix<double, 4, Eigen::Dynamic> cov;
-    std::vector<double> s;
-    std::vector<double> z;
-    std::vector<double> delta;
+    //! std::vector of 4 x 4 covariance matrices
+    std::vector<Eigen::Matrix4d> cov_array_;
+    //! std::vector of 2x2 coordinate transformation matrix for eigenmode
+    std::vector<Eigen::Matrix2d> T_array_;
+    //! Factor for eigenmode normalization
+    Eigen::ArrayXd tau_array_;
+    //! std::vector of covariance matrices for the envelope of the eigenmode U
+    std::vector<Eigen::Matrix2d> U_array_;
+    //! std::vector of covariance matrices for the envelope of the eigenmode V
+    std::vector<Eigen::Matrix2d> V_array_;
 
 public:
-    EnvelopeArray();
-    EnvelopeArray(const Eigen::Matrix<double,4,Eigen::Dynamic>& cov,
-                    const std::vector<double>& s_,
-                    const std::vector<double>& z_ = {},
-                    const std::vector<double>& delta_ = {});
+    // Constructor
+    EnvelopeArray(
+        const std::vector<Eigen::Matrix4d>& cov_array,
+        const Eigen::ArrayXd& s_array,
+        const std::optional<std::vector<Eigen::Matrix2d>>& T_array = std::nullopt)
+        noexcept(false);
+    /**
+    * @brief Destroy the EnvelopeArray object.
+    */
+    virtual ~EnvelopeArray() = default;
 
     // Efficient append (reserve + copy)
     void append(const EnvelopeArray &other);
 
     // linear interpolation like Python's from_s
-    Envelope from_s(double sval) const;
+    Envelope from_s(double sval) const noexcept(false);
 };

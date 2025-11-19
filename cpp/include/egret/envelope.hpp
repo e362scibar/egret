@@ -158,6 +158,9 @@ public:
         std::optional<const Eigen::Matrix2d&> T = std::nullopt)
         noexcept(false);
 
+    // Estimate T matrix from covariance matrix
+    static Eigen::Matrix2d estimate_T(const Eigen::Matrix4d &cov) noexcept(false);
+
     // Get 4 x 4 Transformation matrix for full phase space
     Eigen::Matrix4d T_matrix() const noexcept;
 

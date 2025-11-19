@@ -69,24 +69,7 @@ void egret::Envelope::calc_eigenmode(
         T_ = *T;
     } else {
         // Calculate T from the covariance matrix
-        const Eigen::Matrix2d Sxx = cov_.block<2, 2>(0, 0);
-        const Eigen::Matrix2d Sxy = cov_.block<2, 2>(0, 2);
-        const Eigen::Matrix2d Syy = cov_.block<2, 2>(2, 2);
-
-        Eigen::Matrix4d mat;
-        mat << -Sxx(0,0), -Sxx(0,1)-Syy(0,1), 0., Syy(0,0),
-               0., -Syy(1,1), -Sxx(0,0), -Sxx(0,1)+Syy(0,1),
-               -Sxx(0,1)+Syy(0,1), -Sxx(1,1), -Syy(0,0), 0.,
-               Syy(1,1), 0., -Sxx(0,1)-Syy(0,1), -Sxx(1,1);
-        const Eigen::Vector4d vec = Eigen::Map<const Eigen::Vector4d>(Sxy.data());
-
-        Eigen::Vector4d res;
-        try {
-            res = mat.colPivHouseholderQr().solve(vec);
-        } catch (const std::exception& e) {
-            res = Eigen::Vector4d::Zero();
-        }
-        T_ = Eigen::Map<const Eigen::Matrix2d>(res.data());
+        T_ = estimate_T(cov_);
     }
     // calculate tau, U, V
     Eigen::Matrix2d T_s = adjoint(T_); // adjoint of T
@@ -141,4 +124,29 @@ void egret::Envelope::transfer(const Eigen::Matrix4d &M, double length) noexcept
     tau_ = tau;
     U_ = Mu * U_ * Mu.transpose();
     V_ = Mv * V_ * Mv.transpose();
+}
+
+/**
+ * @brief Estimate T matrix from covariance matrix.
+ * @param cov Covariance matrix (4 x 4)
+ * @return Eigen::Matrix2d Estimated T matrix.
+ * @throws std::runtime_error if estimation fails.
+ */
+Eigen::Matrix2d egret::Envelope::estimate_T(const Eigen::Matrix4d &cov) noexcept(false) {
+    const Eigen::Matrix2d Sxx = cov.block<2, 2>(0, 0);
+    const Eigen::Matrix2d Sxy = cov.block<2, 2>(0, 2);
+    const Eigen::Matrix2d Syy = cov.block<2, 2>(2, 2);        // Calculate T from the covariance matrix
+    Eigen::Matrix4d mat;
+    mat << -Sxx(0,0), -Sxx(0,1)-Syy(0,1), 0., Syy(0,0),
+            0., -Syy(1,1), -Sxx(0,0), -Sxx(0,1)+Syy(0,1),
+            -Sxx(0,1)+Syy(0,1), -Sxx(1,1), -Syy(0,0), 0.,
+            Syy(1,1), 0., -Sxx(0,1)-Syy(0,1), -Sxx(1,1);
+    const Eigen::Vector4d vec = Eigen::Map<const Eigen::Vector4d>(Sxy.data());
+    Eigen::Vector4d res;
+    try {
+        res = mat.colPivHouseholderQr().solve(vec);
+    } catch (const std::exception& e) {
+        res = Eigen::Vector4d::Zero();
+    }
+    return Eigen::Map<const Eigen::Matrix2d>(res.data());
 }

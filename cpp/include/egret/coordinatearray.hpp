@@ -28,7 +28,7 @@
 
 #include <Eigen/Dense>
 #include "egret/coordinate.hpp"
-
+#include "egret/basearray.hpp"
 namespace egret {
     class CoordinateArray;
 }
@@ -36,12 +36,10 @@ namespace egret {
 /**
  * @brief Class representing an array of particle coordinates in phase space.
  */
-class egret::CoordinateArray {
+class egret::CoordinateArray: public egret::BaseArray {
 protected:
     //! 4 x N matrix of particle coordinates (x, xp, y, yp)
     Eigen::Matrix<double, 4, Eigen::Dynamic> vector_array_;
-    //! Longitudinal positions
-    Eigen::ArrayXd s_array_;
     //! Longitudinal displacements
     Eigen::ArrayXd z_array_;
     //! Relative momentum deviations
@@ -54,12 +52,10 @@ public:
         const Eigen::ArrayXd& s_array,
         const Eigen::ArrayXd& z_array = Eigen::ArrayXd(),
         const Eigen::ArrayXd& delta_array = Eigen::ArrayXd()) noexcept(false);
-
     /**
-     * @brief Get the size of the CoordinateArray.
-     * @return size_t
+     * @brief Destroy the CoordinateArray object.
      */
-    size_t size() const { return vector_array_.cols(); }
+    virtual ~CoordinateArray() = default;
 
     /**
      * @brief Get the array of particle coordinate vectors.
@@ -67,20 +63,15 @@ public:
      */
     const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array() const { return vector_array_; }
     /**
-     * @brief Get the array of longitudinal positions.
-     * @return const Eigen::ArrayXd& Array of longitudinal positions
-     */
-    const Eigen::ArrayXd& s_array() const { return s_array_; }
-    /**
      * @brief Get the array of longitudinal displacements.
      * @return const Eigen::ArrayXd& Array of longitudinal displacements
     */
-    const Eigen::ArrayXd& z_array() const { return z_array_; }
+    virtual const Eigen::ArrayXd& z_array() const { return z_array_; }
     /**
      * @brief Get the array of relative momentum deviations.
      * @return const Eigen::ArrayXd& Array of relative momentum deviations
      */
-    const Eigen::ArrayXd& delta_array() const { return delta_array_; }
+    virtual const Eigen::ArrayXd& delta_array() const { return delta_array_; }
 
     // Efficient append (reserve + copy)
     void append(const CoordinateArray &other) noexcept(false);
