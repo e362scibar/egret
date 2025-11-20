@@ -41,7 +41,8 @@ egret::CoordinateArray::CoordinateArray(
     const Eigen::ArrayXd& s_array,
     const Eigen::ArrayXd& z_array,
     const Eigen::ArrayXd& delta_array) noexcept(false) :
-    BaseArray(s_array, z_array, delta_array), vector_array_(vector_array) {
+    BaseArray(s_array), vector_array_(vector_array),
+    z_array_(z_array), delta_array_(delta_array) {
     // Check consistency of input sizes
     const auto n = BaseArray::size();
     if (vector_array_.cols() != n) {

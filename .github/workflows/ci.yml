@@ -101,6 +101,6 @@ jobs:
 
       - name: Run tests
         env:
-          PYTHONPATH: ${{ github.workspace }}: ${{ github.workspace }}/cpp/build
+          PYTHONPATH: "${{ github.workspace }}: ${{ github.workspace }}/cpp/build"
         run: |
           python -m pytest -q cpp/tests

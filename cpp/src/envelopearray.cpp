@@ -40,18 +40,183 @@ egret::EnvelopeArray::EnvelopeArray(
     const std::vector<Eigen::Matrix4d>& cov_array,
     const Eigen::ArrayXd& s_array,
     const std::optional<std::vector<Eigen::Matrix2d>>& T_array) noexcept(false) :
-    BaseArray(s_array), cov_array_(cov_array), T_array_(T_array.value_or(std::vector<Eigen::Matrix2d>())),
+    BaseArray(s_array), cov_array_(cov_array),
+    T_array_(T_array.value_or(std::vector<Eigen::Matrix2d>())),
     tau_array_(Eigen::ArrayXd::Ones(s_array.size())), U_array_(), V_array_() {
     // Check consistency of input sizes
-    const auto n = BaseArray::size();
+    const auto n = size();
     if (cov_array_.size() != n) {
         throw std::invalid_argument("Size of s_array does not match the number of covariance matrices in cov_array");
     }
     if (T_array && T_array->size() != n) {
         throw std::invalid_argument("Size of s_array does not match the number of transformation matrices in T_array");
     }
-    // To Do: T_array_ initialization and other member initializations can be added here.
+    // If T_array is not provided, estimate T from covariances
+    if (!T_array) {
+        for (const auto &cov: cov_array) {
+            T_array_.push_back(Envelope::estimate_T(cov));
+        }
+    }
+    // calculate tau, U, V
+    for (const size_t i : std::views::iota(0u, size())) {
+        const Eigen::Matrix4d& cov = cov_array_[i];
+        const Eigen::Matrix2d& T = T_array_[i];
+        const Eigen::Matrix2d T_s = Envelope::adjoint(T); // adjoint of T
+        const double tau = std::sqrt(1.0 - T.determinant());
+        const double chi = 1.0 / (2.0 * tau * tau - 1.0);
+        const double sqrtchi = std::sqrt(chi);
+        const Eigen::Matrix2d Sxx = cov.block<2, 2>(0, 0);
+        const Eigen::Matrix2d Syy = cov.block<2, 2>(2, 2);
+        const Eigen::Matrix2d U = sqrtchi * (tau * tau * Sxx - T_s * Syy * T_s.transpose());
+        const Eigen::Matrix2d V = sqrtchi * (tau * tau * Syy - T * Sxx * T.transpose());
+        tau_array_(i) = tau;
+        U_array_.push_back(U);
+        V_array_.push_back(V);
+    }
+}
 
+/**
+ * @brief Get the array of beta functions in the x direction.
+ * @return Eigen::ArrayXd Array of beta_x values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::bx_array() const noexcept(false) {
+    Eigen::ArrayXd bx_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        bx_array(i) = cov_array_[i](0, 0);
+    }
+    return bx_array;
+}
+
+/**
+ * @brief Get the array of alpha functions in the x direction.
+ * @return Eigen::ArrayXd Array of alpha_x values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::ax_array() const noexcept(false) {
+    Eigen::ArrayXd ax_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        ax_array(i) = -0.5 * (cov_array_[i](0, 1) + cov_array_[i](1, 0));
+    }
+    return ax_array;
+}
+
+/**
+ * @brief Get the array of gamma functions in the x direction.
+ * @return Eigen::ArrayXd Array of gamma_x values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::gx_array() const noexcept(false) {
+    Eigen::ArrayXd gx_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        gx_array(i) = cov_array_[i](1, 1);
+    }
+    return gx_array;
+}
+
+/**
+ * @brief Get the array of beta functions in the y direction.
+ * @return Eigen::ArrayXd Array of beta_y values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::by_array() const noexcept(false) {
+    Eigen::ArrayXd by_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        by_array(i) = cov_array_[i](2, 2);
+    }
+    return by_array;
+}
+
+/**
+ * @brief Get the array of alpha functions in the y direction.
+ * @return Eigen::ArrayXd Array of alpha_y values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::ay_array() const noexcept(false) {
+    Eigen::ArrayXd ay_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        ay_array(i) = -0.5 * (cov_array_[i](2, 3) + cov_array_[i](3, 2));
+    }
+    return ay_array;
+}
+
+/**
+ * @brief Get the array of gamma functions in the y direction.
+ * @return Eigen::ArrayXd Array of gamma_y values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::gy_array() const noexcept(false) {
+    Eigen::ArrayXd gy_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        gy_array(i) = cov_array_[i](3, 3);
+    }
+    return gy_array;
+}
+
+/**
+ * @brief Get the array of beta functions in the eigenmode U.
+ * @return Eigen::ArrayXd Array of beta_u values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::bu_array() const noexcept(false) {
+    Eigen::ArrayXd bu_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        bu_array(i) = U_array_[i](0, 0);
+    }
+    return bu_array;
+}
+
+/**
+ * @brief Get the array of alpha functions in the eigenmode U.
+ * @return Eigen::ArrayXd Array of alpha_u values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::au_array() const noexcept(false) {
+    Eigen::ArrayXd au_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        au_array(i) = -0.5 * (U_array_[i](0, 1) + U_array_[i](1, 0));
+    }
+    return au_array;
+}
+
+/**
+ * @brief Get the array of gamma functions in the eigenmode U.
+ * @return Eigen::ArrayXd Array of gamma_u values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::gu_array() const noexcept(false) {
+    Eigen::ArrayXd gu_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        gu_array(i) = U_array_[i](1, 1);
+    }
+    return gu_array;
+}
+
+/**
+ * @brief Get the array of beta functions in the eigenmode V.
+ * @return Eigen::ArrayXd Array of beta_v values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::bv_array() const noexcept(false) {
+    Eigen::ArrayXd bv_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        bv_array(i) = V_array_[i](0, 0);
+    }
+    return bv_array;
+}
+
+/**
+ * @brief Get the array of alpha functions in the eigenmode V.
+ * @return Eigen::ArrayXd Array of alpha_v values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::av_array() const noexcept(false) {
+    Eigen::ArrayXd av_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        av_array(i) = -0.5 * (V_array_[i](0, 1) + V_array_[i](1, 0));
+    }
+    return av_array;
+}
+
+/**
+ * @brief Get the array of gamma functions in the eigenmode V.
+ * @return Eigen::ArrayXd Array of gamma_v values.
+ */
+Eigen::ArrayXd egret::EnvelopeArray::gv_array() const noexcept(false) {
+    Eigen::ArrayXd gv_array(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        gv_array(i) = V_array_[i](1, 1);
+    }
+    return gv_array;
 }
 
 /**
@@ -61,6 +226,11 @@ egret::EnvelopeArray::EnvelopeArray(
 void egret::EnvelopeArray::append(const EnvelopeArray &other) noexcept(false) {
     BaseArray::append(other);
     cov_array_.insert(cov_array_.end(), other.cov_array_.begin(), other.cov_array_.end());
+    T_array_.insert(T_array_.end(), other.T_array_.begin(), other.T_array_.end());
+    tau_array_.conservativeResize(tau_array_.size() + other.tau_array_.size());
+    tau_array_.tail(other.tau_array_.size()) = other.tau_array_;
+    U_array_.insert(U_array_.end(), other.U_array_.begin(), other.U_array_.end());
+    V_array_.insert(V_array_.end(), other.V_array_.begin(), other.V_array_.end());
 }
 
 /**
@@ -77,14 +247,12 @@ egret::Envelope egret::EnvelopeArray::from_s(double s) const noexcept(false) {
     if (ds == 0.) {
         // Degenerate case: s0 == s1
         const Eigen::Matrix4d cov = 0.5 * (cov_array_[idx] + cov_array_[idx + 1]);
-        const double zval = 0.5 * (z_array_(idx) + z_array_(idx + 1));
-        const double dval = 0.5 * (delta_array_(idx) + delta_array_(idx + 1));
-        return Envelope(cov, s, zval, dval);
+        const Eigen::Matrix2d T = 0.5 * (T_array_[idx] + T_array_[idx + 1]);
+        return Envelope(cov, s, T);
     }
     const double a0 = (s1 - s) / ds;
     const double a1 = (s - s0) / ds;
     const Eigen::Matrix4d cov = a0 * cov_array_[idx] + a1 * cov_array_[idx + 1];
-    const double zval = a0 * z_array_(idx) + a1 * z_array_(idx + 1);
-    const double dval = a0 * delta_array_(idx) + a1 * delta_array_(idx + 1);
-    return Envelope(cov, s, zval, dval);
+    const Eigen::Matrix2d T = a0 * T_array_[idx] + a1 * T_array_[idx + 1];
+    return Envelope(cov, s, T);
 }
