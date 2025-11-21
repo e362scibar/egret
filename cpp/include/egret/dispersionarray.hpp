@@ -1,3 +1,9 @@
+/**
+ * @file dispersionarray.hpp
+ * @brief Definition of the DispersionArray class representing an array of dispersion functions.
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // dispersionarray.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -24,22 +30,35 @@
 #include <vector>
 #include <algorithm>
 #include "egret/dispersion.hpp"
+#include "egret/basearray.hpp"
 
 namespace egret {
+    class DispersionArray;
+}
 
-class DispersionArray {
+class egret::DispersionArray : public egret::BaseArray {
 protected:
     // 4 x N matrix
-    Eigen::Matrix<double, 4, Eigen::Dynamic> vector;
+    Eigen::Matrix<double, 4, Eigen::Dynamic> vector_array_;
 
 public:
-    DispersionArray();
-    DispersionArray(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec);
+    // Constructor
+    DispersionArray(const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array,
+                    const Eigen::ArrayXd& s_array) noexcept(false);
+    /**
+     * @brief Destroy the DispersionArray object.
+     */
+    virtual ~DispersionArray() = default;
+
+    /**
+     * @brief Get the array of dispersion functions.
+     * @return Eigen::Matrix<double,4,Eigen::Dynamic> 4 x N matrix of dispersion functions
+     */
+    const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array() const { return vector_array_; }
+
     // Efficient append (reserve + copy)
     void append(const DispersionArray &other);
 
-    // linear interpolation like Python's from_s
-    Dispersion from_s(double sval) const;
+    // Get Dispersion at given s by linear interpolation
+    Dispersion from_s(double s) const;
 };
-
-} // namespace egret

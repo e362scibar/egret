@@ -240,7 +240,7 @@ void egret::EnvelopeArray::append(const EnvelopeArray &other) noexcept(false) {
  * @throws std::out_of_range if s is out of the range of s_array.
  */
 egret::Envelope egret::EnvelopeArray::from_s(double s) const noexcept(false) {
-    const auto idx = BaseArray::index_from_s(s);
+    const auto idx = index_from_s(s);
     const double s0 = s_array_(idx);
     const double s1 = s_array_(idx + 1);
     const double ds = s1 - s0;
@@ -255,4 +255,64 @@ egret::Envelope egret::EnvelopeArray::from_s(double s) const noexcept(false) {
     const Eigen::Matrix4d cov = a0 * cov_array_[idx] + a1 * cov_array_[idx + 1];
     const Eigen::Matrix2d T = a0 * T_array_[idx] + a1 * T_array_[idx + 1];
     return Envelope(cov, s, T);
+}
+
+/**
+ * @brief Get the full transformation matrix T at the specified index.
+ * @param index Array index.
+ * @return Eigen::Matrix4d Full transformation matrix at the given index.
+ * @throws std::out_of_range if the index is out of range.
+ */
+Eigen::Matrix4d egret::EnvelopeArray::T_matrix(size_t index) const noexcept(false) {
+    check_index(index);
+    Eigen::Matrix4d T_full = Eigen::Matrix4d::Identity() * tau_array_(index);
+    T_full.block<2,2>(2,0) = T_array_[index];
+    T_full.block<2,2>(0,2) = -Envelope::adjoint(T_array_[index]);
+    return T_full;
+}
+
+/**
+ * @brief Transport an EnvelopeArray using a series of transfer matrices.
+ * @param evlp0 Initial Envelope.
+ * @param M_array Array of transfer matrices.
+ * @param s_array Array of longitudinal positions corresponding to each transfer matrix.
+ * @return egret::EnvelopeArray Transported EnvelopeArray.
+ */
+egret::EnvelopeArray egret::EnvelopeArray::transport(
+    const Envelope &evlp0,
+    const std::vector<Eigen::Matrix4d> &M_array,
+    const Eigen::ArrayXd &s_array) noexcept(false) {
+    const size_t n = M_array.size();
+    if (s_array.size() != n) {
+        throw std::invalid_argument("Size of s_array does not match number of transfer matrices in M_array");
+    }
+    std::vector<Eigen::Matrix4d> cov_array;
+    std::vector<Eigen::Matrix2d> T_array;
+    cov_array.reserve(n);
+    T_array.reserve(n);
+    const Eigen::Matrix4d &cov0 = evlp0.cov();
+    const Eigen::Matrix2d &T0 = evlp0.T();
+    const Eigen::Matrix2d T0_s = Envelope::adjoint(T0);
+    const double tau0 = evlp0.tau();
+    for (auto M : M_array) {
+        const Eigen::Matrix4d cov = M * cov0 * M.transpose();
+        const Eigen::Matrix2d Mxx = M.block<2,2>(0,0);
+        const Eigen::Matrix2d Mxy = M.block<2,2>(0,2);
+        const Eigen::Matrix2d Myx = M.block<2,2>(2,0);
+        const Eigen::Matrix2d Myy = M.block<2,2>(2,2);
+        const Eigen::Matrix2d Mxx_s = Envelope::adjoint(Mxx);
+        const Eigen::Matrix2d Mxy_s = Envelope::adjoint(Mxy);
+        const Eigen::Matrix2d tauMu = tau0 * Mxx - Mxy_s * T0;
+        const Eigen::Matrix2d tauMv = tau0 * Myy + Myx * T0_s;
+        const double tau = std::sqrt(0.5 * (tauMu.determinant() + tauMv.determinant()));
+        const Eigen::Matrix2d Mu = tauMu / tau;
+        const Eigen::Matrix2d Mv = tauMv / tau;
+        const Eigen::Matrix2d Mu_s = Envelope::adjoint(Mu);
+        const Eigen::Matrix2d Mv_T1 = tau0 * Mxy_s + T0 * Mxx_s;
+        const Eigen::Matrix2d T1Mu = -tau0 * Myx + Myy * T0;
+        const Eigen::Matrix2d T = 0.5 * (Mv * Mv_T1 + T1Mu * Mu_s);
+        cov_array.push_back(cov);
+        T_array.push_back(T);
+    }
+    return EnvelopeArray(cov_array, s_array + evlp0.s(), T_array);
 }

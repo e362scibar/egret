@@ -110,12 +110,13 @@ class Element(Object):
         s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint)
         return np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2), s
 
-    def dispersion(self, cood0: Coordinate = None) -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
+            ds float: Maximum step size [m] for integration (not used in the base class).
 
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
@@ -168,7 +169,7 @@ class Element(Object):
                 cood, evlp, disp = elem.transfer(cood, evlp, disp)
             cood1, evlp1, disp1 = cood, evlp, disp
         else:
-            tmat = self.transfer_matrix(cood0err)
+            tmat = self.transfer_matrix(cood0err, ds)
             cood = np.dot(tmat, cood0err.vector)
             cood1 = Coordinate(cood, cood0err.s + self.length, cood0err.z, cood0err.delta)
             if evlp0 is not None:
@@ -177,7 +178,7 @@ class Element(Object):
             else:
                 evlp1 = None
             if disp0 is not None:
-                disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err)
+                disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds)
                 disp1 = Dispersion(disp, disp0.s + self.length)
             else:
                 disp1 = None

@@ -1,3 +1,9 @@
+/**
+ * @file dipole.cpp
+ * @brief Dipole element implementation
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // dipole.cpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -21,8 +27,10 @@
 #include "egret/dipole.hpp"
 #include <cmath>
 
-namespace egret {
 
+
+
+#if 0
 Eigen::Matrix4d Dipole::transfer_matrix(double length, double angle, double k1, double delta) {
     double rho = (length / angle) * (1.0 + delta);
     Eigen::Matrix4d tmat = Eigen::Matrix4d::Identity();
@@ -123,4 +131,4 @@ std::pair<Eigen::Tensor<double,3>, std::vector<double>> Dipole::transfer_matrix_
     return {tmat, s};
 }
 
-} // namespace egret
+#endif

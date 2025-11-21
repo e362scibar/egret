@@ -1,3 +1,9 @@
+/**
+ * @file dispersion.hpp
+ * @brief Definition of the Dispersion class representing dispersion functions.
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // dispersion.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -23,13 +29,88 @@
 #include <Eigen/Dense>
 
 namespace egret {
+    class Dispersion;
+}
 
-class Dispersion {
+class egret::Dispersion {
 protected:
-    Eigen::Vector4d vector;
-public:
-    Dispersion() : vector(Eigen::Vector4d::Zero()) {}
-    Dispersion(const Eigen::Vector4d &v) : vector(v) {}
-};
+    //! 4D vector representing dispersion function
+    Eigen::Vector4d vector_;
+    //! Longitudinal position s
+    double s_;
 
-} // namespace egret
+public:
+    /**
+     * @brief Construct a new Dispersion object.
+     * @param v 4D vector representing dispersion function
+     * @param s Longitudinal position
+     */
+    Dispersion(const Eigen::Vector4d &vector=Eigen::Vector4d::Zero(), double s=0.) :
+        vector_(vector), s_(s) {}
+    /**
+     * @brief Destroy the Dispersion object.
+     */
+    virtual ~Dispersion() = default;
+
+    /**
+     * @brief Get the 4D vector representing dispersion function.
+     * @return Eigen::Vector4d 4D vector (Dx, Dpx, Dy, Dpy)
+     */
+    Eigen::Vector4d vector() const { return vector_; }
+    /**
+     * @brief Get the longitudinal position s.
+     * @return double Longitudinal position s
+     */
+    double s() const { return s_; }
+    /**
+     * @brief Get the x components of the dispersion vector.
+     * @return double x component
+     */
+    double x() const { return vector_(0); };
+    /**
+     * @brief Get the x' component of the dispersion vector.
+     * @return double x' component
+     */
+    double xp() const { return vector_(1); };
+    /**
+     * @brief Get the y component of the dispersion vector.
+     * @return double y component
+     */
+    double y() const { return vector_(2); };
+    /**
+     * @brief Get the y' component of the dispersion vector.
+     * @return double y' component
+     */
+    double yp() const { return vector_(3); };
+
+    /**
+     * @brief Set the 4D vector representing dispersion function.
+     * @param vector 4D vector representing dispersion function
+     */
+    void vector(const Eigen::Vector4d &vector) { vector_ = vector; }
+    /**
+     * @brief Set the longitudinal position s.
+     * @param s Longitudinal position s
+     */
+    void s(double s) { s_ = s; }
+    /**
+     * @brief Set the x component of the dispersion vector.
+     * @param x x component
+     */
+    double x(double x) { return vector_(0) = x; };
+    /**
+     * @brief Set the x' component of the dispersion vector.
+     * @param xp x' component
+     */
+    double xp(double xp) { return vector_(1) = xp; };
+    /**
+     * @brief Set the y component of the dispersion vector.
+     * @param y y component
+     */
+    double y(double y) { return vector_(2) = y; };
+    /**
+     * @brief Set the y' component of the dispersion vector.
+     * @param yp y' component
+     */
+    double yp(double yp) { return vector_(3) = yp; };
+};

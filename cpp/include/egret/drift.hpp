@@ -1,3 +1,9 @@
+/**
+ * @file drift.hpp
+ * @brief Drift element class definition
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // drift.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -20,32 +26,50 @@
 
 #pragma once
 
-#include <Eigen/Dense>
-#include <unsupported/Eigen/CXX11/Tensor>
 #include "egret/element.hpp"
 
 namespace egret {
-
-class Drift: public Element {
+    class Drift;
+}
+class egret::Drift: public egret::Element {
 public:
     /**
      * @brief Construct a new Drift object
-     *
      * @param name Object name
      * @param length Length of the drift space
      */
-    Drift(const std::string &name, double length) : Element(name, length) {}
+    Drift(const std::string &name, double length, double dx=0.0, double dy=0.0, double ds=0.0,
+        double tilt=0.0, const std::string &info="") :
+        Element(name, length, dx, dy, ds, tilt, info) {}
     /**
      * @brief Destroy the Drift object
      */
-    virtual ~Drift() = default;
-
+    virtual ~Drift() noexcept = default;
 
     // Return 4x4 transfer matrix for a drift of given length
-    static Eigen::Matrix4d transfer_matrix_from_length(double length);
+    static Eigen::Matrix4d transfer_matrix_from_length(double length) noexcept;
 
-    // Return transfer matrix array (4x4xN) and s array for given length and step ds
-    static std::pair<Eigen::Tensor<double,3>, std::vector<double>> transfer_matrix_array_from_length(double length, double ds = 0.1, bool endpoint = false);
+    // Return an array of 4x4 transfer matrices for a drift of given length
+    static std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
+    transfer_matrix_array_from_length(double length, double ds = 0.1, bool endpoint = false)
+    noexcept;
+
+    /**
+     * @brief Get the transfer matrix for this drift element.
+     * @return Eigen::Matrix4d Transfer matrix (4x4)
+     */
+    Eigen::Matrix4d transfer_matrix() const noexcept {
+        return transfer_matrix_from_length(length_);
+    }
+
+    /**
+     * @brief Get an array of transfer matrices for this drift element.
+     * @param ds Step size
+     * @param endpoint Include endpoint
+     * @return std::vector<Eigen::Matrix4d> Array of transfer matrices
+     */
+    std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
+    transfer_matrix_array(double ds = 0.1, bool endpoint = false) const noexcept {
+        return transfer_matrix_array_from_length(length_, ds, endpoint);
+    }
 };
-
-} // namespace egret

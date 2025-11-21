@@ -27,38 +27,35 @@
 #include <string>
 
 namespace egret {
+    class Object;
+}
 
 /**
  * @brief Base class for all objects in the Egret framework.
  * Provides a common interface for naming and identification.
  */
-class Object {
+class egret::Object {
 protected:
     //! Name of the object.
     std::string name;
 public:
     /**
      * @brief Construct a new Object object
-     *
      * @param name Object name
      */
     Object(const std::string &name) : name(name) {}
     /**
      * @brief Virtual destructor
      */
-    virtual ~Object() = default;
+    virtual ~Object() noexcept = default;
     /**
      * @brief Get the name of the object
-     *
      * @return const std::string& Name of the object
      */
     const std::string& get_name() const { return name; }
     /**
      * @brief Set the name of the object
-     *
      * @param new_name New name to set
      */
     void set_name(const std::string &new_name) { name = new_name; }
 };
-
-} // namespace egret

@@ -297,4 +297,10 @@ public:
 
     // linear interpolation like Python's from_s
     Envelope from_s(double sval) const noexcept(false);
+
+    // Get transformation matrix for full phase space at the specified index
+    Eigen::Matrix4d T_matrix(size_t index) const noexcept(false);
+
+    // Transport an initial envelope through a series of transfer matrices
+    static EnvelopeArray transport(const Envelope &evlp0, const std::vector<Eigen::Matrix4d> &M_array, const Eigen::ArrayXd &s_array) noexcept(false);
 };

@@ -1,3 +1,9 @@
+/**
+ * @file dipole.hpp
+ * @brief Dipole element class
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // dipole.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -20,18 +26,28 @@
 
 #pragma once
 
-#include <Eigen/Dense>
-#include <unsupported/Eigen/CXX11/Tensor>
-#include <vector>
+#include "egret/element.hpp"
 
 namespace egret {
-
-class Dipole {
+    class Dipole;
+}
+class egret::Dipole : public egret::Element {
+protected:
+    //! Bending angle (radians)
+    double angle_;
+    //! Quadrupole component strength k1 (1/m^2)
+    double k1_;
+    //! Entrance/exit edge angle (radians)
 public:
+
+
+
+
+
+
+
     // simple dipole or combined-function dipole transfer matrix
-    static Eigen::Matrix4d transfer_matrix(double length, double angle, double k1=0.0, double delta=0.0);
+    //static Eigen::Matrix4d transfer_matrix(double length, double angle, double k1=0.0, double delta=0.0);
 
-    static std::pair<Eigen::Tensor<double,3>, std::vector<double>> transfer_matrix_array(double length, double angle, double k1=0.0, double delta=0.0, double ds=0.1, bool endpoint=false);
+    //static std::pair<Eigen::Tensor<double,3>, std::vector<double>> transfer_matrix_array(double length, double angle, double k1=0.0, double delta=0.0, double ds=0.1, bool endpoint=false);
 };
-
-} // namespace egret

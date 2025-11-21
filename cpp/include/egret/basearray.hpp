@@ -53,13 +53,19 @@ public:
      * @brief Get the size of the BaseArray.
      * @return size_t
      */
-    virtual size_t size() const { return s_array_.size(); }
+    size_t size() const { return s_array_.size(); }
 
     /**
      * @brief Get the array of longitudinal positions.
      * @return const Eigen::ArrayXd& Array of longitudinal positions
      */
-    virtual const Eigen::ArrayXd& s_array() const { return s_array_; }
+    const Eigen::ArrayXd& s_array() const { return s_array_; }
+
+    /**
+     * @brief Set the array of longitudinal positions.
+     * @param other Eigen::ArrayXd to copy from
+     */
+    void s_array(const Eigen::ArrayXd& s_array) { s_array_ = s_array; }
 
     // Efficient append (reserve + copy)
     virtual void append(const BaseArray &other) noexcept(false);
