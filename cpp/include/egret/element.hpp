@@ -158,7 +158,8 @@ public:
      * @param ds Maximum step size
      * @return Eigen::Matrix4d Transfer matrix
      */
-    virtual Eigen::Matrix4d transfer_matrix(const Coordinate &cood0, double ds=0.1) {
+    virtual Eigen::Matrix4d transfer_matrix(
+        const std::optional<Coordinate> &cood0 = std::nullopt, double ds=0.1) {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
         return Eigen::Matrix4d::Identity();
@@ -172,7 +173,8 @@ public:
      * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Array of transfer matrices and s array
      */
     virtual std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
-    transfer_matrix_array(const Coordinate &cood0, double ds=0.1, bool endpoint=false) {
+    transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
+        double ds=0.1, bool endpoint=false) {
         const auto s_ary = s_array(ds, endpoint);
         return {std::vector<Eigen::Matrix4d>(s_ary.size(), Eigen::Matrix4d::Identity()), s_ary};
     }
@@ -183,7 +185,8 @@ public:
      * @param ds Maximum step size
      * @return Eigen::Vector4d Additive dispersion vector
      */
-    virtual Eigen::Vector4d dispersion(const Coordinate &cood0, double ds=0.1) {
+    virtual Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
+        double ds=0.1) const noexcept {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
         return Eigen::Vector4d::Zero();
@@ -197,7 +200,8 @@ public:
      * @return std::tuple<std::vector<Eigen::Vector4d>, Eigen::ArrayXd> Array of dispersion vectors and s array
      */
     virtual std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
-    dispersion_array(const Coordinate &cood0, double ds=0.1, bool endpoint=false) {
+    dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt, double ds=0.1,
+        bool endpoint=false) const noexcept {
         (void)cood0; // unused parameter
         const auto s_ary = s_array(ds, endpoint);
         const auto disp_ary = Eigen::Matrix<double, 4, Eigen::Dynamic>::Zero(4, s_ary.size());

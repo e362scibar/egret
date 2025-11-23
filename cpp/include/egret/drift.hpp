@@ -58,7 +58,10 @@ public:
      * @brief Get the transfer matrix for this drift element.
      * @return Eigen::Matrix4d Transfer matrix (4x4)
      */
-    Eigen::Matrix4d transfer_matrix() const noexcept {
+    Eigen::Matrix4d transfer_matrix(const std::optional<Coordinate> &cood0 = std::nullopt,
+        double ds=0.1) const noexcept {
+        (void)cood0; // unused parameter
+        (void)ds; // unused parameter
         return transfer_matrix_from_length(length_);
     }
 
@@ -69,7 +72,9 @@ public:
      * @return std::vector<Eigen::Matrix4d> Array of transfer matrices
      */
     std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
-    transfer_matrix_array(double ds = 0.1, bool endpoint = false) const noexcept {
+    transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
+        double ds = 0.1, bool endpoint = false) const noexcept {
+        (void)cood0; // unused parameter
         return transfer_matrix_array_from_length(length_, ds, endpoint);
     }
 };

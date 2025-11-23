@@ -187,12 +187,13 @@ class Dipole(Element):
                 tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]])
         return tmat, s
 
-    def dispersion(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Additive dispersion function at the end of the dipole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
+            ds float: Maximum step size [m] for integration. (not used in the dipole class).
 
         Returns:
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].
