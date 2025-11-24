@@ -37,9 +37,9 @@
  * @throws std::invalid_argument if s_array is not non-decreasing.
  */
 egret::EnvelopeArray::EnvelopeArray(
-    const std::vector<Eigen::Matrix4d>& cov_array,
-    const Eigen::ArrayXd& s_array,
-    const std::optional<std::vector<Eigen::Matrix2d>>& T_array) noexcept(false) :
+    const std::vector<Eigen::Matrix4d> &cov_array,
+    const Eigen::ArrayXd &s_array,
+    const std::optional<std::vector<Eigen::Matrix2d>> &T_array) noexcept(false) :
     BaseArray(s_array), cov_array_(cov_array),
     T_array_(T_array.value_or(std::vector<Eigen::Matrix2d>())),
     tau_array_(Eigen::ArrayXd::Ones(s_array.size())), U_array_(), V_array_() {
@@ -53,22 +53,25 @@ egret::EnvelopeArray::EnvelopeArray(
     }
     // If T_array is not provided, estimate T from covariances
     if (!T_array) {
+        T_array_.reserve(n);
         for (const auto &cov: cov_array) {
             T_array_.push_back(Envelope::estimate_T(cov));
         }
     }
     // calculate tau, U, V
+    U_array_.reserve(n);
+    V_array_.reserve(n);
     for (const size_t i : std::views::iota(0u, size())) {
-        const Eigen::Matrix4d& cov = cov_array_[i];
-        const Eigen::Matrix2d& T = T_array_[i];
-        const Eigen::Matrix2d T_s = Envelope::adjoint(T); // adjoint of T
+        const auto &cov = cov_array_[i]; // Matrix4d
+        const auto &T = T_array_[i]; // Matrix2d
+        const auto T_s = Envelope::adjoint(T); // adjoint of T (Matrix2d)
         const double tau = std::sqrt(1.0 - T.determinant());
         const double chi = 1.0 / (2.0 * tau * tau - 1.0);
         const double sqrtchi = std::sqrt(chi);
-        const Eigen::Matrix2d Sxx = cov.block<2, 2>(0, 0);
-        const Eigen::Matrix2d Syy = cov.block<2, 2>(2, 2);
-        const Eigen::Matrix2d U = sqrtchi * (tau * tau * Sxx - T_s * Syy * T_s.transpose());
-        const Eigen::Matrix2d V = sqrtchi * (tau * tau * Syy - T * Sxx * T.transpose());
+        const auto Sxx = cov.block<2, 2>(0, 0); // Matrix2d
+        const auto Syy = cov.block<2, 2>(2, 2); // Matrix2d
+        const auto U = sqrtchi * (tau * tau * Sxx - T_s * Syy * T_s.transpose()); // Matrix2d
+        const auto V = sqrtchi * (tau * tau * Syy - T * Sxx * T.transpose()); // Matrix2d
         tau_array_(i) = tau;
         U_array_.push_back(U);
         V_array_.push_back(V);
@@ -239,21 +242,21 @@ void egret::EnvelopeArray::append(const EnvelopeArray &other) noexcept(false) {
  * @return egret::Envelope
  * @throws std::out_of_range if s is out of the range of s_array.
  */
-egret::Envelope egret::EnvelopeArray::from_s(double s) const noexcept(false) {
+egret::Envelope egret::EnvelopeArray::from_s(const double s) const noexcept(false) {
     const auto idx = index_from_s(s);
     const double s0 = s_array_(idx);
     const double s1 = s_array_(idx + 1);
     const double ds = s1 - s0;
     if (ds == 0.) {
         // Degenerate case: s0 == s1
-        const Eigen::Matrix4d cov = 0.5 * (cov_array_[idx] + cov_array_[idx + 1]);
-        const Eigen::Matrix2d T = 0.5 * (T_array_[idx] + T_array_[idx + 1]);
+        const auto cov = 0.5 * (cov_array_[idx] + cov_array_[idx + 1]); // Matrix4d
+        const auto T = 0.5 * (T_array_[idx] + T_array_[idx + 1]); // Matrix2d
         return Envelope(cov, s, T);
     }
     const double a0 = (s1 - s) / ds;
     const double a1 = (s - s0) / ds;
-    const Eigen::Matrix4d cov = a0 * cov_array_[idx] + a1 * cov_array_[idx + 1];
-    const Eigen::Matrix2d T = a0 * T_array_[idx] + a1 * T_array_[idx + 1];
+    const auto cov = a0 * cov_array_[idx] + a1 * cov_array_[idx + 1]; // Matrix4d
+    const auto T = a0 * T_array_[idx] + a1 * T_array_[idx + 1]; // Matrix2d
     return Envelope(cov, s, T);
 }
 
@@ -263,9 +266,9 @@ egret::Envelope egret::EnvelopeArray::from_s(double s) const noexcept(false) {
  * @return Eigen::Matrix4d Full transformation matrix at the given index.
  * @throws std::out_of_range if the index is out of range.
  */
-Eigen::Matrix4d egret::EnvelopeArray::T_matrix(size_t index) const noexcept(false) {
+Eigen::Matrix4d egret::EnvelopeArray::T_matrix(const size_t index) const noexcept(false) {
     check_index(index);
-    Eigen::Matrix4d T_full = Eigen::Matrix4d::Identity() * tau_array_(index);
+    auto T_full = Eigen::Matrix4d::Identity() * tau_array_(index); // Matrix4d
     T_full.block<2,2>(2,0) = T_array_[index];
     T_full.block<2,2>(0,2) = -Envelope::adjoint(T_array_[index]);
     return T_full;
@@ -290,27 +293,27 @@ egret::EnvelopeArray egret::EnvelopeArray::transport(
     std::vector<Eigen::Matrix2d> T_array;
     cov_array.reserve(n);
     T_array.reserve(n);
-    const Eigen::Matrix4d &cov0 = evlp0.cov();
-    const Eigen::Matrix2d &T0 = evlp0.T();
-    const Eigen::Matrix2d T0_s = Envelope::adjoint(T0);
+    const auto &cov0 = evlp0.cov(); // Matrix4d
+    const auto &T0 = evlp0.T(); // Matrix2d
+    const auto T0_s = Envelope::adjoint(T0); // Matrix2d
     const double tau0 = evlp0.tau();
     for (auto M : M_array) {
-        const Eigen::Matrix4d cov = M * cov0 * M.transpose();
-        const Eigen::Matrix2d Mxx = M.block<2,2>(0,0);
-        const Eigen::Matrix2d Mxy = M.block<2,2>(0,2);
-        const Eigen::Matrix2d Myx = M.block<2,2>(2,0);
-        const Eigen::Matrix2d Myy = M.block<2,2>(2,2);
-        const Eigen::Matrix2d Mxx_s = Envelope::adjoint(Mxx);
-        const Eigen::Matrix2d Mxy_s = Envelope::adjoint(Mxy);
-        const Eigen::Matrix2d tauMu = tau0 * Mxx - Mxy_s * T0;
-        const Eigen::Matrix2d tauMv = tau0 * Myy + Myx * T0_s;
+        const auto cov = M * cov0 * M.transpose(); // Matrix4d
+        const auto Mxx = M.block<2,2>(0,0); // Matrix2d
+        const auto Mxy = M.block<2,2>(0,2); // Matrix2d
+        const auto Myx = M.block<2,2>(2,0); // Matrix2d
+        const auto Myy = M.block<2,2>(2,2); // Matrix2d
+        const auto Mxx_s = Envelope::adjoint(Mxx); // Matrix2d
+        const auto Mxy_s = Envelope::adjoint(Mxy); // Matrix2d
+        const auto tauMu = tau0 * Mxx - Mxy_s * T0; // Matrix2d
+        const auto tauMv = tau0 * Myy + Myx * T0_s; // Matrix2d
         const double tau = std::sqrt(0.5 * (tauMu.determinant() + tauMv.determinant()));
-        const Eigen::Matrix2d Mu = tauMu / tau;
-        const Eigen::Matrix2d Mv = tauMv / tau;
-        const Eigen::Matrix2d Mu_s = Envelope::adjoint(Mu);
-        const Eigen::Matrix2d Mv_T1 = tau0 * Mxy_s + T0 * Mxx_s;
-        const Eigen::Matrix2d T1Mu = -tau0 * Myx + Myy * T0;
-        const Eigen::Matrix2d T = 0.5 * (Mv * Mv_T1 + T1Mu * Mu_s);
+        const auto Mu = tauMu / tau; // Matrix2d
+        const auto Mv = tauMv / tau; // Matrix2d
+        const auto Mu_s = Envelope::adjoint(Mu); // Matrix2d
+        const auto Mv_T1 = tau0 * Mxy_s + T0 * Mxx_s; // Matrix2d
+        const auto T1Mu = -tau0 * Myx + Myy * T0; // Matrix2d
+        const auto T = 0.5 * (Mv * Mv_T1 + T1Mu * Mu_s); // Matrix2d
         cov_array.push_back(cov);
         T_array.push_back(T);
     }

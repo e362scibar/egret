@@ -92,25 +92,25 @@ public:
      * @brief Set the longitudinal position s.
      * @param s Longitudinal position s
      */
-    void s(double s) { s_ = s; }
+    void s(const double s) { s_ = s; }
     /**
      * @brief Set the x component of the dispersion vector.
      * @param x x component
      */
-    double x(double x) { return vector_(0) = x; };
+    double x(const double x) { return vector_(0) = x; };
     /**
      * @brief Set the x' component of the dispersion vector.
      * @param xp x' component
      */
-    double xp(double xp) { return vector_(1) = xp; };
+    double xp(const double xp) { return vector_(1) = xp; };
     /**
      * @brief Set the y component of the dispersion vector.
      * @param y y component
      */
-    double y(double y) { return vector_(2) = y; };
+    double y(const double y) { return vector_(2) = y; };
     /**
      * @brief Set the y' component of the dispersion vector.
      * @param yp y' component
      */
-    double yp(double yp) { return vector_(3) = yp; };
+    double yp(const double yp) { return vector_(3) = yp; };
 };

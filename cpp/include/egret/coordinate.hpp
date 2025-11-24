@@ -41,6 +41,7 @@ protected:
     Eigen::Vector4d vector_;
     //! Longitudinal position s, longitudinal displacement z, and relative momentum deviation delta
     double s_, z_, delta_;
+
 public:
     /**
      * @brief Construct a new Coordinate object.
@@ -49,7 +50,8 @@ public:
      * @param z Longitudinal displacement
      * @param delta Relative momentum deviation
      */
-    Coordinate(const Eigen::Vector4d &vector=Eigen::Vector4d::Zero(), double s=0., double z=0., double delta=0.)
+    Coordinate(const Eigen::Vector4d &vector=Eigen::Vector4d::Zero(),
+    const double s=0., const double z=0., const double delta=0.)
         : vector_(vector), s_(s), z_(z), delta_(delta) {}
     /**
      * @brief Destroy the Coordinate object.
@@ -106,35 +108,35 @@ public:
      * @brief Set the x coordinate.
      * @param x x coordinate value
      */
-    void x(double x) { vector_(0) = x; }
+    void x(const double x) { vector_(0) = x; }
     /**
      * @brief Set the x' coordinate.
      * @param xp x' coordinate value
      */
-    void xp(double xp) { vector_(1) = xp; }
+    void xp(const double xp) { vector_(1) = xp; }
     /**
      * @brief Set the y coordinate.
      * @param y y coordinate value
      */
-    void y(double y) { vector_(2) = y; }
+    void y(const double y) { vector_(2) = y; }
     /**
      * @brief Set the y' coordinate.
      * @param yp y' coordinate value
      */
-    void yp(double yp) { vector_(3) = yp; }
+    void yp(const double yp) { vector_(3) = yp; }
     /**
      * @brief Set the longitudinal position s.
      * @param s longitudinal position s value
      */
-    void s(double s) { s_ = s; }
+    void s(const double s) { s_ = s; }
     /**
      * @brief Set the longitudinal displacement z.
      * @param z longitudinal displacement z value
      */
-    void z(double z) { z_ = z; }
+    void z(const double z) { z_ = z; }
     /**
      * @brief Set the relative momentum deviation delta.
      * @param delta relative momentum deviation delta value
      */
-    void delta(double delta) { delta_ = delta; }
+    void delta(const double delta) { delta_ = delta; }
 };

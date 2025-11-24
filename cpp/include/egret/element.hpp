@@ -67,8 +67,8 @@ public:
      * @param tilt Tilt angle
      * @param info Additional info string
      */
-    Element(const std::string &name, double length,
-            double dx=0.0, double dy=0.0, double ds=0.0, double tilt=0.0,
+    Element(const std::string &name, const double length,
+            const double dx=0.0, const double dy=0.0, const double ds=0.0, const double tilt=0.0,
             const std::string &info="")
         : Object(name), length_(length), dx_(dx), dy_(dy), ds_(ds), tilt_(tilt), info_(info) {}
     /**
@@ -116,27 +116,27 @@ public:
      * @brief Set the length of the element.
      * @param length Length of the element
      */
-    void length(double length) { length_ = length; }
+    void length(const double length) { length_ = length; }
     /**
      * @brief Set the transverse offset in x.
      * @param dx Transverse offset in x
      */
-    void dx(double dx) { dx_ = dx; }
+    void dx(const double dx) { dx_ = dx; }
     /**
      * @brief Set the transverse offset in y.
      * @param dy Transverse offset in y
      */
-    void dy(double dy) { dy_ = dy; }
+    void dy(const double dy) { dy_ = dy; }
     /**
      * @brief Set the longitudinal offset.
      * @param ds Longitudinal offset
      */
-    void ds(double ds) { ds_ = ds; }
+    void ds(const double ds) { ds_ = ds; }
     /**
      * @brief Set the tilt angle.
      * @param tilt Tilt angle
      */
-    void tilt(double tilt) { tilt_ = tilt; }
+    void tilt(const double tilt) { tilt_ = tilt; }
     /**
      * @brief Set the additional info string.
      * @param info Additional info string
@@ -144,10 +144,10 @@ public:
     void info(const std::string &info) { info_ = info; }
 
     // Get s array based on length and step size.
-    static Eigen::ArrayXd s_array(double length, double ds=0.1, bool endpoint=false) noexcept;
+    static Eigen::ArrayXd s_array(double length, double ds=0.1, bool endpoint=false) noexcept(false);
 
     // Get s array for the element based on length and step size.
-    Eigen::ArrayXd s_array(double ds=0.1, bool endpoint=false) const noexcept {
+    Eigen::ArrayXd s_array(double ds=0.1, bool endpoint=false) const noexcept(false) {
         return s_array(length_, ds, endpoint);
     }
 
@@ -159,7 +159,8 @@ public:
      * @return Eigen::Matrix4d Transfer matrix
      */
     virtual Eigen::Matrix4d transfer_matrix(
-        const std::optional<Coordinate> &cood0 = std::nullopt, double ds=0.1) {
+        const std::optional<Coordinate> &cood0 = std::nullopt,
+        const double ds=0.1) const noexcept(false) {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
         return Eigen::Matrix4d::Identity();
@@ -174,9 +175,11 @@ public:
      */
     virtual std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, bool endpoint=false) {
+        const double ds=0.1, const bool endpoint=false) const noexcept(false) {
         const auto s_ary = s_array(ds, endpoint);
-        return {std::vector<Eigen::Matrix4d>(s_ary.size(), Eigen::Matrix4d::Identity()), s_ary};
+        return std::make_tuple(
+            std::vector<Eigen::Matrix4d>(s_ary.size(), Eigen::Matrix4d::Identity()),
+            s_ary);
     }
 
     /**
@@ -186,7 +189,7 @@ public:
      * @return Eigen::Vector4d Additive dispersion vector
      */
     virtual Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1) const noexcept {
+        const double ds=0.1) const noexcept(false) {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
         return Eigen::Vector4d::Zero();
@@ -200,23 +203,23 @@ public:
      * @return std::tuple<std::vector<Eigen::Vector4d>, Eigen::ArrayXd> Array of dispersion vectors and s array
      */
     virtual std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
-    dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt, double ds=0.1,
-        bool endpoint=false) const noexcept {
+    dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt,
+        const double ds=0.1, const bool endpoint=false) const noexcept(false) {
         (void)cood0; // unused parameter
         const auto s_ary = s_array(ds, endpoint);
         const auto disp_ary = Eigen::Matrix<double, 4, Eigen::Dynamic>::Zero(4, s_ary.size());
-        return {disp_ary, s_ary};
+        return std::make_tuple(disp_ary, s_ary);
     }
 
     // Transfer a single coordinate through the element
     virtual std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
     transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-        const std::optional<Dispersion> &disp0, const double ds=0.1);
+        const std::optional<Dispersion> &disp0, double ds=0.1) const noexcept(false);
 
     // Transfer coordinate array through the element
     virtual std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
     transfer_array(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-        const std::optional<Dispersion> &disp0, const double ds, bool endpoint);
+        const std::optional<Dispersion> &disp0, double ds, bool endpoint) const noexcept(false);
 
     /**
      * @brief Calculate radiation integrals through the element.
@@ -227,14 +230,17 @@ public:
      * @return std::tuple<double, double, double, double, double, double> Radiation integrals (I2, I4, I5u, I5v, I4u, I4v)
      */
     virtual std::tuple<double, double, double, double, double, double>
-    radiation_integrals(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-        const std::optional<Dispersion> &disp0, const double ds=0.1) {
+    radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
+        const Dispersion &disp0, const double ds=0.1) const noexcept(false) {
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter
         (void)ds; // unused parameter
-        return {0., 0., 0., 0., 0., 0.};
+        return std::make_tuple(0., 0., 0., 0., 0., 0.);
     }
+
+    // Simpson's rule integration
+    static double simpson_integration(const Eigen::ArrayXd &y_array, double dx) noexcept(false);
 
     // Get element and local s from global s
     virtual std::tuple<const Element&, double> get_element_from_s(double s) const noexcept(false);

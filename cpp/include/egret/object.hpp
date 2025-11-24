@@ -38,6 +38,7 @@ class egret::Object {
 protected:
     //! Name of the object.
     std::string name;
+
 public:
     /**
      * @brief Construct a new Object object

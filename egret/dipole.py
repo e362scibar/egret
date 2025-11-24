@@ -330,8 +330,8 @@ class Dipole(Element):
         cood0err.vector[0] -= self.dx
         cood0err.vector[2] -= self.dy
         cood0err.s -= self.ds
-        tmat = self.transfer_matrix(cood0err)
-        disp = self.dispersion(Coordinate())
+        tmat = self.transfer_matrix(cood0err, ds)
+        disp = self.dispersion(Coordinate(), ds)
         cood = np.dot(tmat, cood0err.vector) + disp * cood0.delta
         cood[0] += self.dx
         cood[2] += self.dy
@@ -342,7 +342,7 @@ class Dipole(Element):
         else:
             evlp1 = None
         if disp0 is not None:
-            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err)
+            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds)
             disp1 = Dispersion(disp, disp0.s + self.length)
         else:
             disp1 = None
@@ -375,7 +375,7 @@ class Dipole(Element):
         cood = np.matmul(tmat.transpose(2,0,1), cood0err.vector).T + disp * cood0.delta
         cood[0] += self.dx
         cood[2] += self.dy
-        cood1 = CoordinateArray(cood, s + cood0.s + self.ds,
+        cood1 = CoordinateArray(cood, s + cood0.s,
                                 np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
         if evlp0 is not None:
             evlp1 = EnvelopeArray.transport(evlp0, tmat, s)

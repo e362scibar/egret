@@ -67,6 +67,19 @@ public:
      */
     void s_array(const Eigen::ArrayXd& s_array) { s_array_ = s_array; }
 
+    /**
+     * @brief Get the step size between longitudinal positions.
+     * @return double Step size
+     * @throws std::runtime_error if the size of s_array is less than 2.
+     */
+    double ds() const noexcept(false) {
+        const size_t n = size();
+        if (n < 2) {
+            throw std::runtime_error("ds() requires at least two elements in s_array");
+        }
+        return s_array_(1) - s_array_(0);
+    }
+
     // Efficient append (reserve + copy)
     virtual void append(const BaseArray &other) noexcept(false);
 

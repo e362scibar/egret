@@ -84,21 +84,21 @@ void egret::CoordinateArray::append(const CoordinateArray &other) noexcept(false
  * @return egret::Coordinate
  * @throws std::out_of_range if s is out of the range of s_array.
  */
-egret::Coordinate egret::CoordinateArray::from_s(double s) const noexcept(false) {
+egret::Coordinate egret::CoordinateArray::from_s(const double s) const noexcept(false) {
     const auto idx = index_from_s(s);
     const double s0 = s_array_[idx];
     const double s1 = s_array_[idx + 1];
     const double ds = s1 - s0;
     if (ds == 0.) {
         // Degenerate case: s0 == s1
-        const Eigen::Vector4d vec = 0.5 * (vector_array_.col(idx) + vector_array_.col(idx + 1));
+        const auto vec = 0.5 * (vector_array_.col(idx) + vector_array_.col(idx + 1)); // Vector4d
         const double zval = 0.5 * (z_array_[idx] + z_array_[idx + 1]);
         const double dval = 0.5 * (delta_array_[idx] + delta_array_[idx + 1]);
         return Coordinate(vec, s, zval, dval);
     }
     const double a0 = (s1 - s) / ds;
     const double a1 = (s - s0) / ds;
-    const Eigen::Vector4d vec = a0 * vector_array_.col(idx) + a1 * vector_array_.col(idx + 1);
+    const auto vec = a0 * vector_array_.col(idx) + a1 * vector_array_.col(idx + 1); // Vector4d
     const double zval = a0 * z_array_[idx] + a1 * z_array_[idx + 1];
     const double dval = a0 * delta_array_[idx] + a1 * delta_array_[idx + 1];
     return Coordinate(vec, s, zval, dval);

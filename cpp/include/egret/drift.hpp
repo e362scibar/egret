@@ -38,8 +38,9 @@ public:
      * @param name Object name
      * @param length Length of the drift space
      */
-    Drift(const std::string &name, double length, double dx=0.0, double dy=0.0, double ds=0.0,
-        double tilt=0.0, const std::string &info="") :
+    Drift(const std::string &name, const double length,
+        const double dx=0.0, const double dy=0.0, const double ds=0.0,
+        const double tilt=0.0, const std::string &info="") :
         Element(name, length, dx, dy, ds, tilt, info) {}
     /**
      * @brief Destroy the Drift object
@@ -47,19 +48,19 @@ public:
     virtual ~Drift() noexcept = default;
 
     // Return 4x4 transfer matrix for a drift of given length
-    static Eigen::Matrix4d transfer_matrix_from_length(double length) noexcept;
+    static Eigen::Matrix4d transfer_matrix_from_length(double length) noexcept(false);
 
     // Return an array of 4x4 transfer matrices for a drift of given length
     static std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array_from_length(double length, double ds = 0.1, bool endpoint = false)
-    noexcept;
+    noexcept(false);
 
     /**
      * @brief Get the transfer matrix for this drift element.
      * @return Eigen::Matrix4d Transfer matrix (4x4)
      */
     Eigen::Matrix4d transfer_matrix(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1) const noexcept {
+        double ds=0.1) const noexcept(false) override {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
         return transfer_matrix_from_length(length_);
@@ -73,7 +74,7 @@ public:
      */
     std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds = 0.1, bool endpoint = false) const noexcept {
+        const double ds = 0.1, const bool endpoint = false) const noexcept(false) override {
         (void)cood0; // unused parameter
         return transfer_matrix_array_from_length(length_, ds, endpoint);
     }

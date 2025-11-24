@@ -56,6 +56,27 @@ public:
      */
     const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array() const { return vector_array_; }
 
+    /**
+     * @brief Get the array of x components of the dispersion functions.
+     * @return Eigen::ArrayXd Array of x components
+     */
+    Eigen::ArrayXd x_array() const { return vector_array_.row(0).array(); }
+    /**
+     * @brief Get the array of x' components of the dispersion functions.
+     * @return Eigen::ArrayXd Array of x' components
+     */
+    Eigen::ArrayXd xp_array() const { return vector_array_.row(1).array(); }
+    /**
+     * @brief Get the array of y components of the dispersion functions.
+     * @return Eigen::ArrayXd Array of y components
+     */
+    Eigen::ArrayXd y_array() const { return vector_array_.row(2).array(); }
+    /**
+     * @brief Get the array of y' components of the dispersion functions.
+     * @return Eigen::ArrayXd Array of y' components
+     */
+    Eigen::ArrayXd yp_array() const { return vector_array_.row(3).array(); }
+
     // Efficient append (reserve + copy)
     void append(const DispersionArray &other);
 

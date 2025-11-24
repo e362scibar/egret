@@ -111,12 +111,13 @@ class Steering(Element):
         '''
         return Drift.transfer_matrix_array_from_length(self.length, ds, endpoint)
 
-    def dispersion(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Additive dispersion function at the end of the steering magnet.
 
         Args:
-            cood0 Coordinate: Initial coordinate.
+            cood0 Coordinate: Initial coordinate. (Only delta is used here.)
+            ds float: Maximum step size for integration [m]. (Not used in this method.)
 
         Returns:
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].

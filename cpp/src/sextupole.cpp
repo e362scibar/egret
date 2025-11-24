@@ -22,6 +22,10 @@
 #include <complex>
 #include <cmath>
 
+
+
+
+#if 0
 namespace egret {
 
 Sextupole::Sextupole(double length, double k2, double dx, double dy, double ds,
@@ -158,3 +162,4 @@ Eigen::Vector4d Sextupole::dispersion(const Coordinate &cood0, double length, do
 }
 
 } // namespace egret
+#endif

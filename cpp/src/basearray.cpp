@@ -61,7 +61,7 @@ void egret::BaseArray::append(const BaseArray &other) noexcept(false) {
  * @return size_t Index of the closest upstream point.
  * @throws std::out_of_range if s is out of the range of s_array.
  */
-size_t egret::BaseArray::index_from_s(double s) const noexcept(false) {
+size_t egret::BaseArray::index_from_s(const double s) const noexcept(false) {
     const auto n = s_array_.size();
     if (n < 2) {
         throw std::out_of_range("s_array must contain at least two points.");

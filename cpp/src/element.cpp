@@ -36,7 +36,7 @@
  * @param endpoint Whether to include the endpoint
  * @return Eigen::ArrayXd Array of s values
  */
-Eigen::ArrayXd egret::Element::s_array(double length, double ds=0.1, bool endpoint=false) noexcept {
+Eigen::ArrayXd egret::Element::s_array(const double length, const double ds=0.1, const bool endpoint=false) noexcept {
     const double abs_len = std::abs(length);
     const double abs_ds = std::abs(ds);
     if ((abs_len > abs_ds) || (endpoint && (abs_len > 0.0))) {
@@ -62,7 +62,7 @@ Eigen::ArrayXd egret::Element::s_array(double length, double ds=0.1, bool endpoi
  */
 std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>>
 egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-    const std::optional<Dispersion> &disp0, const double ds) {
+    const std::optional<Dispersion> &disp0, const double ds) const noexcept(false) {
     Coordinate cood0err = cood0;
     cood0err.x(cood0.x() - dx_);
     cood0err.y(cood0.y() - dy_);
@@ -77,10 +77,10 @@ egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> 
         cood.x(cood.x() + dx_);
         cood.y(cood.y() + dy_);
         cood.s(cood.s() + ds_);
-        return {cood, evlp, disp};
+        return std::make_tuple(cood, evlp, disp);
     }
-    const Eigen::Matrix4d M = transfer_matrix(cood0err, ds);
-    const Eigen::Vector4d v_out = M * cood0err.vector();
+    const auto M = transfer_matrix(cood0err, ds); // Matrix4d
+    const auto v_out = M * cood0err.vector(); // Vector4d
     Coordinate cood(v_out, cood0.s() + length_, cood0.z(), cood0.delta());
     cood.x(cood.x() + dx_);
     cood.y(cood.y() + dy_);
@@ -91,11 +91,11 @@ egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> 
     }
     std::optional<Dispersion> disp = disp0;
     if (disp) {
-        const Eigen::Vector4d disp_v_out = M * disp->vector() + dispersion(cood0err, ds);
+        const auto disp_v_out = M * disp->vector() + dispersion(cood0err, ds); // Vector4d
         disp->vector(disp_v_out);
         disp->s(disp->s() + length_);
     }
-    return {cood, evlp, disp};
+    return std::make_tuple(cood, evlp, disp);
 }
 
 /**
@@ -110,7 +110,7 @@ egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> 
 std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>,
     std::optional<egret::DispersionArray>>
 egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-    const std::optional<Dispersion> &disp0, const double ds, bool endpoint) {
+    const std::optional<Dispersion> &disp0, const double ds, const bool endpoint) const noexcept(false) {
     Coordinate cood0err = cood0;
     cood0err.x(cood0.x() - dx_);
     cood0err.y(cood0.y() - dy_);
@@ -142,28 +142,27 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
             std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds);
         }
         if (endpoint) {
-            const Eigen::Matrix<double, 4, 1> vector_array = Eigen::Map<Eigen::Matrix<double, 4, 1>>(cood.vector().data());
             const Eigen::ArrayXd s_array{cood.s()};
             const Eigen::ArrayXd z_array{cood.z()};
             const Eigen::ArrayXd delta_array{cood.delta()};
             if (cood_array) {
-                cood_array->append(CoordinateArray(vector_array, s_array, z_array, delta_array));
+                cood_array->append(CoordinateArray(cood.vector(), s_array, z_array, delta_array));
             } else {
-                cood_array = CoordinateArray(vector_array, s_array, z_array, delta_array);
+                cood_array = CoordinateArray(cood.vector(), s_array, z_array, delta_array);
             }
         }
         cood_array->x_array(cood_array->x_array() + dx_);
         cood_array->y_array(cood_array->y_array() + dy_);
         cood_array->s_array(cood_array->s_array() + ds_);
-        return {*cood_array, evlp_array, disp_array};
+        return std::make_tuple(*cood_array, evlp_array, disp_array);
     }
     const auto results = transfer_matrix_array(cood0err, ds, endpoint);
-    const std::vector<Eigen::Matrix4d> &M_array = std::get<0>(results);
-    const Eigen::ArrayXd &s_array = std::get<1>(results);
+    const auto &M_array = std::get<0>(results); // vector<Matrix4d>
+    const auto &s_array = std::get<1>(results); // ArrayXd
     const size_t n = s_array.size();
     Eigen::Matrix<double, 4, Eigen::Dynamic> cood_vector_array(4, n);
     for (const size_t i : std::views::iota(0u, n)) {
-        const Eigen::Matrix4d &M = M_array[i];
+        const auto &M = M_array[i]; // Matrix4d
         cood_vector_array.col(i) = M * cood0err.vector();
     }
     cood_vector_array.row(0).array() += dx_;
@@ -178,15 +177,15 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
     }
     if (disp0) {
         const auto results = dispersion_array(cood0err, ds, endpoint);
-        const Eigen::Matrix<double, 4, Eigen::Dynamic> &dispersion = std::get<0>(results);
+        const auto &dispersion = std::get<0>(results); // Matrix<double, 4, Dynamic>
         Eigen::Matrix<double, 4, Eigen::Dynamic> disp_vector_array(4, n);
         for (const size_t i : std::views::iota(0u, n)) {
-            const Eigen::Matrix4d &M = M_array[i];
+            const auto &M = M_array[i]; // Matrix4d
             disp_vector_array.col(i) = M * disp0->vector() + dispersion.col(i);
         }
         disp_array = DispersionArray(disp_vector_array, s_array + disp0->s());
     }
-    return {cood_array, evlp_array, disp_array};
+    return std::make_tuple(cood_array, evlp_array, disp_array);
 }
 
 /**
@@ -195,7 +194,7 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
  * @return std::tuple<const Element&, double> Tuple of the element reference and local s.
  */
 std::tuple<const egret::Element&, double>
-egret::Element::get_element_from_s(double s) const noexcept(false) {
+egret::Element::get_element_from_s(const double s) const noexcept(false) {
     if (s < 0. || s > length_) {
         throw std::out_of_range("s is out of range in this element.");
     }
@@ -221,8 +220,8 @@ egret::Element::get_element_from_s(double s) const noexcept(false) {
  * @param ds Maximum step size
  * @return Eigen::Matrix4d Transfer matrix from position s to the end of the element
  */
-Eigen::Matrix4d egret::Element::transfer_matrix_from_s(double s,
-    const egret::Coordinate &cood0, double ds) const noexcept(false) {
+Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
+    const egret::Coordinate &cood0, const double ds) const noexcept(false) {
     (void)cood0; // suppress unused parameter warning
     if (s < 0. || s > length_) {
         throw std::out_of_range("s is out of range in this element.");
@@ -234,14 +233,14 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(double s,
         for (const auto &elem : *elements_) {
             if (s >= s_accum && s < s_accum + elem->length()) {
                 M_total = elem->transfer_matrix_from_s(s - s_accum, cood0_local, ds);
-                const Eigen::Vector4d v_out = M_total * cood0_local.vector();
+                const auto v_out = M_total * cood0_local.vector(); // Vector4d
                 cood0_local = Coordinate(v_out,
                     cood0_local.s() + elem->length() - (s - s_accum),
                     cood0_local.z(), cood0_local.delta());
             } else if (s < s_accum) {
-                const Eigen::Matrix4d M = elem->transfer_matrix(cood0_local, ds);
+                const auto M = elem->transfer_matrix(cood0_local, ds); // Matrix4d
                 M_total = M * M_total;
-                const Eigen::Vector4d v_out = M * cood0_local.vector();
+                const auto v_out = M * cood0_local.vector(); // Vector4d
                 std::tie(cood0_local, std::ignore, std::ignore) = elem->transfer(cood0_local,
                     std::nullopt, std::nullopt, ds);
             }
@@ -253,6 +252,42 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(double s,
         elem.length(elem.length() - s);
         return elem.transfer_matrix(cood0, ds);
     }
+}
+
+/**
+ * @brief Perform numerical integration using Simpson's rule.
+ * @param y_array Array of function values at equally spaced points
+ * @param dx Spacing between points
+ * @return double Approximate integral value
+ * @throws std::runtime_error if the number of points is less than 2
+ */
+double egret::Element::simpson_integration(const Eigen::ArrayXd &y_array, const double dx) noexcept(false) {
+    const size_t n = y_array.size();
+    if (n < 2) throw std::runtime_error("Need at least 2 points");
+    // n == 2 --> trapezoidal rule
+    if (n == 2) {
+        return dx * 0.5 * (y_array[0] + y_array[1]);
+    }
+    // n is odd --> 1/3 rule
+    if ((n - 1) % 2 == 0) {
+        // I = dx/3 * (y0 + yn + 4*(odd index) + 2*(even index, except both ends))
+        const auto odd = y_array(Eigen::seq(1, n-2, 2));
+        const auto even = y_array(Eigen::seq(2, n-3, 2));
+        return dx/3.0 * (y_array[0] + y_array[n-1] + 4.0 * odd.sum() + 2.0 * even.sum());
+    }
+    // n is even --> 1/3 rule up to n-3, and 3/8 rule for last 4 points
+    int m = n - 4; // 1/3 rule end index
+    double I = 0.;
+    // 1/3 rule part
+    if (m > 0) {
+        const auto odd = y_array(Eigen::seq(1, m-1, 2));
+        const auto even = y_array(Eigen::seq(2, m-2, 2));
+        I += dx/3.0 * (y_array[0] + y_array[m] + 4.0 * odd.sum() + 2.0 * even.sum());
+    }
+    // 3/8 rule part
+    // I = 3*dx/8 * (y0 + 3*y1 + 3*y2 + y3)
+    I += 3.0*dx/8.0 * (y_array[m] + 3.0 * y_array[m+1] + 3.0 * y_array[m+2] + y_array[m+3]);
+    return I;
 }
 
 #if 0

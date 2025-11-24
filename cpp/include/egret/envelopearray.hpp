@@ -68,7 +68,7 @@ public:
      * @param index Array index to check.
      * @throws std::out_of_range if the index is out of range.
      */
-    void check_index(size_t index) const noexcept(false) {
+    void check_index(const size_t index) const noexcept(false) {
         if (index >= size()) {
             throw std::out_of_range("Index out of range in EnvelopeArray.");
         }
@@ -80,7 +80,7 @@ public:
      * @return const Eigen::Matrix4d& Covariance matrix at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    const Eigen::Matrix4d& cov(size_t index) const noexcept(false) {
+    const Eigen::Matrix4d& cov(const size_t index) const noexcept(false) {
         check_index(index);
         return cov_array_[index];
     }
@@ -91,7 +91,7 @@ public:
      * @return const Eigen::Matrix2d& Transformation matrix at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    const Eigen::Matrix2d& T(size_t index) const noexcept(false) {
+    const Eigen::Matrix2d& T(const size_t index) const noexcept(false) {
         check_index(index);
         return T_array_[index];
     }
@@ -102,7 +102,7 @@ public:
      * @return double Normalization factor at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double tau(size_t index) const noexcept(false) {
+    double tau(const size_t index) const noexcept(false) {
         check_index(index);
         return tau_array_(index);
     }
@@ -113,7 +113,7 @@ public:
      * @return const Eigen::Matrix2d& U matrix at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    const Eigen::Matrix2d& U(size_t index) const noexcept(false) {
+    const Eigen::Matrix2d& U(const size_t index) const noexcept(false) {
         check_index(index);
         return U_array_[index];
     }
@@ -124,7 +124,7 @@ public:
      * @return const Eigen::Matrix2d& V matrix at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    const Eigen::Matrix2d& V(size_t index) const noexcept(false) {
+    const Eigen::Matrix2d& V(const size_t index) const noexcept(false) {
         check_index(index);
         return V_array_[index];
     }
@@ -135,7 +135,7 @@ public:
      * @return double beta_x at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double bx(size_t index) const noexcept(false) {
+    double bx(const size_t index) const noexcept(false) {
         check_index(index);
         return cov_array_[index](0,0);
     }
@@ -146,7 +146,7 @@ public:
      * @return double alpha_x at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double ax(size_t index) const noexcept(false) {
+    double ax(const size_t index) const noexcept(false) {
         check_index(index);
         return -0.5 * (cov_array_[index](0,1) + cov_array_[index](1,0));
     }
@@ -157,7 +157,7 @@ public:
      * @return double gamma_x at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double gx(size_t index) const noexcept(false) {
+    double gx(const size_t index) const noexcept(false) {
         check_index(index);
         return cov_array_[index](1,1);
     }
@@ -168,7 +168,7 @@ public:
      * @return double beta_y at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double by(size_t index) const noexcept(false) {
+    double by(const size_t index) const noexcept(false) {
         check_index(index);
         return cov_array_[index](2,2);
     }
@@ -179,7 +179,7 @@ public:
      * @return double alpha_y at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double ay(size_t index) const noexcept(false) {
+    double ay(const size_t index) const noexcept(false) {
         check_index(index);
         return -0.5 * (cov_array_[index](2,3) + cov_array_[index](3,2));
     }
@@ -190,7 +190,7 @@ public:
      * @return double gamma_y at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double gy(size_t index) const noexcept(false) {
+    double gy(const size_t index) const noexcept(false) {
         check_index(index);
         return cov_array_[index](3,3);
     }
@@ -201,7 +201,7 @@ public:
      * @return double beta_u at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double bu(size_t index) const noexcept(false) {
+    double bu(const size_t index) const noexcept(false) {
         check_index(index);
         return U_array_[index](0,0);
     }
@@ -212,7 +212,7 @@ public:
      * @return double alpha_u at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double au(size_t index) const noexcept(false) {
+    double au(const size_t index) const noexcept(false) {
         check_index(index);
         return -0.5 * (U_array_[index](0,1) + U_array_[index](1,0));
     }
@@ -223,7 +223,7 @@ public:
      * @return double gamma_u at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double gu(size_t index) const noexcept(false) {
+    double gu(const size_t index) const noexcept(false) {
         check_index(index);
         return U_array_[index](1,1);
     }
@@ -234,7 +234,7 @@ public:
      * @return double beta_v at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double bv(size_t index) const noexcept(false) {
+    double bv(const size_t index) const noexcept(false) {
         check_index(index);
         return V_array_[index](0,0);
     }
@@ -245,7 +245,7 @@ public:
      * @return double alpha_v at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double av(size_t index) const noexcept(false) {
+    double av(const size_t index) const noexcept(false) {
         check_index(index);
         return -0.5 * (V_array_[index](0,1) + V_array_[index](1,0));
     }
@@ -256,7 +256,7 @@ public:
      * @return double gamma_v at the given index.
      * @throws std::out_of_range if the index is out of range.
      */
-    double gv(size_t index) const noexcept(false) {
+    double gv(const size_t index) const noexcept(false) {
         check_index(index);
         return V_array_[index](1,1);
     }
