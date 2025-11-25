@@ -27,7 +27,7 @@
 #include "egret/drift.hpp"
 #include <ranges>
 
-Eigen::Matrix4d egret::Drift::transfer_matrix_from_length(const double length) noexcept(false) {
+Eigen::Matrix4d egret::Drift::transfer_matrix(const double length) noexcept(false) {
     Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
     M(0,1) = length;
     M(2,3) = length;
@@ -35,7 +35,7 @@ Eigen::Matrix4d egret::Drift::transfer_matrix_from_length(const double length) n
 }
 
 std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
-egret::Drift::transfer_matrix_array_from_length(const double length, const double ds, const bool endpoint) noexcept(false) {
+egret::Drift::transfer_matrix_array(const double length, const double ds, const bool endpoint) noexcept(false) {
     const auto s_ary = s_array(length, ds, endpoint);
     const size_t n = s_ary.size();
     std::vector<Eigen::Matrix4d> M_array(n, Eigen::Matrix4d::Identity());

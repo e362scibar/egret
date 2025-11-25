@@ -27,12 +27,6 @@
 #pragma once
 
 #include "egret/element.hpp"
-#include "egret/coordinate.hpp"
-#include "egret/coordinatearray.hpp"
-#include "egret/envelope.hpp"
-#include "egret/envelopearray.hpp"
-#include "egret/dispersion.hpp"
-#include "egret/dispersionarray.hpp"
 
 namespace egret {
     class Dipole;

@@ -213,13 +213,17 @@ public:
 
     // Transfer a single coordinate through the element
     virtual std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
-    transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-        const std::optional<Dispersion> &disp0, double ds=0.1) const noexcept(false);
+    transfer(const Coordinate &cood0,
+        const std::optional<Envelope> &evlp0 = std::nullopt,
+        const std::optional<Dispersion> &disp0 = std::nullopt,
+        double ds=0.1) const noexcept(false);
 
     // Transfer coordinate array through the element
     virtual std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
-    transfer_array(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-        const std::optional<Dispersion> &disp0, double ds, bool endpoint) const noexcept(false);
+    transfer_array(const Coordinate &cood0,
+        const std::optional<Envelope> &evlp0 = std::nullopt,
+        const std::optional<Dispersion> &disp0 = std::nullopt,
+        double ds=0.1, bool endpoint=false) const noexcept(false);
 
     /**
      * @brief Calculate radiation integrals through the element.

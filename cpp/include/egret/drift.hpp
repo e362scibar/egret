@@ -47,12 +47,12 @@ public:
      */
     virtual ~Drift() noexcept = default;
 
-    // Return 4x4 transfer matrix for a drift of given length
-    static Eigen::Matrix4d transfer_matrix_from_length(double length) noexcept(false);
+    // Return 4x4 transfer matrix for a drift of a given length
+    static Eigen::Matrix4d transfer_matrix(double length) noexcept(false);
 
-    // Return an array of 4x4 transfer matrices for a drift of given length
+    // Return an array of 4x4 transfer matrices for a drift of a given length
     static std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
-    transfer_matrix_array_from_length(double length, double ds = 0.1, bool endpoint = false)
+    transfer_matrix_array(double length, double ds = 0.1, bool endpoint = false)
     noexcept(false);
 
     /**
@@ -63,7 +63,7 @@ public:
         double ds=0.1) const noexcept(false) override {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
-        return transfer_matrix_from_length(length_);
+        return transfer_matrix(length_);
     }
 
     /**
@@ -76,6 +76,6 @@ public:
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
         const double ds = 0.1, const bool endpoint = false) const noexcept(false) override {
         (void)cood0; // unused parameter
-        return transfer_matrix_array_from_length(length_, ds, endpoint);
+        return transfer_matrix_array(length_, ds, endpoint);
     }
 };

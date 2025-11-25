@@ -26,7 +26,6 @@
 
 #pragma once
 
-#include <Eigen/Dense>
 #include "egret/element.hpp"
 #include "egret/drift.hpp"
 
@@ -131,7 +130,7 @@ public:
         const double ds=0.1) const noexcept(false) override {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
-        return Drift::transfer_matrix_from_length(length_);
+        return Drift::transfer_matrix(length_);
     }
 
     /**
@@ -145,7 +144,7 @@ public:
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
         const double ds = 0.1, const bool endpoint = false) const noexcept(false) override {
         (void)cood0; // unused parameter
-        return Drift::transfer_matrix_array_from_length(length_, ds, endpoint);
+        return Drift::transfer_matrix_array(length_, ds, endpoint);
     }
 
     // Additive dispersion function at the end of the steering magnet.

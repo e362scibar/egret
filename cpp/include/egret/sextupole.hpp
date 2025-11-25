@@ -1,3 +1,9 @@
+/**
+ * @file sextupole.hpp
+ * @brief Definition of the Sextupole element class.
+ * @author Hirokazu Maesaka
+ * @date 2025
+ */
 // sextupole.hpp
 //
 // Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
@@ -20,19 +26,16 @@
 
 #pragma once
 
-#include "egret/coordinate.hpp"
-#include "egret/quadrupole.hpp"
-#include "egret/drift.hpp"
-#include <Eigen/Dense>
-#include <unsupported/Eigen/CXX11/Tensor>
-#include <complex>
-#include <vector>
+#include "egret/element.hpp"
 
 namespace egret {
     class Sextupole;
 }
 
 class egret::Sextupole : public egret::Element {
+public:
+    static constexpr double IGNORE_QUADRUPOLE_K1_THRESHOLD = 1.0e-20;
+
 protected:
     //! Sextupole strength k2 (1/m^3)
     double k2_;
@@ -135,7 +138,7 @@ public:
     }
 
     // Calculate coordinate, transfer matrix, and dispersion by midpoint method.
-    std::tuple<Coordinate, Eigen::Matrix4d, Eigen::Vector4d>
+    std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
     transfer_by_midpoint_method(const Coordinate &cood0, double ds=0.1,
         bool tmat_flag=true, bool disp_flag=false) const noexcept(false);
 

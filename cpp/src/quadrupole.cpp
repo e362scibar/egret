@@ -25,7 +25,65 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "egret/quadrupole.hpp"
+#include "egret/drift.hpp"
 #include <ranges>
+
+/**
+ * @brief Calculate the transfer matrix for a quadrupole magnet.
+ * @param length Quadrupole length
+ * @param k1 Quadrupole strength k1 (1/m^2)
+ * @param tilt Rotation angle (radians)
+ * @return Eigen::Matrix4d Transfer matrix
+ */
+Eigen::Matrix4d egret::Quadrupole::transfer_matrix( const double length, const double k1,
+    const std::optional<Eigen::Matrix4d> &rmat) noexcept(false) {
+    Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
+    if (k1 == 0.0) { // drift case
+        M(0,1) = length;
+        M(2,3) = length;
+        return M;
+    }
+    const double sqrtk = std::sqrt(std::abs(k1));
+    const double psi = sqrtk * length;
+    const double cospsi = std::cos(psi);
+    const double sinpsi = std::sin(psi);
+    const double coshpsi = std::cosh(psi);
+    const double sinhpsi = std::sinh(psi);
+    Eigen::Matrix2d mf, md; // focusing and defocusing matrices
+    mf << cospsi, sinpsi / sqrtk, -sqrtk * sinpsi, cospsi;
+    md << coshpsi, sinhpsi / sqrtk, sqrtk * sinhpsi, coshpsi;
+    if (k1 < 0.0) { // defocusing in x
+        M.block<2,2>(0,0) = md;
+        M.block<2,2>(2,2) = mf;
+    } else { // focusing in x
+        M.block<2,2>(0,0) = mf;
+        M.block<2,2>(2,2) = md;
+    }
+    if (rmat) {
+        M = rmat->transpose() * M * (*rmat);
+    }
+    return M;
+}
+
+/**
+ * @brief Calculate the rotation matrix of a transfer matrix for a given tilt angle.
+ * @param tilt Rotation angle (radians)
+ * @return Eigen::Matrix4d Rotation matrix
+ */
+Eigen::Matrix4d egret::Quadrupole::rotation_matrix(const double tilt) noexcept(false) {
+    Eigen::Matrix4d rmat = Eigen::Matrix4d::Zero();
+    const double ct = std::cos(tilt);
+    const double st = std::sin(tilt);
+    rmat(0,0) = ct;
+    rmat(0,2) = st;
+    rmat(1,1) = ct;
+    rmat(1,3) = st;
+    rmat(2,0) = -st;
+    rmat(2,2) = ct;
+    rmat(3,1) = -st;
+    rmat(3,3) = ct;
+    return rmat;
+}
 
 /**
  * @brief Calculate the transfer matrix for the quadrupole element.
@@ -39,45 +97,20 @@ Eigen::Matrix4d egret::Quadrupole::transfer_matrix(
     (void)ds; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     double k = k1_ / (1.0 + delta);
-    Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
-    if (k == 0.0) { // drift case
-        M(0,1) = length_;
-        M(2,3) = length_;
-        return M;
-    }
-    const double sqrtk = std::sqrt(std::abs(k));
-    const double psi = sqrtk * length_;
-    const double cospsi = std::cos(psi);
-    const double sinpsi = std::sin(psi);
-    const double coshpsi = std::cosh(psi);
-    const double sinhpsi = std::sinh(psi);
-    Eigen::Matrix2d mf, md; // focusing and defocusing matrices
-    mf << cospsi, sinpsi / sqrtk, -sqrtk * sinpsi, cospsi;
-    md << coshpsi, sinhpsi / sqrtk, sqrtk * sinhpsi, coshpsi;
-    if (k < 0.0) { // devofocusing in x
-        M.block<2,2>(0,0) = md;
-        M.block<2,2>(2,2) = mf;
-    } else { // focusing in x
-        M.block<2,2>(0,0) = mf;
-        M.block<2,2>(2,2) = md;
-    }
+    std::optional<Eigen::Matrix4d> rmat = std::nullopt;
     if (tilt_ != 0.0) {
-        const double ct = std::cos(tilt_);
-        const double st = std::sin(tilt_);
-        Eigen::Matrix4d rmat = Eigen::Matrix4d::Zero();
-        rmat(0,0) = ct;
-        rmat(0,2) = st;
-        rmat(1,1) = ct;
-        rmat(1,3) = st;
-        rmat(2,0) = -st;
-        rmat(2,2) = ct;
-        rmat(3,1) = -st;
-        rmat(3,3) = ct;
-        M = rmat.transpose() * M * rmat;
+        rmat = rotation_matrix(tilt_);
     }
-    return M;
+    return transfer_matrix(length_, k, rmat);
 }
 
+/**
+ * @brief Calculate the transfer matrix array through the quadrupole element.
+ * @param cood0 Initial coordinate (optional)
+ * @param ds Step size (unused)
+ * @param endpoint Include endpoint in s_array
+ * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Tuple of transfer matrix array and s_array
+ */
 std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
 egret::Quadrupole::transfer_matrix_array(
     const std::optional<Coordinate> &cood0,
@@ -86,20 +119,73 @@ egret::Quadrupole::transfer_matrix_array(
     const double k = k1_ / (1.0 + delta);
     const auto s_array = Element::s_array(ds, endpoint);
     const size_t n = s_array.size();
-    std::vector<Eigen::Matrix4d> M_array(n, Eigen::Matrix4d::Identity());
-    if (k == 0.0) { // drift case
-        for (const size_t i : std::views::iota(0u, n)) {
-            const double s = s_array(i);
-            M_array[i](0,1) = s;
-            M_array[i](2,3) = s;
-        }
-        return std::make_tuple(M_array, s_array);
+    std::optional<Eigen::Matrix4d> rmat = std::nullopt;
+    if (tilt_ != 0.0) {
+        rmat = rotation_matrix(tilt_);
     }
+    std::vector<Eigen::Matrix4d> M_array;
+    M_array.reserve(n);
+    for (const double s : s_array) {
+        const auto M = transfer_matrix(s, k, rmat);
+        M_array.push_back(M);
+    }
+    return std::make_tuple(M_array, s_array);
+}
+
+/**
+ * @brief Calculate the additive dispersion function at the end of a quadrupole.
+ * @param cood0_vec Initial coordinate vector
+ * @param length Quadrupole length
+ * @param k1 Quadrupole strength
+ * @param tilt Rotation angle (radians)
+ * @return Eigen::Vector4d Additive dispersion vector
+ */
+Eigen::Vector4d egret::Quadrupole::dispersion(const Eigen::Vector4d &cood0_vec,
+    double length, double k1, double tilt) noexcept(false) {
+    if (std::abs(k1) < IGNORE_K1_THRESHOLD) { // drift case
+        return Eigen::Vector4d::Zero();
+    }
+    const double sqrtk = std::sqrt(std::abs(k1));
+    const double psi = sqrtk * length;
+    const double cospsi = std::cos(psi);
+    const double sinpsi = std::sin(psi);
+    const double coshpsi = std::cosh(psi);
+    const double sinhpsi = std::sinh(psi);
+    const auto mf1 = Eigen::Matrix2d(sinpsi, -cospsi/sqrtk, sqrtk*cospsi, sinpsi)
+        * 0.5 * length * sqrtk; // Matrix2d
+    const auto mf2 = Eigen::Matrix2d(0., sinpsi/sqrtk, sqrtk*sinpsi, 0.) * 0.5; // Matrix2d
+    const auto md1 = Eigen::Matrix2d(sinhpsi, -coshpsi/sqrtk, -sqrtk*coshpsi, -sinhpsi)
+        * 0.5 * length * sqrtk; // Matrix2d
+    const auto md2 = Eigen::Matrix2d(0., sinhpsi/sqrtk, -sqrtk*sinhpsi, 0.) * 0.5; // Matrix2d
+    const auto mf = mf1 + mf2; // Matrix2d
+    const auto md = md1 + md2; // Matrix2d
+    Eigen::Vector4d disp;
+    if (tilt == 0.0) {
+        if (k1 < 0.0) { // defocusing in x
+            disp.head<2>() = md * cood0_vec.head<2>();
+            disp.tail<2>() = mf * cood0_vec.tail<2>();
+        } else { // focusing in x
+            disp.head<2>() = mf * cood0_vec.head<2>();
+            disp.tail<2>() = md * cood0_vec.tail<2>();
+        }
+    } else {
+        const auto R = rotation_matrix(tilt); // Matrix4d
+        auto M = Eigen::Matrix4d::Zero(); // Matrix4d
+        if (k1 < 0.0) { // defocusing in x
+            M.block<2,2>(0,0) = md;
+            M.block<2,2>(2,2) = mf;
+        } else { // focusing in x
+            M.block<2,2>(0,0) = mf;
+            M.block<2,2>(2,2) = md;
+        }
+        disp = R.transpose() * M * R * cood0_vec;
+    }
+    return disp;
 }
 
 /**
  * @brief Calculate the additive dispersion function at the end of the quadrupole.
- * @param cood0 Initial coordinate
+ * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size for integration (m) (unused)
  * @return Eigen::Vector4d Additive dispersion vector
  */
@@ -107,102 +193,101 @@ Eigen::Vector4d egret::Quadrupole::dispersion(
     const std::optional<Coordinate> &cood0,
     const double ds) const noexcept(false) {
     (void)ds; // unused parameter
-    if (k1_ == 0.0 || !cood0) { // drift case or no initial coordinate
-        return Eigen::Vector4d::Zero();
-    }
-    const double delta = cood0->delta();
+    const double delta = cood0 ? cood0->delta() : 0.0;
     const double k = k1_ / (1.0 + delta);
-    const auto vector0 = cood0->vector(); // Vector4d
-    const double sqrtk = std::sqrt(std::abs(k));
-    const double psi = sqrtk * length_;
-    const double cospsi = std::cos(psi);
-    const double sinpsi = std::sin(psi);
-    const double coshpsi = std::cosh(psi);
-    const double sinhpsi = std::sinh(psi);
-    const auto mf1 = Eigen::Matrix2d(sinpsi, -cospsi/sqrtk, sqrtk*cospsi, sinpsi)
-        * 0.5 * length_ * sqrtk; // Matrix2d
-    const auto mf2 = Eigen::Matrix2d(0., sinpsi/sqrtk, sqrtk*sinpsi, 0.) * 0.5; // Matrix2d
-    const auto md1 = Eigen::Matrix2d(sinhpsi, -coshpsi/sqrtk, -sqrtk*coshpsi, -sinhpsi)
-        * 0.5 * length_ * sqrtk; // Matrix2d
-    const auto md2 = Eigen::Matrix2d(0., sinhpsi/sqrtk, -sqrtk*sinhpsi, 0.) * 0.5; // Matrix2d
-    Eigen::Vector4d disp;
-    if (k < 0.0) { // defocusing in x
-        disp.head<2>() = (md1 + md2) * vector0.head<2>();
-        disp.tail<2>() = (mf1 + mf2) * vector0.tail<2>();
-    } else { // focusing in x
-        disp.head<2>() = (mf1 + mf2) * vector0.head<2>();
-        disp.tail<2>() = (md1 + md2) * vector0.tail<2>();
-    }
-    return disp;
+    const auto vector0 = cood0 ? cood0->vector() : Eigen::Vector4d::Zero();
+    return dispersion(vector0, length_, k, tilt_);
 }
 
+/**
+ * @brief Calculate the additive dispersion function array along the quadrupole.
+ * @param cood0 Initial coordinate (optional)
+ * @param ds Maximum step size (m)
+ * @param endpoint Whether to include the endpoint in the array
+ * @return std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> Tuple of dispersion array and s_array
+ */
 std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
 egret::Quadrupole::dispersion_array(
     const std::optional<Coordinate> &cood0,
     const double ds, const bool endpoint) const noexcept(false) {
+    const double delta = cood0 ? cood0->delta() : 0.0;
+    const double k = k1_ / (1.0 + delta);
+    const auto cood0_vec = cood0 ? cood0->vector() : Eigen::Vector4d::Zero();
     const auto s_array = Element::s_array(ds, endpoint);
     const size_t n = s_array.size();
     Eigen::Matrix<double, 4, Eigen::Dynamic> disp_vector_array(4, n);
-    if (k1_ == 0.0 || !cood0) { // drift case or no initial coordinate
-        disp_vector_array.setZero();
-        return std::make_tuple(disp_vector_array, s_array);
-    }
-    const double delta = cood0->delta();
-    const double k = k1_ / (1.0 + delta);
-    const auto vector0 = cood0->vector(); // Vector4d
-    const double sqrtk = std::sqrt(std::abs(k));
-    const auto psi_array = sqrtk * s_array; // ArrayXd
-    const auto sinpsi_array = psi_array.sin(); // ArrayXd
-    const auto sinhpsi_array = psi_array.sinh(); // ArrayXd
-    const auto s_cospsi_array = s_array * psi_array.cos(); // ArrayXd
-    const auto s_sinpsi_array = s_array * sinpsi_array; // ArrayXd
-    const auto s_coshpsi_array = s_array * psi_array.cosh(); // ArrayXd
-    const auto s_sinhpsi_array = s_array * sinhpsi_array; // ArrayXd
-    auto mf1_combined = Eigen::Matrix<double, Eigen::Dynamic, 2>(n*2, 2);
-    auto mf2_combined = Eigen::Matrix<double, Eigen::Dynamic, 2>(n*2, 2);
-    auto md1_combined = Eigen::Matrix<double, Eigen::Dynamic, 2>(n*2, 2);
-    auto md2_combined = Eigen::Matrix<double, Eigen::Dynamic, 2>(n*2, 2);
-    auto mf1_00 = mf1_combined.col(0)(Eigen::seq(0, Eigen::last, 2)); // ArrayXd-like
-    auto mf1_10 = mf1_combined.col(0)(Eigen::seq(1, Eigen::last, 2)); // ArrayXd-like
-    auto mf1_01 = mf1_combined.col(1)(Eigen::seq(0, Eigen::last, 2)); // ArrayXd-like
-    auto mf1_11 = mf1_combined.col(1)(Eigen::seq(1, Eigen::last, 2)); // ArrayXd-like
-    mf1_00 = 0.5 * sqrtk * s_sinpsi_array;
-    mf1_01 = -0.5 * s_cospsi_array;
-    mf1_10 = 0.5 * std::abs(k) * s_cospsi_array;
-    mf1_11 = 0.5 * sqrtk * s_sinpsi_array;
-    auto mf2_00 = mf2_combined.col(0)(Eigen::seq(0, Eigen::last, 2)); // ArrayXd-like
-    auto mf2_10 = mf2_combined.col(0)(Eigen::seq(1, Eigen::last, 2)); // ArrayXd-like
-    auto mf2_01 = mf2_combined.col(1)(Eigen::seq(0, Eigen::last, 2)); // ArrayXd-like
-    auto mf2_11 = mf2_combined.col(1)(Eigen::seq(1, Eigen::last, 2)); // ArrayXd-like
-    mf2_00.setZero();
-    mf2_01 = 0.5 * sinpsi_array / sqrtk;
-    mf2_10 = 0.5 * sqrtk * sinpsi_array;
-    mf2_11.setZero();
-    auto md1_00 = md1_combined.col(0)(Eigen::seq(0, Eigen::last, 2)); // ArrayXd-like
-    auto md1_10 = md1_combined.col(0)(Eigen::seq(1, Eigen::last, 2)); // ArrayXd-like
-    auto md1_01 = md1_combined.col(1)(Eigen::seq(0, Eigen::last, 2)); // ArrayXd-like
-    auto md1_11 = md1_combined.col(1)(Eigen::seq(1, Eigen::last, 2)); // ArrayXd-like
-    md1_00 = -0.5 * sqrtk * s_sinhpsi_array;
-    md1_01 = -0.5 * s_coshpsi_array;
-    md1_10 = -0.5 * std::abs(k) * s_coshpsi_array;
-    md1_11 = -0.5 * sqrtk * s_sinhpsi_array;
-    auto md2_00 = md2_combined.col(0)(Eigen::seq(0, Eigen::last, 2)); // ArrayXd-like
-    auto md2_10 = md2_combined.col(0)(Eigen::seq(1, Eigen::last, 2)); // ArrayXd-like
-    auto md2_01 = md2_combined.col(1)(Eigen::seq(0, Eigen::last, 2)); // ArrayXd-like
-    auto md2_11 = md2_combined.col(1)(Eigen::seq(1, Eigen::last, 2)); // ArrayXd-like
-    md2_00.setZero();
-    md2_01 = 0.5 * sinhpsi_array / sqrtk;
-    md2_10 = -0.5 * sqrtk * sinhpsi_array;
-    md2_11.setZero();
-    if (k < 0.0) { // defocusing in x
-        disp_vector_array.topRows<2>() = ((md1_combined + md2_combined) * vector0.head<2>()).reshaped(2, n);
-        disp_vector_array.bottomRows<2>() = ((mf1_combined + mf2_combined) * vector0.tail<2>()).reshaped(2, n);
-    } else { // focusing in x
-        disp_vector_array.topRows<2>() = ((mf1_combined + mf2_combined) * vector0.head<2>()).reshaped(2, n);
-        disp_vector_array.bottomRows<2>() = ((md1_combined + md2_combined) * vector0.tail<2>()).reshaped(2, n);
+    for (const size_t i : std::views::iota(size_t{0}, n)) {
+        disp_vector_array.col(i) = dispersion(cood0_vec, s_array(i), k, tilt_);
     }
     return std::make_tuple(disp_vector_array, s_array);
 }
+
+/**
+ * @brief Calculate transferred coordinates through a quadrupole magnet.
+ * @param cood0_vec Initial coordinate vector
+ * @param length Length of the quadrupole magnet
+ * @param k1 Quadrupole strength (1/m^2)
+ * @param k0x Steering dipole strength in x direction (1/m) (negative for positive kick)
+ * @param k0y Steering dipole strength in y direction (1/m) (negative for positive kick)
+ * @param tilt Tilt angle (radians)
+ * @return Eigen::Vector4d Transferred coordinate vector
+ */
+std::tuple<Eigen::Vector4d, std::optional<Eigen::Matrix4d>,
+    std::optional<Eigen::Vector4d>>
+egret::Quadrupole::transfer(
+    const Eigen::Vector4d &cood0_vec, const double length, const double k1,
+    const double k0x, const double k0y, const double tilt,
+    const bool tmat_flag, const bool disp_flag) noexcept(false) {
+    const double x0 = cood0_vec(0);
+    const double xp0 = cood0_vec(1);
+    const double y0 = cood0_vec(2);
+    const double yp0 = cood0_vec(3);
+    double x1, xp1, y1, yp1;
+    std::optional<Eigen::Matrix4d> tmat = std::nullopt;
+    std::optional<Eigen::Vector4d> disp = std::nullopt;
+    if (std::abs(k1) < IGNORE_K1_THRESHOLD) { // no quadrupole, just dipole kick
+        x1 = x0 + (xp0 - 0.5 * k0x * length) * length;
+        y1 = y0 + (yp0 - 0.5 * k0y * length) * length;
+        xp1 = xp0 - k0x * length;
+        yp1 = yp0 - k0y * length;
+        if (tmat_flag) {
+            tmat = Drift::transfer_matrix(length);
+        }
+        if (disp_flag) {
+            const double eta_x = 0.5 * k0x * length * length;
+            const double eta_xp = k0x * length;
+            const double eta_y = 0.5 * k0y * length * length;
+            const double eta_yp = k0y * length;
+            disp = Eigen::Vector4d(eta_x, eta_xp, eta_y, eta_yp);
+        }
+    } else { // with quadrupole component
+        // transverse offset to generate dipole kick
+        const std::complex<double> k0(k0x, k0y);
+        const std::complex<double> offset =
+            std::exp(std::complex<double>(0.0, 2.0 * tilt)) * std::conj(k0) / std::abs(k1);
+        const double ofs_x = offset.real();
+        const double ofs_y = offset.imag();
+        // transfer matrix
+        const auto R = rotation_matrix(tilt); // Matrix4d
+        const auto M = transfer_matrix(length, std::abs(k1), R); // Matrix4d
+        // coordinate after the quadrupole
+        const Eigen::Vector4d cood0a_vec(ofs_x, xp0, ofs_y, yp0);
+        const auto cood1a_vec = M * cood0a_vec; // Vector4d
+        x1 = cood1a_vec(0) - ofs_x + x0;
+        xp1 = cood1a_vec(1);
+        y1 = cood1a_vec(2) - ofs_y + y0;
+        yp1 = cood1a_vec(3);
+        if (tmat_flag) {
+            tmat = M;
+        }
+        if (disp_flag) {
+            disp = Quadrupole::dispersion(cood0a_vec, length, std::abs(k1), tilt);
+        }
+    }
+    const Eigen::Vector4d cood1_vec(x1, xp1, y1, yp1);
+    return std::make_tuple(cood1_vec, tmat, disp);
+}
+
 
 
 #if 0
