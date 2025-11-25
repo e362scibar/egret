@@ -25,97 +25,32 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "egret/sextupole.hpp"
-#include "egret/quadrupole.hpp"
-#include "egret/drift.hpp"
-#include <complex>
-#include <cmath>
-#include <ranges>
 
-std::tuple<egret::Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
-egret::Sextupole::transfer_by_midpoint_method(const Coordinate &cood0,
-    const double ds, const bool tmat_flag, const bool disp_flag) const noexcept(false) {
-    const double delta = cood0.delta();
+/**
+ * @brief Calculate dipole and quadrupole field strengths at given coordinate.
+ * (x'+jy' = - k0 L - k1 L x + j k1 L y)
+ * @param cood Particle coordinate
+ * @return std::tuple<std::complex<double>, std::complex<double>> Dipole and quadrupole field strengths
+ */
+std::tuple<std::complex<double>, std::complex<double>>
+egret::Sextupole::get_k(const Coordinate &cood) const noexcept {
+    const double delta = cood.delta();
+    const double x = cood.x();
+    const double y = cood.y();
+    // Sextupole contributions
     const double k2 = k2_ / (1.0 + delta);
-    const double k0x = k0x_ / (1.0 + delta);
-    const double k0y = k0y_ / (1.0 + delta);
-    const double x0 = cood0.x();;
-    const double y0 = cood0.y();
-    // dipole strength at the entrance (x'+jy' = - k0 L)
-    const double k0x_a = 0.5 * k2 * (x0*x0 - y0*y0) + k0x;
-    const double k0y_a = - k2 * x0 * y0 + k0y;
-    // quadrupole strength at the entrance (x'+jy' = - k1 x + j k1 y)
-    const std::complex<double> k1a = k2 * std::complex<double>(x0, -y0);
-    // tilt angle of the quadrupole component at the entrance
-    const double tilt_a = 0.5 * std::arg(k1a);
-    // Coordinates after the first half step
-    const auto cood1a_vec = std::get<0>(Quadrupole::transfer(cood0.vector(),
-        ds, std::abs(k1a), k0x_a, k0y_a, tilt_a, false, false)); // Vector4d
-    const double x1a = cood1a_vec(0);
-    const double y1a = cood1a_vec(2);
-    // dipole strength at the exit (x'+jy' = - k0 L)
-    const double k0x_b = 0.5 * k2 * (x1a*x1a - y1a*y1a) + k0x;
-    const double k0y_b = - k2 * x1a * y1a + k0y;
-    // quadrupole strength at the exit (x'+jy' = - k1 x + j k1 y)
-    const std::complex<double> k1b = k2 * std::complex<double>(x1a, -y1a);
-    // average dipole and quadrupole strengths
-    const double k0x_ab = 0.5 * (k0x_a + k0x_b);
-    const double k0y_ab = 0.5 * (k0y_a + k0y_b);
-    const std::complex<double> k1ab = 0.5 * (k1a + k1b);
-    // tilt angle of the quadrupole component
-    const double tilt_ab = 0.5 * std::arg(k1ab);
-    // final coordinates after the second half step
-    const auto [cood1_vec, tmat, disp] = Quadrupole::transfer(cood0.vector(),
-        ds, std::abs(k1ab), k0x_ab, k0y_ab, tilt_ab, tmat_flag, disp_flag);
-    const Coordinate cood1(cood1_vec, cood0.s() + ds, cood0.z(), cood0.delta());
-    return std::make_tuple(cood1, tmat, disp);
-}
-
-/**
- * @brief Compute the transfer matrix of the sextupole element.
- * @param cood0 Initial coordinate. (optional)
- * @param ds Step size for the transfer matrix calculation.
- * @return Eigen::Matrix4d The transfer matrix.
- */
-Eigen::Matrix4d egret::Sextupole::transfer_matrix(
-    const std::optional<Coordinate> &cood0, const double ds) const noexcept(false) {
-    const size_t n_step = static_cast<size_t>(std::ceil(length_ / ds));
-    const double ds_step = length_ / n_step;
-    Coordinate cood = cood0 ? *cood0 : Coordinate();
-    Eigen::Matrix4d tmat = Eigen::Matrix4d::Identity();
-    for (const size_t i : std::views::iota(0u, n_step)) {
-        (void)i; // unused variable
-        const auto results = transfer_by_midpoint_method(cood, ds_step, true, false);
-        cood = std::get<0>(results);
-        const auto tmat_step = std::get<1>(results);
-        tmat = *tmat_step * tmat;
-    }
-    return tmat;
-}
-
-/**
- * @brief Compute the transfer matrix array along the sextupole element.
- * @param cood0 Initial coordinate. (optional)
- * @param ds Step size for the transfer matrix calculation.
- * @param endpoint Whether to include the endpoint in the s array.
- * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Tuple of the array of transfer matrices and the corresponding s positions.
- */
-std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
-egret::Sextupole::transfer_matrix_array(const std::optional<Coordinate> &cood0,
-    const double ds, const bool endpoint) const noexcept(false) {
-    auto s_array = Element::s_array(ds, endpoint);
-    Coordinate cood = cood0 ? *cood0 : Coordinate();
-    std::vector<Eigen::Matrix4d> tmat_array;
-    Eigen::Matrix4d tmat = Eigen::Matrix4d::Identity();
-    tmat_array.push_back(tmat);
-    for (const size_t i : std::views::iota(0u, static_cast<size_t>(s_array.size() - 1))) {
-        const double ds_step = s_array[i + 1] - s_array[i];
-        const auto results = transfer_by_midpoint_method(cood, ds_step, true, false);
-        cood = std::get<0>(results);
-        const auto tmat_step = std::get<1>(results);
-        tmat = *tmat_step * tmat;
-        tmat_array.push_back(tmat);
-    }
-    return std::make_tuple(tmat_array, s_array);
+    const double k0x_sx = 0.5 * k2 * (x*x - y*y);
+    const double k0y_sx = - k2 * x * y;
+    const std::complex<double> k0_sx(k0x_sx, k0y_sx);
+    const std::complex<double> k1_sx = k2 * std::conj(std::complex<double>(x, y));
+    // Steering dipole contributions
+    const double k0x_str = k0x_ / (1.0 + delta);
+    const double k0y_str = k0y_ / (1.0 + delta);
+    const std::complex<double> k0_str(k0x_str, k0y_str);
+    // Total contributions
+    const std::complex<double> k0 = k0_sx + k0_str;
+    const std::complex<double> k1 = k1_sx;
+    return std::make_tuple(k0, k1);
 }
 
 

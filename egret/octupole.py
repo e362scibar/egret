@@ -99,7 +99,7 @@ class Octupole(Element):
         k0a = k3 * (x0**3 / 6. - 0.5 * x0 * y0**2 + 1.j * (y0**3 / 6. - 0.5 * x0**2 * y0)) \
             + k0x + 1.j * k0y + k1 * np.exp(2.j * self.tilt_quad) * (x0 - 1.j * y0)
         # quadrupole strength at the entrance
-        k1a = self.k3 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0) + self.k1 * np.exp(2.j * self.tilt_quad)
+        k1a = self.k3 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0) + k1 * np.exp(2.j * self.tilt_quad)
         # tilt angle of the quadrupole
         tilt = np.angle(k1a) * 0.5
         if np.abs(k1a) < 1.e-20:
