@@ -51,7 +51,7 @@ public:
     Envelope(
         const Eigen::Matrix4d &cov = Eigen::Matrix4d::Identity(),
         double s = 0.,
-        std::optional<const Eigen::Matrix2d&> T = std::nullopt)
+        const std::optional<const Eigen::Matrix2d> &T = std::nullopt)
         noexcept(false);
     /**
      * @brief Destroy the Envelope object.
@@ -155,7 +155,7 @@ public:
 
     // Calculate eigenmode parameters
     void calc_eigenmode(
-        std::optional<const Eigen::Matrix2d&> T = std::nullopt)
+        const std::optional<const Eigen::Matrix2d> &T = std::nullopt)
         noexcept(false);
 
     // Estimate T matrix from covariance matrix

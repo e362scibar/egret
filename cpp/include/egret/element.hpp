@@ -29,7 +29,6 @@
 #include <memory>
 #include <tuple>
 #include <optional>
-#include <list>
 #include "egret/object.hpp"
 #include "egret/coordinate.hpp"
 #include "egret/coordinatearray.hpp"
@@ -49,28 +48,34 @@ class egret::Element: public egret::Object {
 protected:
     //! Length of the element
     double length_;
+    //! Bending angle of the element
+    double angle_;
     //! Transverse and longitudinal offsets and tilt
     double dx_, dy_, ds_, tilt_;
     //! Additional info string
     std::string info_;
-    //! List of child elements (for composite elements)
-    std::optional<std::list<std::shared_ptr<Element>>> elements_{std::nullopt};
+    //! Vector of child elements (for composite elements)
+    std::optional<std::vector<std::shared_ptr<Element>>> elements_{std::nullopt};
+    //! indices
+    std::vector<size_t> indices_;
 
 public:
     /**
      * @brief Construct a new Element object
      * @param name Object name
      * @param length Length of the element
+     * @param angle Bending angle of the element
      * @param dx Transverse offset in x
      * @param dy Transverse offset in y
      * @param ds Longitudinal offset
      * @param tilt Tilt angle
      * @param info Additional info string
      */
-    Element(const std::string &name, const double length,
-            const double dx=0.0, const double dy=0.0, const double ds=0.0, const double tilt=0.0,
-            const std::string &info="")
-        : Object(name), length_(length), dx_(dx), dy_(dy), ds_(ds), tilt_(tilt), info_(info) {}
+    Element(const std::string &name, const double length, const double angle=0.0,
+            const double dx=0.0, const double dy=0.0, const double ds=0.0,
+            const double tilt=0.0, const std::string &info="") :
+        Object(name), length_(length), angle_(angle),
+        dx_(dx), dy_(dy), ds_(ds), tilt_(tilt), info_(info) {}
     /**
      * @brief Virtual destructor
      */
@@ -80,136 +85,105 @@ public:
      * @brief Get the length of the element.
      * @return double Length of the element
      */
-    double length() const { return length_; }
+    virtual double length() const { return length_; }
+    /**
+     * @brief Get the bending angle of the element.
+     * @return double Bending angle of the element
+     */
+    virtual double angle() const { return angle_; }
     /**
      * @brief Get the transverse offset in x.
      * @return double Transverse offset in x
      */
-    double dx() const { return dx_; }
+    virtual double dx() const { return dx_; }
     /**
      * @brief Get the transverse offset in y.
      * @return double Transverse offset in y
      */
-    double dy() const { return dy_; }
+    virtual double dy() const { return dy_; }
     /**
      * @brief Get the longitudinal offset.
      * @return double Longitudinal offset
      */
-    double ds() const { return ds_; }
+    virtual double ds() const { return ds_; }
     /**
      * @brief Get the tilt angle.
      * @return double Tilt angle
      */
-    double tilt() const { return tilt_; }
+    virtual double tilt() const { return tilt_; }
     /**
      * @brief Get the additional info string.
      * @return const std::string& Additional info string
      */
-    const std::string& info() const { return info_; }
+    virtual const std::string& info() const { return info_; }
     /**
-     * @brief Get the list of child elements.
-     * @return const std::optional<std::list<std::shared_ptr<Element>>>& List of child elements
+     * @brief Get the vector of child elements.
+     * @return const std::optional<std::vector<std::shared_ptr<Element>>>& Vector of child elements
      */
-    const std::optional<std::list<std::shared_ptr<Element>>>& elements() const { return elements_; }
+    virtual const std::optional<std::vector<std::shared_ptr<Element>>>& elements() const { return elements_; }
 
     /**
      * @brief Set the length of the element.
      * @param length Length of the element
      */
-    void length(const double length) { length_ = length; }
+    virtual void length(const double length) { length_ = length; }
+    /**
+     * @brief Set the bending angle of the element.
+     * @param angle Bending angle of the element
+     */
+    virtual void angle(const double angle) { angle_ = angle; }
     /**
      * @brief Set the transverse offset in x.
      * @param dx Transverse offset in x
      */
-    void dx(const double dx) { dx_ = dx; }
+    virtual void dx(const double dx) { dx_ = dx; }
     /**
      * @brief Set the transverse offset in y.
      * @param dy Transverse offset in y
      */
-    void dy(const double dy) { dy_ = dy; }
+    virtual void dy(const double dy) { dy_ = dy; }
     /**
      * @brief Set the longitudinal offset.
      * @param ds Longitudinal offset
      */
-    void ds(const double ds) { ds_ = ds; }
+    virtual void ds(const double ds) { ds_ = ds; }
     /**
      * @brief Set the tilt angle.
      * @param tilt Tilt angle
      */
-    void tilt(const double tilt) { tilt_ = tilt; }
+    virtual void tilt(const double tilt) { tilt_ = tilt; }
     /**
      * @brief Set the additional info string.
      * @param info Additional info string
      */
-    void info(const std::string &info) { info_ = info; }
+    virtual void info(const std::string &info) { info_ = info; }
 
     // Get s array based on length and step size.
     static Eigen::ArrayXd s_array(double length, double ds=0.1, bool endpoint=false) noexcept(false);
 
     // Get s array for the element based on length and step size.
-    Eigen::ArrayXd s_array(double ds=0.1, bool endpoint=false) const noexcept(false) {
+    Eigen::ArrayXd s_array(const double ds=0.1, const bool endpoint=false) const noexcept(false) {
         return s_array(length_, ds, endpoint);
     }
 
-    /**
-     * @brief Get the transfer matrix for a given coordinate and step size.
-     * Just returns identity matrix in the base class.
-     * @param cood0 Initial coordinate
-     * @param ds Maximum step size
-     * @return Eigen::Matrix4d Transfer matrix
-     */
+    // Get the transfer matrix of the element
     virtual Eigen::Matrix4d transfer_matrix(
         const std::optional<Coordinate> &cood0 = std::nullopt,
-        const double ds=0.1) const noexcept(false) {
-        (void)cood0; // unused parameter
-        (void)ds; // unused parameter
-        return Eigen::Matrix4d::Identity();
-    }
+        double ds=0.1) const noexcept(false);
 
-    /**
-     * @brief Get an array of transfer matrices for a given coordinate and step size.
-     * @param cood0 Initial coordinate
-     * @param ds Maximum step size
-     * @param endpoint Whether to include the endpoint
-     * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Array of transfer matrices and s array
-     */
+    // Get an array of transfer matrices through the element
     virtual std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        const double ds=0.1, const bool endpoint=false) const noexcept(false) {
-        const auto s_ary = s_array(ds, endpoint);
-        return std::make_tuple(
-            std::vector<Eigen::Matrix4d>(s_ary.size(), Eigen::Matrix4d::Identity()),
-            s_ary);
-    }
+        const double ds=0.1, const bool endpoint=false) const noexcept(false);
 
-    /**
-     * @brief Get the additive dispersion vector of the element.
-     * @param cood0 Initial coordinate
-     * @param ds Maximum step size
-     * @return Eigen::Vector4d Additive dispersion vector
-     */
+    // Get the additive dispersion vector of the element.
     virtual Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
-        const double ds=0.1) const noexcept(false) {
-        (void)cood0; // unused parameter
-        (void)ds; // unused parameter
-        return Eigen::Vector4d::Zero();
-    }
+        double ds=0.1) const noexcept(false);
 
-    /**
-     * @brief Get an array of additive dispersion vectors for the element.
-     * @param cood0 Initial coordinate
-     * @param ds Maximum step size
-     * @param endpoint Whether to include the endpoint
-     * @return std::tuple<std::vector<Eigen::Vector4d>, Eigen::ArrayXd> Array of dispersion vectors and s array
-     */
+    // Get an array of additive dispersion vectors for the element.
     virtual std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
     dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        const double ds=0.1, const bool endpoint=false) const noexcept(false) {
-        (void)cood0; // unused parameter
-        const auto s_ary = s_array(ds, endpoint);
-        const auto disp_ary = Eigen::Matrix<double, 4, Eigen::Dynamic>::Zero(4, s_ary.size());
-        return std::make_tuple(disp_ary, s_ary);
-    }
+        const double ds=0.1, const bool endpoint=false) const noexcept(false);
 
     // Transfer a single coordinate through the element
     virtual std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
@@ -235,13 +209,14 @@ public:
      */
     virtual std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
-        const Dispersion &disp0, const double ds=0.1) const noexcept(false) {
+        const Dispersion &disp0, double ds=0.1) const noexcept(false);
+        /* {
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter
         (void)ds; // unused parameter
         return std::make_tuple(0., 0., 0., 0., 0., 0.);
-    }
+    }*/
 
     // Simpson's rule integration
     static double simpson_integration(const Eigen::ArrayXd &y_array, double dx) noexcept(false);
@@ -252,4 +227,16 @@ public:
     // Get transfer matrix from s to the end of the element
     virtual Eigen::Matrix4d transfer_matrix_from_s(double s, const Coordinate &cood0,
         double ds=0.1) const noexcept(false);
+
+    // Get element at given indices if elements_ is set
+    std::shared_ptr<Element> get_element(const std::vector<size_t> &indices) noexcept(false);
+
+    // Get longitudinal position at given indices if elements_ is set
+    double get_s(const std::vector<size_t> &indices) const noexcept(false);
+
+    // Find indices of elements with given names if elements_ is set
+    std::vector<std::vector<size_t>> find_index(const std::vector<std::string> &names) const noexcept(false);
+
+    // Set indices for all child elements
+    void set_indices(const std::vector<size_t> &parent_indices={}) noexcept;
 };

@@ -40,7 +40,7 @@
 egret::Envelope::Envelope(
     const Eigen::Matrix4d& cov,
     const double s,
-    std::optional<const Eigen::Matrix2d&> T) noexcept(false) :
+    const std::optional<const Eigen::Matrix2d> &T) noexcept(false) :
     cov_(cov), s_(s), T_(T.value_or(Eigen::Matrix2d::Zero())) {
     calc_eigenmode(T);
 }
@@ -62,7 +62,7 @@ Eigen::Matrix2d egret::Envelope::adjoint(const Eigen::Matrix2d& M) noexcept {
  * @throws std::runtime_error if eigenmode calculation fails.
  */
 void egret::Envelope::calc_eigenmode(
-    std::optional<const Eigen::Matrix2d&> T) noexcept(false) {
+    const std::optional<const Eigen::Matrix2d> &T) noexcept(false) {
     // If T is provided, use it
     if (T) {
         T_ = *T;
@@ -87,7 +87,7 @@ void egret::Envelope::calc_eigenmode(
  */
 Eigen::Matrix4d egret::Envelope::T_matrix() const noexcept {
     const auto T_s = adjoint(T_); // adjoint of T_ (Matrix2d)
-    auto T_full = Eigen::Matrix4d::Identity() * tau_; // Matrix4d
+    Eigen::Matrix4d T_full = Eigen::Matrix4d::Identity() * tau_;
     T_full.block<2,2>(0,2) = -T_s;
     T_full.block<2,2>(2,0) = T_;
     return T_full;

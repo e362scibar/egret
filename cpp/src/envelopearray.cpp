@@ -268,7 +268,7 @@ egret::Envelope egret::EnvelopeArray::from_s(const double s) const noexcept(fals
  */
 Eigen::Matrix4d egret::EnvelopeArray::T_matrix(const size_t index) const noexcept(false) {
     check_index(index);
-    auto T_full = Eigen::Matrix4d::Identity() * tau_array_(index); // Matrix4d
+    Eigen::Matrix4d T_full = Eigen::Matrix4d::Identity() * tau_array_(index);
     T_full.block<2,2>(2,0) = T_array_[index];
     T_full.block<2,2>(0,2) = -Envelope::adjoint(T_array_[index]);
     return T_full;

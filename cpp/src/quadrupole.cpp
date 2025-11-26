@@ -151,12 +151,18 @@ Eigen::Vector4d egret::Quadrupole::dispersion(const Eigen::Vector4d &cood0_vec,
     const double sinpsi = std::sin(psi);
     const double coshpsi = std::cosh(psi);
     const double sinhpsi = std::sinh(psi);
-    const auto mf1 = Eigen::Matrix2d(sinpsi, -cospsi/sqrtk, sqrtk*cospsi, sinpsi)
-        * 0.5 * length * sqrtk; // Matrix2d
-    const auto mf2 = Eigen::Matrix2d(0., sinpsi/sqrtk, sqrtk*sinpsi, 0.) * 0.5; // Matrix2d
-    const auto md1 = Eigen::Matrix2d(sinhpsi, -coshpsi/sqrtk, -sqrtk*coshpsi, -sinhpsi)
-        * 0.5 * length * sqrtk; // Matrix2d
-    const auto md2 = Eigen::Matrix2d(0., sinhpsi/sqrtk, -sqrtk*sinhpsi, 0.) * 0.5; // Matrix2d
+    Eigen::Matrix2d mf1;
+    mf1 << sinpsi, -cospsi/sqrtk, sqrtk*cospsi, sinpsi;
+    mf1 *= 0.5 * length * sqrtk;
+    Eigen::Matrix2d mf2;
+    mf2 << 0., sinpsi/sqrtk, sqrtk*sinpsi, 0.;
+    mf2 *= 0.5;
+    Eigen::Matrix2d md1;
+    md1 << sinhpsi, -coshpsi/sqrtk, -sqrtk*coshpsi, -sinhpsi;
+    md1 *= 0.5 * length * sqrtk;
+    Eigen::Matrix2d md2;
+    md2 << 0., sinhpsi/sqrtk, -sqrtk*sinhpsi, 0.;
+    md2 *= 0.5;
     const auto mf = mf1 + mf2; // Matrix2d
     const auto md = md1 + md2; // Matrix2d
     Eigen::Vector4d disp;
@@ -170,7 +176,7 @@ Eigen::Vector4d egret::Quadrupole::dispersion(const Eigen::Vector4d &cood0_vec,
         }
     } else {
         const auto R = rotation_matrix(tilt); // Matrix4d
-        auto M = Eigen::Matrix4d::Zero(); // Matrix4d
+        Eigen::Matrix4d M = Eigen::Matrix4d::Zero();
         if (k1 < 0.0) { // defocusing in x
             M.block<2,2>(0,0) = md;
             M.block<2,2>(2,2) = mf;

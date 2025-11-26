@@ -551,8 +551,8 @@ egret::Dipole::transfer_array(const Coordinate &cood0,
         M_combined.block(i*4, 0, 4, 4) = M_array[i];
     }
     const auto [disp_array_mat, _] = dispersion_array(cood, ds, endpoint); // Matrix, ArrayXd
-    auto vector_array = (M_combined * cood0.vector()).reshaped(4, n)
-        + disp_array_mat * cood0.delta(); // Matrix 4 x n
+    Eigen::Matrix<double, 4, Eigen::Dynamic> vector_array =
+        (M_combined * cood0.vector()).reshaped(4, n) + disp_array_mat * cood0.delta();
     vector_array.row(0).array() += dx_;
     vector_array.row(2).array() += dy_;
     const CoordinateArray cood_array(vector_array, cood0.s() + s_array,
@@ -578,7 +578,7 @@ egret::Dipole::transfer_array(const Coordinate &cood0,
  * @param evlp0 Initial envelope
  * @param disp0 Initial dispersion
  * @param ds Maximum step size (m)
- * @return std::tuple<double, double, double, double, double, double>
+ * @return std::tuple<double, double, double, double, double, double> Tuple of radiation integrals I2, I4, I5u, I5v, I4u, I4v
  */
 std::tuple<double, double, double, double, double, double>
 egret::Dipole::radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
@@ -620,6 +620,7 @@ egret::Dipole::radiation_integrals(const Coordinate &cood0, const Envelope &evlp
         ( bv_array * etap_v_array * etap_v_array
         + av_array * eta_v_array * etap_v_array
         + gv_array * eta_v_array * eta_v_array), dz);
+    return std::make_tuple(I2, I4, I5u, I5v, I4u, I4v);
 }
 
 

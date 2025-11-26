@@ -38,14 +38,24 @@ endif()
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
+find_package(GSL REQUIRED)
+
 add_library(egret_core STATIC
   src/basearray.cpp
   src/coordinatearray.cpp
+  src/dispersionarray.cpp
+  src/envelope.cpp
+  src/envelopearray.cpp
+  src/element.cpp
   src/drift.cpp
   src/steering.cpp
-  src/quadrupole.cpp
   src/dipole.cpp
+  src/quadrupole.cpp
+  src/nonlinearmultipole.cpp
   src/sextupole.cpp
+  src/octupole.cpp
+  src/lattice.cpp
+  src/ring.cpp
 )
 target_include_directories(egret_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(egret_core PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include)
@@ -71,7 +81,7 @@ if(BUILD_PYEXT)
 endif()
 
 add_executable(egret_cli src/cli_quadrupole.cpp)
-target_link_libraries(egret_cli PRIVATE egret_core Eigen3::Eigen)
+target_link_libraries(egret_cli PRIVATE egret_core Eigen3::Eigen GSL::gsl GSL::gslcblas)
 target_include_directories(egret_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(egret_cli PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)
 

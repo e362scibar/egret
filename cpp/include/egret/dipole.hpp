@@ -33,8 +33,6 @@ namespace egret {
 }
 class egret::Dipole : public egret::Element {
 protected:
-    //! Bending angle (radians)
-    double angle_;
     //! Quadrupole component strength k1 (1/m^2)
     double k1_;
     //! Entrance/exit edge angle (radians)
@@ -63,19 +61,14 @@ public:
         const double k1=0.0, const double e1=0.0, const double e2=0.0,
         const double h1=0.0, const double h2=0.0,
         const double dx=0.0, const double dy=0.0, const double ds=0.0,
-        const double tilt=0.0, const std::string &info="")
-        : Element(name, length, dx, dy, ds, tilt, info),
-        angle_(angle), k1_(k1), e1_(e1), e2_(e2), h1_(h1), h2_(h2) {}
+        const double tilt=0.0, const std::string &info="") :
+        Element(name, length, angle, dx, dy, ds, tilt, info),
+        k1_(k1), e1_(e1), e2_(e2), h1_(h1), h2_(h2) {}
     /**
      * @brief Destroy the Dipole object
      */
     virtual ~Dipole() noexcept = default;
 
-    /**
-     * @brief Get the bending angle of the dipole.
-     * @return double Bending angle (radians)
-     */
-    double angle() const { return angle_; }
     /**
      * @brief Get the quadrupole component strength k1 of the dipole.
      * @return double Quadrupole component strength k1 (1/m^2)
@@ -107,11 +100,6 @@ public:
      */
     double rho() const { return length_ / angle_; }
 
-    /**
-     * @brief Set the bending angle of the dipole.
-     * @param angle Bending angle (radians)
-     */
-    void angle(const double angle) { angle_ = angle; }
     /**
      * @brief Set the quadrupole component strength k1 of the dipole.
      * @param k1 Quadrupole component strength k1 (1/m^2)

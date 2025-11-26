@@ -56,7 +56,7 @@ public:
     Quadrupole(const std::string& name, const double length, const double k1,
         const double dx=0.0, const double dy=0.0, const double ds=0.0,
         const double tilt=0.0, const std::string &info="") :
-        Element(name, length, dx, dy, ds, tilt, info), k1_(k1) {}
+        Element(name, length, 0.0, dx, dy, ds, tilt, info), k1_(k1) {}
     /**
      * @brief Destroy the Quadrupole object
      */

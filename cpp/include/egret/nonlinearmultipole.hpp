@@ -60,7 +60,7 @@ public:
         const double kick_x=0.0, const double kick_y=0.0,
         double dx = 0.0, double dy = 0.0, double ds = 0.0,
         double tilt = 0.0, const std::string& info = "") :
-        Element(name, length, dx, dy, ds, tilt, info) {
+        Element(name, length, 0.0, dx, dy, ds, tilt, info) {
         set_steering(kick_x, kick_y);
     }
     /**

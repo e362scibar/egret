@@ -41,7 +41,7 @@ protected:
     double kick_y_;
 
     // Compute effective kick angles considering tilt and momentum deviation
-    std::tuple<double, double> tilted_kick(double delta) const noexcept;
+    std::tuple<double, double> tilted_kick(double delta=0.0) const noexcept;
 
 public:
     /**
@@ -60,7 +60,7 @@ public:
         const double kick_x=0.0, const double kick_y=0.0,
         const double dx=0.0, const double dy=0.0, const double ds=0.0,
         const double tilt=0.0, const std::string &info="") :
-        Element(name, length, dx, dy, ds, tilt, info),
+        Element(name, length, 0.0, dx, dy, ds, tilt, info),
         kick_x_(kick_x), kick_y_(kick_y) {}
     /**
      * @brief Destroy the Steering object

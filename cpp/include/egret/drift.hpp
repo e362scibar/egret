@@ -41,7 +41,7 @@ public:
     Drift(const std::string &name, const double length,
         const double dx=0.0, const double dy=0.0, const double ds=0.0,
         const double tilt=0.0, const std::string &info="") :
-        Element(name, length, dx, dy, ds, tilt, info) {}
+        Element(name, length, 0.0, dx, dy, ds, tilt, info) {}
     /**
      * @brief Destroy the Drift object
      */

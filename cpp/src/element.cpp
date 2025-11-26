@@ -36,7 +36,8 @@
  * @param endpoint Whether to include the endpoint
  * @return Eigen::ArrayXd Array of s values
  */
-Eigen::ArrayXd egret::Element::s_array(const double length, const double ds=0.1, const bool endpoint=false) noexcept {
+Eigen::ArrayXd egret::Element::s_array(const double length, const double ds,
+    const bool endpoint) noexcept(false) {
     const double abs_len = std::abs(length);
     const double abs_ds = std::abs(ds);
     if ((abs_len > abs_ds) || (endpoint && (abs_len > 0.0))) {
@@ -50,6 +51,139 @@ Eigen::ArrayXd egret::Element::s_array(const double length, const double ds=0.1,
     }
     // length is zero or smaller than ds and endpoint is false
     return Eigen::ArrayXd::Zero(1);
+}
+
+/**
+ * @brief Get the transfer matrix for a given coordinate and step size.
+ * @param cood0 Initial coordinate (optional)
+ * @param ds Maximum step size for integration
+ * @return Eigen::Matrix4d Transfer matrix of the element
+ */
+Eigen::Matrix4d egret::Element::transfer_matrix(
+    const std::optional<Coordinate> &cood0,
+    const double ds) const noexcept(false) {
+    Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
+    if (!elements_) {
+        // Default: identity matrix
+        return M;
+    }
+    Coordinate cood = cood0.value_or(Coordinate());
+    for (const auto &elem : *elements_) {
+        M = elem->transfer_matrix(cood, ds) * M;
+        cood = std::get<0>(elem->transfer(cood, std::nullopt, std::nullopt, ds));
+    }
+    return M;
+}
+
+/**
+ * @brief Get an array of transfer matrices for a given coordinate and step size.
+ * @param cood0 Initial coordinate (optional)
+ * @param ds Maximum step size
+ * @param endpoint Whether to include the endpoint
+ * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Array of transfer matrices and s array
+ */
+std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
+egret::Element::transfer_matrix_array(
+    const std::optional<Coordinate> &cood0,
+    const double ds, const bool endpoint) const noexcept(false) {
+    if (!elements_) {
+        // Default: identity matrix array
+        Eigen::ArrayXd s_array = this->s_array(ds, endpoint);
+        std::vector<Eigen::Matrix4d> M_array(s_array.size(), Eigen::Matrix4d::Identity());
+        return std::make_tuple(M_array, s_array);
+    }
+    Coordinate cood = cood0.value_or(Coordinate());
+    double s = 0.0;
+    Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
+    Eigen::ArrayXd s_array;
+    std::vector<Eigen::Matrix4d> M_array;
+    for (const auto &elem: *elements_) {
+        const auto [M_sub_array, s_sub_array] = elem->transfer_matrix_array(cood, ds, false);
+        M_array.insert(M_array.end(), M_sub_array.begin(), M_sub_array.end());
+        const size_t prev_size = s_array.size();
+        const size_t sub_size = s_sub_array.size();
+        s_array.conservativeResize(prev_size + sub_size);
+        s_array.tail(sub_size) = s + s_sub_array;
+        s += elem->length();
+        M = elem->transfer_matrix(cood, ds) * M;
+        cood = std::get<0>(elem->transfer(cood, std::nullopt, std::nullopt, ds));
+    }
+    if (endpoint) {
+        const size_t s_size = s_array.size();
+        s_array.conservativeResize(s_size + 1);
+        s_array(s_size - 1) = s;
+        M_array.push_back(M);
+    }
+    return std::make_tuple(M_array, s_array);
+}
+
+/**
+ * @brief Get the additive dispersion vector of the element.
+ * @param cood0 Initial coordinate (optional)
+ * @param ds Maximum step size for integration
+ * @return Eigen::Vector4d Additive dispersion vector
+ */
+Eigen::Vector4d egret::Element::dispersion(
+    const std::optional<Coordinate> &cood0,
+    const double ds) const noexcept(false) {
+    if (!elements_) {
+        // Default: zero dispersion
+        return Eigen::Vector4d::Zero();
+    }
+    Coordinate cood = cood0.value_or(Coordinate());
+    Dispersion disp;
+    for (const auto &elem : *elements_) {
+        const auto results = elem->transfer(cood, std::nullopt, disp, ds);
+        cood = std::get<0>(results);
+        disp = *std::get<2>(results);
+    }
+    return disp.vector();
+}
+
+/**
+ * @brief Get an array of additive dispersion vectors for a given coordinate and step size.
+ * @param cood0 Initial coordinate (optional)
+ * @param ds Maximum step size
+ * @param endpoint Whether to include the endpoint
+ * @return std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> Array of additive dispersion vectors and s array
+ */
+std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
+egret::Element::dispersion_array(
+    const std::optional<Coordinate> &cood0,
+    const double ds, const bool endpoint) const noexcept(false) {
+    if (!elements_) {
+        // Default: zero dispersion array
+        const auto s_array = this->s_array(ds, endpoint);
+        const auto disp_vec_array = Eigen::Matrix<double, 4, Eigen::Dynamic>::Zero(4, s_array.size());
+        return std::make_tuple(disp_vec_array, s_array);
+    }
+    double s = 0.0;
+    Coordinate cood = cood0.value_or(Coordinate());
+    Dispersion disp;
+    Eigen::ArrayXd s_array;
+    Eigen::Matrix<double, 4, Eigen::Dynamic> disp_vec_array(4, 0);
+    for (const auto &elem : *elements_) {
+        const auto [disp_sub_array, s_sub_array] = elem->dispersion_array(cood, ds, false);
+        const size_t prev_size = s_array.size();
+        const size_t sub_size = s_sub_array.size();
+        disp_vec_array.conservativeResize(4, prev_size + sub_size);
+        disp_vec_array.rightCols(sub_size) = disp_sub_array;
+        const size_t s_prev_size = s_array.size();
+        s_array.conservativeResize(s_prev_size + sub_size);
+        s_array.tail(sub_size) = s + s_sub_array;
+        s += elem->length();
+        const auto results = elem->transfer(cood, std::nullopt, disp, ds);
+        cood = std::get<0>(results);
+        disp = *std::get<2>(results);
+    }
+    if (endpoint) {
+        const size_t s_size = s_array.size();
+        s_array.conservativeResize(s_size + 1);
+        s_array(s_size - 1) = s;
+        disp_vec_array.conservativeResize(4, s_size + 1);
+        disp_vec_array.col(s_size - 1) = disp.vector();
+    }
+    return std::make_tuple(disp_vec_array, s_array);
 }
 
 /**
@@ -142,9 +276,9 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
             std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds);
         }
         if (endpoint) {
-            const Eigen::ArrayXd s_array{cood.s()};
-            const Eigen::ArrayXd z_array{cood.z()};
-            const Eigen::ArrayXd delta_array{cood.delta()};
+            const Eigen::ArrayXd s_array = Eigen::ArrayXd::Constant(1, cood.s());
+            const Eigen::ArrayXd z_array = Eigen::ArrayXd::Constant(1, cood.z());
+            const Eigen::ArrayXd delta_array = Eigen::ArrayXd::Constant(1, cood.delta());
             if (cood_array) {
                 cood_array->append(CoordinateArray(cood.vector(), s_array, z_array, delta_array));
             } else {
@@ -186,6 +320,47 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
         disp_array = DispersionArray(disp_vector_array, s_array + disp0->s());
     }
     return std::make_tuple(cood_array, evlp_array, disp_array);
+}
+
+/**
+ * @brief Calculate radiation integrals through the element.
+ * @param cood0 Initial coordinate
+ * @param evlp0 Initial envelope
+ * @param disp0 Initial dispersion
+ * @param ds Maximum step size
+ * @return std::tuple<double, double, double, double, double, double> Radiation integrals (I2, I4, I5u, I5v, I4u, I4v)
+ */
+std::tuple<double, double, double, double, double, double>
+egret::Element::radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
+    const Dispersion &disp0, const double ds) const noexcept(false) {
+    if (!elements_) {
+        // Default: zero radiation integrals
+        return std::make_tuple(0., 0., 0., 0., 0., 0.);
+    }
+    Coordinate cood = cood0;
+    std::optional<Envelope> evlp = evlp0;
+    std::optional<Dispersion> disp = disp0;
+    double I2 = 0.;
+    double I4 = 0.;
+    double I5u = 0.;
+    double I5v = 0.;
+    double I4u = 0.;
+    double I4v = 0.;
+    for (const auto &elem : *elements_) {
+        double i2, i4, i5u, i5v, i4u, i4v;
+        if (elem->length() == 0.0) {
+            continue;
+        }
+        std::tie(i2, i4, i5u, i5v, i4u, i4v) = elem->radiation_integrals(cood, *evlp, *disp, ds);
+        I2 += i2;
+        I4 += i4;
+        I5u += i5u;
+        I5v += i5v;
+        I4u += i4u;
+        I4v += i4v;
+        std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds);
+    }
+    return std::make_tuple(I2, I4, I5u, I5v, I4u, I4v);
 }
 
 /**
@@ -289,6 +464,105 @@ double egret::Element::simpson_integration(const Eigen::ArrayXd &y_array, const 
     I += 3.0*dx/8.0 * (y_array[m] + 3.0 * y_array[m+1] + 3.0 * y_array[m+2] + y_array[m+3]);
     return I;
 }
+
+/**
+ * @brief Get element at given indices
+ * @param indices Indices of the element
+ * @return std::shared_ptr<egret::Element> Element at the given indices
+ * @throws std::runtime_error if this element does not have child elements
+ * @throws std::invalid_argument if indices are invalid
+ * @throws std::out_of_range if indices are out of range
+ */
+std::shared_ptr<egret::Element> egret::Element::get_element(const std::vector<size_t> &indices) noexcept(false) {
+    if (!elements_) {
+        throw std::runtime_error("This element does not have child elements.");
+    }
+    if (indices.empty()) {
+        throw std::invalid_argument("Indices vector is empty in Element::get_element.");
+    }
+    const size_t index = indices[0];
+    if (indices.size() == 1) {
+        return elements_->at(index);
+    }
+    return get_element(std::vector<size_t>(indices.begin() + 1, indices.end()));
+}
+
+/**
+ * @brief Get the longitudinal position at given indices
+ * @param indices Indices of the element
+ * @return double Longitudinal position at the given indices
+ * @throws std::runtime_error if this element does not have child elements
+ * @throws std::invalid_argument if indices are invalid
+ * @throws std::out_of_range if indices are out of range
+ */
+double egret::Element::get_s(const std::vector<size_t> &indices) const noexcept(false) {
+    if (!elements_) {
+        throw std::runtime_error("This element does not have child elements.");
+    }
+    if (indices.empty()) {
+        throw std::invalid_argument("Indices vector is empty in Element::get_s.");
+    }
+    const size_t index = indices[0];
+    double s = 0.0;
+    for (const size_t i : std::views::iota(0u, index)) {
+        s += elements_->at(i)->length();
+    }
+    if (indices.size() > 1) {
+        s += elements_->at(index)->get_s(
+            std::vector<size_t>(indices.begin() + 1, indices.end()));
+    }
+    return s;
+}
+
+/**
+ * @brief Find indices of every element whose name starts with one of the given names.
+ * @param names Vector of names to search for
+ * @return std::vector<std::vector<size_t>> Vector of indices of matching elements
+ * @throws std::runtime_error if this element does not have child elements
+ */
+std::vector<std::vector<size_t>> egret::Element::find_index(
+    const std::vector<std::string> &names) const noexcept(false) {
+    if (!elements_) {
+        throw std::runtime_error("This element does not have child elements.");
+    }
+    std::vector<std::vector<size_t>> indices;
+    for (const size_t i : std::views::iota(0u, elements_->size())) {
+        const auto &elem = elements_->at(i);
+        if (elem->elements_) {
+            std::vector<std::vector<size_t>> sub_indices = elem->find_index(names);
+            for (auto &sub_index : sub_indices) {
+                sub_index.insert(sub_index.begin(), i);
+                indices.push_back(sub_index);
+            }
+        } else {
+            for (const auto &name : names) {
+                if (elem->get_name().starts_with(name)) {
+                    indices.push_back({i});
+                }
+            }
+        }
+    }
+    return indices;
+}
+
+/**
+ * @brief Set the indices of this element and its child elements recursively.
+ * @param indices Indices of the element
+ */
+void egret::Element::set_indices(const std::vector<size_t> &indices) noexcept {
+    indices_ = indices;
+    if (!elements_) {
+        return;
+    }
+    for (size_t i : std::views::iota(0u, elements_->size())) {
+        const auto &elem = elements_->at(i);
+        std::vector<size_t> new_indices = indices;
+        new_indices.push_back(i);
+        elem->set_indices(new_indices);
+    }
+}
+
+
 
 #if 0
 std::pair<Eigen::Tensor<double,3>, std::vector<double>> Drift::transfer_matrix_array_from_length(double length, double ds, bool endpoint) {
