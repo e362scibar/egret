@@ -30,7 +30,9 @@ int main(int argc, char **argv) {
     if (argc > 1) length = std::atof(argv[1]);
     if (argc > 2) k1 = std::atof(argv[2]);
     if (argc > 3) tilt = std::atof(argv[3]);
-    Eigen::Matrix4d t = egret::Quadrupole::transfer_matrix(length, k1, tilt, delta);
+    const double k1_eff = k1 / (1.0 + delta);
+    const auto R = egret::Quadrupole::rotation_matrix(tilt);
+    Eigen::Matrix4d t = egret::Quadrupole::transfer_matrix(length, k1_eff, R);
     // print 4x4 matrix as rows
     std::cout.setf(std::ios::scientific);
     for (int i=0;i<4;++i) {

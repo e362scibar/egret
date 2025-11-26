@@ -286,7 +286,7 @@ egret::EnvelopeArray egret::EnvelopeArray::transport(
     const std::vector<Eigen::Matrix4d> &M_array,
     const Eigen::ArrayXd &s_array) noexcept(false) {
     const size_t n = M_array.size();
-    if (s_array.size() != n) {
+    if (s_array.size() != static_cast<int>(n)) {
         throw std::invalid_argument("Size of s_array does not match number of transfer matrices in M_array");
     }
     std::vector<Eigen::Matrix4d> cov_array;

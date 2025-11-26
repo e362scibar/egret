@@ -22,12 +22,14 @@
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
-#include "egret/coordinate.hpp"
-#include "egret/coordinatearray.hpp"
-#include "egret/quadrupole.hpp"
+#include "egret/drift.hpp"
+#include "egret/steering.hpp"
 #include "egret/dipole.hpp"
+#include "egret/quadrupole.hpp"
 #include "egret/sextupole.hpp"
-#include "egret/element.hpp"
+#include "egret/octupole.hpp"
+#include "egret/lattice.hpp"
+#include "egret/ring.hpp"
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -35,6 +37,7 @@
 
 namespace py = pybind11;
 
+#if 0
 // Thin C++ wrapper types to provide Python-friendly element objects
 // that store element parameters and delegate to existing static C++ APIs.
 // These wrappers are local to bindings and are only intended to make
@@ -121,13 +124,20 @@ struct SextupoleWrapper : public egret::Element {
         return py::make_tuple(arr, sarr);
     }
 };
-
-namespace py = pybind11;
+#endif
 
 PYBIND11_MODULE(pyegret, m) {
     m.doc() = "pybind11 bindings for egret";
 
-    // (Element base/trampoline omitted for now — element wrappers are Python-subclassable via shared_ptr + dynamic_attr)
+    py::class_<egret::BaseArray>(m, "BaseArray")
+        .def(py::init<const Eigen::ArrayXd&>(), py::arg("s_array"))
+        .def_property_readonly("size", &egret::BaseArray::size)
+        .def_property("s_array",
+            static_cast<const Eigen::ArrayXd&(egret::BaseArray::*)() const>(&egret::BaseArray::s_array),
+            static_cast<void(egret::BaseArray::*)(const Eigen::ArrayXd&)>(&egret::BaseArray::s_array))
+        .def("ds", &egret::BaseArray::ds)
+        .def("append", &egret::BaseArray::append, py::arg("other"))
+        .def("index_from_s", &egret::BaseArray::index_from_s, py::arg("s"));
 
     py::class_<egret::Coordinate>(m, "Coordinate")
         .def(py::init<const Eigen::Vector4d&, double, double, double>(),
@@ -160,21 +170,435 @@ PYBIND11_MODULE(pyegret, m) {
             static_cast<double(egret::Coordinate::*)() const>(&egret::Coordinate::delta),
             static_cast<void(egret::Coordinate::*)(double)>(&egret::Coordinate::delta));
 
-    py::class_<egret::CoordinateArray>(m, "CoordinateArray")
+    py::class_<egret::CoordinateArray, egret::BaseArray>(m, "CoordinateArray")
         .def(py::init<const Eigen::Matrix<double,4,Eigen::Dynamic>&,
             const Eigen::ArrayXd&, const Eigen::ArrayXd&, const Eigen::ArrayXd&>(),
             py::arg("vector_array"),
             py::arg("s_array"),
             py::arg("z_array") = Eigen::ArrayXd(),
             py::arg("delta_array") = Eigen::ArrayXd())
-        .def_property_readonly("size", &egret::CoordinateArray::size)
-        .def_property_readonly("vector_array", &egret::CoordinateArray::vector_array)
-        .def_property_readonly("s_array", &egret::CoordinateArray::s_array)
-        .def_property_readonly("z_array", &egret::CoordinateArray::z_array)
-        .def_property_readonly("delta_array", &egret::CoordinateArray::delta_array)
+        .def_property("vector_array",
+            static_cast<const Eigen::Matrix<double,4,Eigen::Dynamic>&(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::vector_array),
+            static_cast<void(egret::CoordinateArray::*)(const Eigen::Matrix<double,4,Eigen::Dynamic>&)>(&egret::CoordinateArray::vector_array))
+        .def_property("z_array",
+            static_cast<const Eigen::ArrayXd&(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::z_array),
+            static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::z_array))
+        .def_property("delta_array",
+            static_cast<const Eigen::ArrayXd&(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::delta_array),
+            static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::delta_array))
+        .def_property("x_array",
+            static_cast<const Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::x_array),
+            static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::x_array))
+        .def_property("xp_array",
+            static_cast<const Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::xp_array),
+            static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::xp_array))
+        .def_property("y_array",
+            static_cast<const Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::y_array),
+            static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::y_array))
+        .def_property("yp_array",
+            static_cast<const Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::yp_array),
+            static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::yp_array))
         .def("append", &egret::CoordinateArray::append, py::arg("other"))
         .def("from_s", &egret::CoordinateArray::from_s, py::arg("s"));
 
+    py::class_<egret::Envelope>(m, "Envelope")
+        .def(py::init<const Eigen::Matrix4d&, double, const std::optional<const Eigen::Matrix2d>&>(),
+            py::arg("cov") = Eigen::Matrix4d::Identity(),
+            py::arg("s") = 0.0,
+            py::arg("T") = std::nullopt)
+        .def_property_readonly("cov", &egret::Envelope::cov)
+        .def_property_readonly("s", &egret::Envelope::s)
+        .def_property_readonly("T", &egret::Envelope::T)
+        .def_property_readonly("tau", &egret::Envelope::tau)
+        .def_property_readonly("U", &egret::Envelope::U)
+        .def_property_readonly("V", &egret::Envelope::V)
+        .def_property_readonly("bx", &egret::Envelope::bx)
+        .def_property_readonly("ax", &egret::Envelope::ax)
+        .def_property_readonly("gx", &egret::Envelope::gx)
+        .def_property_readonly("by", &egret::Envelope::by)
+        .def_property_readonly("ay", &egret::Envelope::ay)
+        .def_property_readonly("gy", &egret::Envelope::gy)
+        .def_property_readonly("bu", &egret::Envelope::bu)
+        .def_property_readonly("au", &egret::Envelope::au)
+        .def_property_readonly("gu", &egret::Envelope::gu)
+        .def_property_readonly("bv", &egret::Envelope::bv)
+        .def_property_readonly("av", &egret::Envelope::av)
+        .def_property_readonly("gv", &egret::Envelope::gv)
+        .def_property_readonly("T_matrix", &egret::Envelope::T_matrix)
+        .def_static("adjoint", &egret::Envelope::adjoint, py::arg("M"))
+        .def("transfer", &egret::Envelope::transfer, py::arg("M"), py::arg("length"));
+
+    py::class_<egret::EnvelopeArray, egret::BaseArray>(m, "EnvelopeArray")
+        .def(py::init<const std::vector<Eigen::Matrix4d>&, const Eigen::ArrayXd&,
+            const std::optional<std::vector<Eigen::Matrix2d>>&>(),
+            py::arg("cov_array"), py::arg("s_array"), py::arg("T_array") = std::nullopt)
+        .def("cov", &egret::EnvelopeArray::cov, py::arg("index"))
+        .def("T", &egret::EnvelopeArray::T, py::arg("index"))
+        .def("tau", &egret::EnvelopeArray::tau, py::arg("index"))
+        .def("U", &egret::EnvelopeArray::U, py::arg("index"))
+        .def("V", &egret::EnvelopeArray::V, py::arg("index"))
+        .def("bx", &egret::EnvelopeArray::bx, py::arg("index"))
+        .def("ax", &egret::EnvelopeArray::ax, py::arg("index"))
+        .def("gx", &egret::EnvelopeArray::gx, py::arg("index"))
+        .def("by", &egret::EnvelopeArray::by, py::arg("index"))
+        .def("ay", &egret::EnvelopeArray::ay, py::arg("index"))
+        .def("gy", &egret::EnvelopeArray::gy, py::arg("index"))
+        .def("bu", &egret::EnvelopeArray::bu, py::arg("index"))
+        .def("au", &egret::EnvelopeArray::au, py::arg("index"))
+        .def("gu", &egret::EnvelopeArray::gu, py::arg("index"))
+        .def("bv", &egret::EnvelopeArray::bv, py::arg("index"))
+        .def("av", &egret::EnvelopeArray::av, py::arg("index"))
+        .def("gv", &egret::EnvelopeArray::gv, py::arg("index"))
+        .def("T_matrix", &egret::EnvelopeArray::T_matrix, py::arg("index"))
+        .def("bx_array", &egret::EnvelopeArray::bx_array)
+        .def("ax_array", &egret::EnvelopeArray::ax_array)
+        .def("gx_array", &egret::EnvelopeArray::gx_array)
+        .def("by_array", &egret::EnvelopeArray::by_array)
+        .def("ay_array", &egret::EnvelopeArray::ay_array)
+        .def("gy_array", &egret::EnvelopeArray::gy_array)
+        .def("bu_array", &egret::EnvelopeArray::bu_array)
+        .def("au_array", &egret::EnvelopeArray::au_array)
+        .def("gu_array", &egret::EnvelopeArray::gu_array)
+        .def("bv_array", &egret::EnvelopeArray::bv_array)
+        .def("av_array", &egret::EnvelopeArray::av_array)
+        .def("gv_array", &egret::EnvelopeArray::gv_array)
+        .def("append", &egret::EnvelopeArray::append, py::arg("other"))
+        .def("from_s", &egret::EnvelopeArray::from_s, py::arg("s"))
+        .def("transport", &egret::EnvelopeArray::transport,
+            py::arg("M_array"), py::arg("s_array"));
+
+    py::class_<egret::Dispersion>(m, "Dispersion")
+        .def(py::init<const Eigen::Vector4d&, double>(),
+            py::arg("vector") = Eigen::Vector4d::Zero(),
+            py::arg("s") = 0.0)
+        .def_property("vector",
+            static_cast<const Eigen::Vector4d&(egret::Dispersion::*)() const>(&egret::Dispersion::vector),
+            static_cast<void(egret::Dispersion::*)(const Eigen::Vector4d&)>(&egret::Dispersion::vector))
+        .def_property("s",
+            static_cast<double(egret::Dispersion::*)() const>(&egret::Dispersion::s),
+            static_cast<void(egret::Dispersion::*)(double)>(&egret::Dispersion::s))
+        .def_property("x",
+            static_cast<double(egret::Dispersion::*)() const>(&egret::Dispersion::x),
+            static_cast<void(egret::Dispersion::*)(double)>(&egret::Dispersion::x))
+        .def_property("xp",
+            static_cast<double(egret::Dispersion::*)() const>(&egret::Dispersion::xp),
+            static_cast<void(egret::Dispersion::*)(double)>(&egret::Dispersion::xp))
+        .def_property("y",
+            static_cast<double(egret::Dispersion::*)() const>(&egret::Dispersion::y),
+            static_cast<void(egret::Dispersion::*)(double)>(&egret::Dispersion::y))
+        .def_property("yp",
+            static_cast<double(egret::Dispersion::*)() const>(&egret::Dispersion::yp),
+            static_cast<void(egret::Dispersion::*)(double)>(&egret::Dispersion::yp));
+
+    py::class_<egret::DispersionArray, egret::BaseArray>(m, "DispersionArray")
+        .def(py::init<const Eigen::Matrix<double, 4, Eigen::Dynamic>&, const Eigen::ArrayXd&>(),
+            py::arg("vector_array"), py::arg("s_array"))
+        .def_property_readonly("vector_array", &egret::DispersionArray::vector_array)
+        .def_property_readonly("x_array", &egret::DispersionArray::x_array)
+        .def_property_readonly("xp_array", &egret::DispersionArray::xp_array)
+        .def_property_readonly("y_array", &egret::DispersionArray::y_array)
+        .def_property_readonly("yp_array", &egret::DispersionArray::yp_array)
+        .def("append", &egret::DispersionArray::append, py::arg("other"))
+        .def("from_s", &egret::DispersionArray::from_s, py::arg("s"));
+
+    py::class_<egret::Object>(m, "Object")
+        .def(py::init<const std::string&>(), py::arg("name"))
+        .def_property("name",
+            static_cast<const std::string&(egret::Object::*)() const>(&egret::Object::name),
+            static_cast<void(egret::Object::*)(const std::string&)>(&egret::Object::name));
+
+    py::class_<egret::Element, egret::Object, std::shared_ptr<egret::Element>>(m, "Element")
+        .def(py::init<const std::string&, double, double, double, double, double, double, const std::string&>(),
+            py::arg("name"), py::arg("length"), py::arg("angle") = 0.0,
+            py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+            py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_property("length",
+            static_cast<double(egret::Element::*)() const>(&egret::Element::length),
+            static_cast<void(egret::Element::*)(double)>(&egret::Element::length))
+        .def_property("angle",
+            static_cast<double(egret::Element::*)() const>(&egret::Element::angle),
+            static_cast<void(egret::Element::*)(double)>(&egret::Element::angle))
+        .def_property("dx",
+            static_cast<double(egret::Element::*)() const>(&egret::Element::dx),
+            static_cast<void(egret::Element::*)(double)>(&egret::Element::dx))
+        .def_property("dy",
+            static_cast<double(egret::Element::*)() const>(&egret::Element::dy),
+            static_cast<void(egret::Element::*)(double)>(&egret::Element::dy))
+        .def_property("ds",
+            static_cast<double(egret::Element::*)() const>(&egret::Element::ds),
+            static_cast<void(egret::Element::*)(double)>(&egret::Element::ds))
+        .def_property("tilt",
+            static_cast<double(egret::Element::*)() const>(&egret::Element::tilt),
+            static_cast<void(egret::Element::*)(double)>(&egret::Element::tilt))
+        .def_property("info",
+            static_cast<const std::string&(egret::Element::*)() const>(&egret::Element::info),
+            static_cast<void(egret::Element::*)(const std::string&)>(&egret::Element::info))
+        .def_property_readonly("elements", &egret::Element::elements)
+        .def("s_array",
+            static_cast<Eigen::ArrayXd(egret::Element::*)(double, bool) const>(&egret::Element::s_array),
+            py::arg("ds") = 0.1, py::arg("endpoint") = true)
+        .def("transfer_matrix", &egret::Element::transfer_matrix,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("transfer_matrix_array", &egret::Element::transfer_matrix_array,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def("dispersion", &egret::Element::dispersion,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("dispersion_array", &egret::Element::dispersion_array,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def("transfer", &egret::Element::transfer,
+            py::arg("cood0"), py::arg("evlp0") = std::nullopt,
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("transfer_array", &egret::Element::transfer_array,
+            py::arg("cood0"), py::arg("evlp0") = std::nullopt,
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
+            py::arg("endpoint") = false)
+        .def("radiation_integrals", &egret::Element::radiation_integrals,
+            py::arg("cood0"), py::arg("evlp0"), py::arg("disp0"), py::arg("ds") = 0.1)
+        .def("get_element_from_s", &egret::Element::get_element_from_s, py::arg("s"))
+        .def("transfer_matrix_from_s", &egret::Element::transfer_matrix_from_s,
+            py::arg("s0"), py::arg("cood0"), py::arg("ds") = 0.1)
+        .def("get_element", &egret::Element::get_element, py::arg("indices"))
+        .def("get_s", &egret::Element::get_s, py::arg("indices"))
+        .def("find_index", &egret::Element::find_index, py::arg("names"))
+        .def("set_indices", &egret::Element::set_indices,
+            py::arg("indices") = std::vector<size_t>());
+
+    py::class_<egret::Drift, egret::Element, egret::Object,
+        std::shared_ptr<egret::Drift>>(m, "Drift")
+        .def(py::init<const std::string&, double, double, double, double, double, const std::string&>(),
+            py::arg("name"), py::arg("length"),
+            py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+            py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_static("transfer_matrix_from_length",
+            py::overload_cast<double>(&egret::Drift::transfer_matrix), py::arg("length"))
+        .def_static("transfer_matrix_array_from_length",
+            py::overload_cast<double, double, bool>(&egret::Drift::transfer_matrix_array),
+            py::arg("length"), py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def("transfer_matrix",
+            static_cast<Eigen::Matrix4d(egret::Drift::*)(const std::optional<egret::Coordinate>&, double) const>
+            (&egret::Drift::transfer_matrix),
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("transfer_matrix_array",
+            static_cast<std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
+            (egret::Drift::*)(const std::optional<egret::Coordinate>&, double, bool) const>
+            (&egret::Drift::transfer_matrix_array),
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1,
+            py::arg("endpoint") = false);
+
+    py::class_<egret::Steering, egret::Element, egret::Object,
+        std::shared_ptr<egret::Steering>>(m, "Steering")
+        .def(py::init<const std::string&, double, double, double, double, double,
+            double, double, const std::string&>(),
+            py::arg("name"), py::arg("length"),
+            py::arg("kick_x") = 0.0, py::arg("kick_y") = 0.0,
+            py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+            py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_property("kick_x",
+            static_cast<double(egret::Steering::*)() const>(&egret::Steering::kick_x),
+            static_cast<void(egret::Steering::*)(double)>(&egret::Steering::kick_x))
+        .def_property("kick_y",
+            static_cast<double(egret::Steering::*)() const>(&egret::Steering::kick_y),
+            static_cast<void(egret::Steering::*)(double)>(&egret::Steering::kick_y))
+        .def_property("kick",
+            static_cast<std::tuple<double,double>(egret::Steering::*)() const>(&egret::Steering::kick),
+            static_cast<void(egret::Steering::*)(double,double)>(&egret::Steering::kick))
+        .def("set_steering", &egret::Steering::set_steering,
+            py::arg("kick_x"), py::arg("kick_y"));
+
+    py::class_<egret::Dipole, egret::Element, egret::Object,
+        std::shared_ptr<egret::Dipole>>(m, "Dipole")
+        .def(py::init<const std::string&, double, double, double, double, double,
+            double, double, double, double, double, double, const std::string&>(),
+            py::arg("name"), py::arg("length"), py::arg("angle"),
+            py::arg("k1") = 0.0, py::arg("e1") = 0.0, py::arg("e2") = 0.0,
+            py::arg("h1") = 0.0, py::arg("h2") = 0.0,
+            py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+            py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_property("k1",
+            static_cast<double(egret::Dipole::*)() const>(&egret::Dipole::k1),
+            static_cast<void(egret::Dipole::*)(double)>(&egret::Dipole::k1))
+        .def_property("e1",
+            static_cast<double(egret::Dipole::*)() const>(&egret::Dipole::e1),
+            static_cast<void(egret::Dipole::*)(double)>(&egret::Dipole::e1))
+        .def_property("e2",
+            static_cast<double(egret::Dipole::*)() const>(&egret::Dipole::e2),
+            static_cast<void(egret::Dipole::*)(double)>(&egret::Dipole::e2))
+        .def_property("h1",
+            static_cast<double(egret::Dipole::*)() const>(&egret::Dipole::h1),
+            static_cast<void(egret::Dipole::*)(double)>(&egret::Dipole::h1))
+        .def_property("h2",
+            static_cast<double(egret::Dipole::*)() const>(&egret::Dipole::h2),
+            static_cast<void(egret::Dipole::*)(double)>(&egret::Dipole::h2))
+        .def_property_readonly("rho", &egret::Dipole::rho)
+        .def("transfer_matrix", &egret::Dipole::transfer_matrix,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("transfer_matrix_array", &egret::Dipole::transfer_matrix_array,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def("dispersion", &egret::Dipole::dispersion,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("dispersion_array", &egret::Dipole::dispersion_array,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def("transfer", &egret::Dipole::transfer,
+            py::arg("cood0"), py::arg("evlp0") = std::nullopt,
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("transfer_array", &egret::Dipole::transfer_array,
+            py::arg("cood0"), py::arg("evlp0") = std::nullopt,
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
+            py::arg("endpoint") = false)
+        .def("radiation_integrals", &egret::Dipole::radiation_integrals,
+            py::arg("cood0"), py::arg("evlp0"), py::arg("disp0"), py::arg("ds") = 0.1);
+
+    py::class_<egret::Quadrupole, egret::Element, egret::Object,
+        std::shared_ptr<egret::Quadrupole>>(m, "Quadrupole")
+        .def(py::init<const std::string&, double, double, double, double, double, double, const std::string&>(),
+            py::arg("name"), py::arg("length"), py::arg("k1"),
+            py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+            py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_property("k1",
+            static_cast<double(egret::Quadrupole::*)() const>(&egret::Quadrupole::k1),
+            static_cast<void(egret::Quadrupole::*)(double)>(&egret::Quadrupole::k1))
+        .def_static("transfer_matrix_from_length_k1",
+            py::overload_cast<double, double, const std::optional<Eigen::Matrix4d>&>
+            (&egret::Quadrupole::transfer_matrix),
+            py::arg("length"), py::arg("k1"), py::arg("rmat") = std::nullopt)
+        .def_static("rotation_matrix", &egret::Quadrupole::rotation_matrix,
+            py::arg("tilt"))
+        .def("transfer_matrix",
+            static_cast<Eigen::Matrix4d(egret::Quadrupole::*)(const std::optional<egret::Coordinate>&, double) const>
+            (&egret::Quadrupole::transfer_matrix),
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("transfer_matrix_array", &egret::Quadrupole::transfer_matrix_array,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def_static("dispersion_from_length_k1",
+            py::overload_cast<const Eigen::Vector4d&, double, double, double>
+            (&egret::Quadrupole::dispersion),
+            py::arg("cood0_vec"), py::arg("length"), py::arg("k1"), py::arg("tilt"))
+        .def("dispersion",
+            static_cast<Eigen::Vector4d(egret::Quadrupole::*)(const std::optional<egret::Coordinate>&, double) const>(&egret::Quadrupole::dispersion),
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("dispersion_array", &egret::Quadrupole::dispersion_array,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def_static("transfer_by_length_k1", &egret::Quadrupole::transfer,
+            py::arg("cood0_vec"), py::arg("length"), py::arg("k1"),
+            py::arg("k0x"), py::arg("k0y"), py::arg("tilt"),
+            py::arg("tmat_flag") = false, py::arg("disp_flag") = false);
+
+    py::class_<egret::NonlinearMultipole, egret::Element, egret::Object>
+    (m, "NonlinearMultipole")
+        .def(py::init<const std::string&, double, double, double,
+            double, double, double, double, const std::string&>(),
+            py::arg("name"), py::arg("length"),
+            py::arg("kick_x") = 0.0, py::arg("kick_y") = 0.0,
+            py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+            py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_property("k0x",
+            static_cast<double(egret::NonlinearMultipole::*)() const>(&egret::NonlinearMultipole::k0x),
+            static_cast<void(egret::NonlinearMultipole::*)(double)>(&egret::NonlinearMultipole::k0x))
+        .def_property("k0y",
+            static_cast<double(egret::NonlinearMultipole::*)() const>(&egret::NonlinearMultipole::k0y),
+            static_cast<void(egret::NonlinearMultipole::*)(double)>(&egret::NonlinearMultipole::k0y))
+        .def_property("kick_x",
+            static_cast<double(egret::NonlinearMultipole::*)() const>(&egret::NonlinearMultipole::kick_x),
+            static_cast<void(egret::NonlinearMultipole::*)(double)>(&egret::NonlinearMultipole::kick_x))
+        .def_property("kick_y",
+            static_cast<double(egret::NonlinearMultipole::*)() const>(&egret::NonlinearMultipole::kick_y),
+            static_cast<void(egret::NonlinearMultipole::*)(double)>(&egret::NonlinearMultipole::kick_y))
+        .def("set_steering", &egret::NonlinearMultipole::set_steering,
+            py::arg("kick_x"), py::arg("kick_y"))
+        .def("get_k", &egret::NonlinearMultipole::get_k,
+            py::arg("cood"))
+        .def("transfer_by_midpoint_method", &egret::NonlinearMultipole::transfer_by_midpoint_method,
+            py::arg("cood0"), py::arg("ds"),
+            py::arg("tmat_flag") = true, py::arg("disp_flag") = false)
+        .def("transfer_matrix", &egret::NonlinearMultipole::transfer_matrix,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("transfer_matrix_array", &egret::NonlinearMultipole::transfer_matrix_array,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def("dispersion", &egret::NonlinearMultipole::dispersion,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("dispersion_array", &egret::NonlinearMultipole::dispersion_array,
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+        .def("transfer", &egret::NonlinearMultipole::transfer,
+            py::arg("cood0"), py::arg("evlp0") = std::nullopt,
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1)
+        .def("transfer_array", &egret::NonlinearMultipole::transfer_array,
+            py::arg("cood0"), py::arg("evlp0") = std::nullopt,
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
+            py::arg("endpoint") = false);
+
+    py::class_<egret::Sextupole, egret::NonlinearMultipole, egret::Element,
+        egret::Object, std::shared_ptr<egret::Sextupole>>(m, "Sextupole")
+        .def(py::init<const std::string&, double, double, double, double, double,
+            double, double, double, const std::string&>(),
+            py::arg("name"), py::arg("length"), py::arg("k2"),
+            py::arg("kick_x") = 0.0, py::arg("kick_y") = 0.0,
+            py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+            py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_property("k2",
+            static_cast<double(egret::Sextupole::*)() const>(&egret::Sextupole::k2),
+            static_cast<void(egret::Sextupole::*)(double)>(&egret::Sextupole::k2))
+        .def("get_k", &egret::Sextupole::get_k, py::arg("cood"));
+
+    py::class_<egret::Octupole, egret::NonlinearMultipole, egret::Element,
+        egret::Object, std::shared_ptr<egret::Octupole>>(m, "Octupole")
+        .def(py::init<const std::string&, double, double, double, double, double,
+            double, double, double, double, double, const std::string&>(),
+            py::arg("name"), py::arg("length"), py::arg("k3"),
+            py::arg("k1") = 0.0, py::arg("tilt_quad") = 0.0,
+            py::arg("kick_x") = 0.0, py::arg("kick_y") = 0.0,
+            py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+            py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_property("k3",
+            static_cast<double(egret::Octupole::*)() const>(&egret::Octupole::k3),
+            static_cast<void(egret::Octupole::*)(double)>(&egret::Octupole::k3))
+        .def_property("k1",
+            static_cast<double(egret::Octupole::*)() const>(&egret::Octupole::k1),
+            static_cast<void(egret::Octupole::*)(double)>(&egret::Octupole::k1))
+        .def_property("tilt_quad",
+            static_cast<double(egret::Octupole::*)() const>(&egret::Octupole::tilt_quad),
+            static_cast<void(egret::Octupole::*)(double)>(&egret::Octupole::tilt_quad))
+        .def("set_quadrupole", &egret::Octupole::set_quadrupole,
+            py::arg("k1") = std::nullopt, py::arg("tilt_quad") = std::nullopt)
+        .def("get_k", &egret::Octupole::get_k, py::arg("cood"));
+
+    py::class_<egret::Lattice, egret::Element, egret::Object,
+        std::shared_ptr<egret::Lattice>>(m, "Lattice")
+        .def(py::init<const std::string&, const std::vector<std::shared_ptr<egret::Element>>&,
+            double, double, double, double, const std::string&>(),
+        py::arg("name"), py::arg("elements"),
+        py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
+        py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_static("length_of", &egret::Lattice::length,
+            py::arg("elements"))
+        .def_static("angle_of", &egret::Lattice::angle,
+            py::arg("elements"));
+
+    py::class_<egret::Ring, egret::Element, egret::Object>(m, "Ring")
+        .def(py::init<const std::string&, const std::vector<std::shared_ptr<egret::Element>>&,
+            double, std::string&>(),
+        py::arg("name"), py::arg("elements"),
+        py::arg("energy"), py::arg("info") = "")
+        .def_property_readonly("energy", &egret::Ring::energy)
+        .def_property_readonly("tune_x", &egret::Ring::tune_x)
+        .def_property_readonly("tune_y", &egret::Ring::tune_y)
+        .def_property_readonly("cood0", &egret::Ring::cood0)
+        .def_property_readonly("evlp0", &egret::Ring::evlp0)
+        .def_property_readonly("disp0", &egret::Ring::disp0)
+        .def_property_readonly("emittance_x", &egret::Ring::emittance_x)
+        .def_property_readonly("emittance_y", &egret::Ring::emittance_y)
+        .def_property_readonly("J_x", &egret::Ring::J_x)
+        .def_property_readonly("J_y", &egret::Ring::J_y)
+        .def_property_readonly("J_z", &egret::Ring::J_z)
+        .def("update", &egret::Ring::update, py::arg("delta") = 0.0)
+        .def("find_initial_coordinate_of_closed_orbit",
+            &egret::Ring::find_initial_coordinate_of_closed_orbit,
+            py::arg("cood_guess") = std::nullopt)
+        .def_readonly_static("C_q", &egret::Ring::C_q)
+        .def_readonly_static("m_e_eV", &egret::Ring::m_e_eV)
+        .def_readwrite_static("tol_cod", &egret::Ring::tol_cod)
+        .def_readwrite_static("max_iter_cod", &egret::Ring::max_iter_cod);
+
+#if 0
     // Simple container types for envelope and dispersion (numpy-backed)
     struct Envelope {
         py::array_t<double> beta_x;
@@ -728,4 +1152,5 @@ PYBIND11_MODULE(pyegret, m) {
                 },
                 "Apply stack of 4x4 transfer matrices to vectors",
                 py::arg("mats"), py::arg("vecs"));
+#endif
 }

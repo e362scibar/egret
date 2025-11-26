@@ -29,6 +29,7 @@
 #include <Eigen/Dense>
 #include "egret/coordinate.hpp"
 #include "egret/basearray.hpp"
+
 namespace egret {
     class CoordinateArray;
 }
@@ -36,7 +37,7 @@ namespace egret {
 /**
  * @brief Class representing an array of particle coordinates in phase space.
  */
-class egret::CoordinateArray: public egret::BaseArray {
+class egret::CoordinateArray : public egret::BaseArray {
 protected:
     //! 4 x N matrix of particle coordinates (x, xp, y, yp)
     Eigen::Matrix<double, 4, Eigen::Dynamic> vector_array_;
@@ -52,36 +53,18 @@ public:
         const Eigen::ArrayXd& s_array,
         const Eigen::ArrayXd& z_array = Eigen::ArrayXd(),
         const Eigen::ArrayXd& delta_array = Eigen::ArrayXd()) noexcept(false);
+
     /**
-     * @brief Destroy the CoordinateArray object.
+     * @brief Get the size of the CoordinateArray.
+     * @return size_t
      */
-    virtual ~CoordinateArray() = default;
+    size_t size() const { return vector_array_.cols(); }
 
     /**
      * @brief Get the array of particle coordinate vectors.
      * @return const Eigen::Matrix<double,4,Eigen::Dynamic>& Array of particle coordinate vectors
      */
     const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array() const { return vector_array_; }
-    /**
-     * @brief Get the array of x coordinates.
-     * @return const Eigen::ArrayXd Array of x coordinates
-     */
-    const Eigen::ArrayXd x_array() const { return vector_array_.row(0); }
-    /**
-     * @brief Get the array of x' coordinates.
-     * @return const Eigen::ArrayXd Array of x' coordinates
-     */
-    const Eigen::ArrayXd xp_array() const { return vector_array_.row(1); }
-    /**
-     * @brief Get the array of y coordinates.
-     * @return const Eigen::ArrayXd Array of y coordinates
-     */
-    const Eigen::ArrayXd y_array() const { return vector_array_.row(2); }
-    /**
-     * @brief Get the array of y' coordinates.
-     * @return const Eigen::ArrayXd Array of y' coordinates
-     */
-    const Eigen::ArrayXd yp_array() const { return vector_array_.row(3); }
     /**
      * @brief Get the array of longitudinal displacements.
      * @return const Eigen::ArrayXd& Array of longitudinal displacements
@@ -92,48 +75,68 @@ public:
      * @return const Eigen::ArrayXd& Array of relative momentum deviations
      */
     const Eigen::ArrayXd& delta_array() const { return delta_array_; }
+    /**
+     * @brief Get the array of x coordinates.
+     * @return const Eigen::ArrayXd
+     */
+    const Eigen::ArrayXd x_array() const { return vector_array_.row(0).array(); }
+    /**
+     * @brief Get the array of x' coordinates.
+     * @return const Eigen::ArrayXd
+     */
+    const Eigen::ArrayXd xp_array() const { return vector_array_.row(1).array(); }
+    /**
+     * @brief Get the array of y coordinates.
+     * @return const Eigen::ArrayXd
+     */
+    const Eigen::ArrayXd y_array() const { return vector_array_.row(2).array(); }
+    /**
+     * @brief Get the array of y' coordinates.
+     * @return const Eigen::ArrayXd
+     */
+    const Eigen::ArrayXd yp_array() const { return vector_array_.row(3).array(); }
 
     /**
      * @brief Set the array of particle coordinate vectors.
-     * @param vector_array Array of particle coordinate vectors
+     * @param vector_array Eigen::Matrix<double,4,Eigen::Dynamic> to copy from
      */
     void vector_array(const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array) {
         vector_array_ = vector_array;
     }
     /**
-     * @brief Set the array of x coordinates.
-     * @param x_array Array of x coordinates
-     */
-    void x_array(const Eigen::ArrayXd& x_array) { vector_array_.row(0) = x_array; }
-    /**
-     * @brief Set the array of x' coordinates.
-     * @param xp_array Array of x' coordinates
-     */
-    void xp_array(const Eigen::ArrayXd& xp_array) { vector_array_.row(1) = xp_array; }
-    /**
-     * @brief Set the array of y coordinates.
-     * @param y_array Array of y coordinates
-     */
-    void y_array(const Eigen::ArrayXd& y_array) { vector_array_.row(2) = y_array; }
-    /**
-     * @brief Set the array of y' coordinates.
-     * @param yp_array Array of y' coordinates
-     */
-    void yp_array(const Eigen::ArrayXd& yp_array) { vector_array_.row(3) = yp_array; }
-    /**
      * @brief Set the array of longitudinal displacements.
-     * @param z_array Array of longitudinal displacements
+     * @param z_array Eigen::ArrayXd to copy from
      */
     void z_array(const Eigen::ArrayXd& z_array) { z_array_ = z_array; }
     /**
      * @brief Set the array of relative momentum deviations.
-     * @param delta_array Array of relative momentum deviations
+     * @param delta_array Eigen::ArrayXd to copy from
      */
     void delta_array(const Eigen::ArrayXd& delta_array) { delta_array_ = delta_array; }
+    /**
+     * @brief Set the array of x coordinates.
+     * @param x_array Eigen::ArrayXd to copy from
+     */
+    void x_array(const Eigen::ArrayXd& x_array) { vector_array_.row(0) = x_array.transpose(); }
+    /**
+     * @brief Set the array of x' coordinates.
+     * @param xp_array Eigen::ArrayXd to copy from
+     */
+    void xp_array(const Eigen::ArrayXd& xp_array) { vector_array_.row(1) = xp_array.transpose(); }
+    /**
+     * @brief Set the array of y coordinates.
+     * @param y_array Eigen::ArrayXd to copy from
+     */
+    void y_array(const Eigen::ArrayXd& y_array) { vector_array_.row(2) = y_array.transpose(); }
+    /**
+     * @brief Set the array of y' coordinates.
+     * @param yp_array Eigen::ArrayXd to copy from
+     */
+    void yp_array(const Eigen::ArrayXd& yp_array) { vector_array_.row(3) = yp_array.transpose(); }
 
     // Efficient append (reserve + copy)
     void append(const CoordinateArray &other) noexcept(false);
 
-    // Get Coordinate at given s by linear interpolation
+    // Get Coordinate from linear interpolation
     Coordinate from_s(double s) const noexcept(false);
 };

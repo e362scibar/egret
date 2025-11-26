@@ -128,7 +128,10 @@ public:
     // Calculate dipole and quadrupole field strengths at given coordinate.
     // (x'+jy' = - k0 L - k1 L x + j k1 L y)
     virtual std::tuple<std::complex<double>, std::complex<double>>
-    get_k(const Coordinate &cood) const = 0;
+    get_k(const Coordinate &cood) const {
+        (void)cood; // suppress unused parameter warning
+        throw std::runtime_error("get_k() not implemented for base NonlinearMultipole class");
+    }
 
     // Calculate coordinate, transfer matrix, and dispersion by midpoint method.
     virtual std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>

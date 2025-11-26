@@ -62,7 +62,7 @@ void egret::BaseArray::append(const BaseArray &other) noexcept(false) {
  * @throws std::out_of_range if s is out of the range of s_array.
  */
 size_t egret::BaseArray::index_from_s(const double s) const noexcept(false) {
-    const auto n = s_array_.size();
+    const size_t n = s_array_.size();
     if (n < 2) {
         throw std::out_of_range("s_array must contain at least two points.");
     }

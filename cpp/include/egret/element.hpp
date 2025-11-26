@@ -85,78 +85,78 @@ public:
      * @brief Get the length of the element.
      * @return double Length of the element
      */
-    virtual double length() const { return length_; }
+    double length() const { return length_; }
     /**
      * @brief Get the bending angle of the element.
      * @return double Bending angle of the element
      */
-    virtual double angle() const { return angle_; }
+    double angle() const { return angle_; }
     /**
      * @brief Get the transverse offset in x.
      * @return double Transverse offset in x
      */
-    virtual double dx() const { return dx_; }
+    double dx() const { return dx_; }
     /**
      * @brief Get the transverse offset in y.
      * @return double Transverse offset in y
      */
-    virtual double dy() const { return dy_; }
+    double dy() const { return dy_; }
     /**
      * @brief Get the longitudinal offset.
      * @return double Longitudinal offset
      */
-    virtual double ds() const { return ds_; }
+    double ds() const { return ds_; }
     /**
      * @brief Get the tilt angle.
      * @return double Tilt angle
      */
-    virtual double tilt() const { return tilt_; }
+    double tilt() const { return tilt_; }
     /**
      * @brief Get the additional info string.
      * @return const std::string& Additional info string
      */
-    virtual const std::string& info() const { return info_; }
+    const std::string& info() const { return info_; }
     /**
      * @brief Get the vector of child elements.
      * @return const std::optional<std::vector<std::shared_ptr<Element>>>& Vector of child elements
      */
-    virtual const std::optional<std::vector<std::shared_ptr<Element>>>& elements() const { return elements_; }
+    const std::optional<std::vector<std::shared_ptr<Element>>>& elements() const { return elements_; }
 
     /**
      * @brief Set the length of the element.
      * @param length Length of the element
      */
-    virtual void length(const double length) { length_ = length; }
+    void length(const double length) { length_ = length; }
     /**
      * @brief Set the bending angle of the element.
      * @param angle Bending angle of the element
      */
-    virtual void angle(const double angle) { angle_ = angle; }
+    void angle(const double angle) { angle_ = angle; }
     /**
      * @brief Set the transverse offset in x.
      * @param dx Transverse offset in x
      */
-    virtual void dx(const double dx) { dx_ = dx; }
+    void dx(const double dx) { dx_ = dx; }
     /**
      * @brief Set the transverse offset in y.
      * @param dy Transverse offset in y
      */
-    virtual void dy(const double dy) { dy_ = dy; }
+    void dy(const double dy) { dy_ = dy; }
     /**
      * @brief Set the longitudinal offset.
      * @param ds Longitudinal offset
      */
-    virtual void ds(const double ds) { ds_ = ds; }
+    void ds(const double ds) { ds_ = ds; }
     /**
      * @brief Set the tilt angle.
      * @param tilt Tilt angle
      */
-    virtual void tilt(const double tilt) { tilt_ = tilt; }
+    void tilt(const double tilt) { tilt_ = tilt; }
     /**
      * @brief Set the additional info string.
      * @param info Additional info string
      */
-    virtual void info(const std::string &info) { info_ = info; }
+    void info(const std::string &info) { info_ = info; }
 
     // Get s array based on length and step size.
     static Eigen::ArrayXd s_array(double length, double ds=0.1, bool endpoint=false) noexcept(false);
@@ -238,5 +238,5 @@ public:
     std::vector<std::vector<size_t>> find_index(const std::vector<std::string> &names) const noexcept(false);
 
     // Set indices for all child elements
-    void set_indices(const std::vector<size_t> &parent_indices={}) noexcept;
+    void set_indices(const std::vector<size_t> &indices={}) noexcept;
 };

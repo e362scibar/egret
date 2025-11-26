@@ -81,7 +81,7 @@ public:
     }
 
     // Efficient append (reserve + copy)
-    virtual void append(const BaseArray &other) noexcept(false);
+    void append(const BaseArray &other) noexcept(false);
 
     // Get Coordinate from linear interpolation
     virtual size_t index_from_s(double s) const noexcept(false);

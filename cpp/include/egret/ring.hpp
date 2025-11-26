@@ -56,7 +56,7 @@ protected:
     //! Equilibrium emittance
     double emittance_x_, emittance_y_;
     //! Damping partition numbers
-    double J_x_, J_y_, J_s_;
+    double J_x_, J_y_, J_z_;
 
 public:
     // Construct a new Ring object
@@ -121,7 +121,7 @@ public:
      * @brief Get the longitudinal damping partition number.
      * @return double Longitudinal damping partition number
      */
-    double J_s() const { return J_s_; }
+    double J_z() const { return J_z_; }
 
     // Update the ring parameters (tunes, etc.)
     void update(double delta=0.0) noexcept(false);

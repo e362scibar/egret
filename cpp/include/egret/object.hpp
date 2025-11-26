@@ -37,14 +37,14 @@ namespace egret {
 class egret::Object {
 protected:
     //! Name of the object.
-    std::string name;
+    std::string name_;
 
 public:
     /**
      * @brief Construct a new Object object
      * @param name Object name
      */
-    Object(const std::string &name) : name(name) {}
+    Object(const std::string &name) : name_(name) {}
     /**
      * @brief Virtual destructor
      */
@@ -53,10 +53,10 @@ public:
      * @brief Get the name of the object
      * @return const std::string& Name of the object
      */
-    const std::string& get_name() const { return name; }
+    const std::string& name() const { return name_; }
     /**
      * @brief Set the name of the object
      * @param new_name New name to set
      */
-    void set_name(const std::string &new_name) { name = new_name; }
+    void name(const std::string &name) { name_ = name; }
 };

@@ -509,7 +509,6 @@ egret::Dipole::transfer(
     cood.y(cood.y() - dy_);
     cood.s(cood.s() - ds_);
     const auto M = transfer_matrix(cood, ds); // Matrix4d
-    const auto vector = M * cood0.vector(); // Vector4d
     const auto disp_add = dispersion(cood, ds); // Vector4d
     std::optional<Envelope> evlp = evlp0;
     if (evlp) {

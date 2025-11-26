@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -Werror")
 
 # Try to extract Python package version from pyproject.toml so the C++ code
 # and package version remain in sync. If parsing fails, fall back to 0.0.0.

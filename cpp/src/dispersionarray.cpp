@@ -39,7 +39,7 @@ egret::DispersionArray::DispersionArray(
     const Eigen::ArrayXd& s_array) noexcept(false) :
     BaseArray(s_array), vector_array_(vector_array) {
     // Check consistency of input sizes
-    if (vector_array_.cols() != size()) {
+    if (vector_array_.cols() != static_cast<int>(size())) {
         throw std::invalid_argument("Size of s_array does not match number of columns in vector_array");
     }
 }

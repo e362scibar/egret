@@ -137,7 +137,7 @@ void egret::Ring::update(double delta) noexcept(false) {
     emittance_y_ = C_q * lgamma * lgamma * I5v / (I2 - I4v);
     J_x_ = 1.0 - I4u / I2;
     J_y_ = 1.0 - I4v / I2;
-    J_s_ = 2.0 + I4 / I2;
+    J_z_ = 2.0 + I4 / I2;
 }
 
 namespace {

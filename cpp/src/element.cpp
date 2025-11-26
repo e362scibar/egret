@@ -415,7 +415,6 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
             } else if (s < s_accum) {
                 const auto M = elem->transfer_matrix(cood0_local, ds); // Matrix4d
                 M_total = M * M_total;
-                const auto v_out = M * cood0_local.vector(); // Vector4d
                 std::tie(cood0_local, std::ignore, std::ignore) = elem->transfer(cood0_local,
                     std::nullopt, std::nullopt, ds);
             }
@@ -536,7 +535,7 @@ std::vector<std::vector<size_t>> egret::Element::find_index(
             }
         } else {
             for (const auto &name : names) {
-                if (elem->get_name().starts_with(name)) {
+                if (elem->name().starts_with(name)) {
                     indices.push_back({i});
                 }
             }

@@ -56,7 +56,7 @@ public:
      * @brief Get the 4D vector representing dispersion function.
      * @return Eigen::Vector4d 4D vector (Dx, Dpx, Dy, Dpy)
      */
-    Eigen::Vector4d vector() const { return vector_; }
+    const Eigen::Vector4d& vector() const { return vector_; }
     /**
      * @brief Get the longitudinal position s.
      * @return double Longitudinal position s
@@ -97,20 +97,20 @@ public:
      * @brief Set the x component of the dispersion vector.
      * @param x x component
      */
-    double x(const double x) { return vector_(0) = x; };
+    void x(const double x) { vector_(0) = x; };
     /**
      * @brief Set the x' component of the dispersion vector.
      * @param xp x' component
      */
-    double xp(const double xp) { return vector_(1) = xp; };
+    void xp(const double xp) { vector_(1) = xp; };
     /**
      * @brief Set the y component of the dispersion vector.
      * @param y y component
      */
-    double y(const double y) { return vector_(2) = y; };
+    void y(const double y) { vector_(2) = y; };
     /**
      * @brief Set the y' component of the dispersion vector.
      * @param yp y' component
      */
-    double yp(const double yp) { return vector_(3) = yp; };
+    void yp(const double yp) { vector_(3) = yp; };
 };
