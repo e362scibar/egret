@@ -144,12 +144,13 @@ class Quadrupole(Element):
             tmat = np.einsum('ji,jkn,kl->iln', rmat, tmat, rmat)
         return tmat, s
 
-    def dispersion(self, cood0: Coordinate) -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the quadrupole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
+            ds float: Maximum step size for integration [m]. (Not used in this method.)
 
         Returns:
             npt.NDArray[np.floating]: 4-element dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
