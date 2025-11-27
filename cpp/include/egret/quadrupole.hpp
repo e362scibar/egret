@@ -108,4 +108,7 @@ public:
     transfer(const Eigen::Vector4d &cood0_vec, double length, double k1,
         double k0x=0.0, double k0y=0.0, double tilt=0.0,
         bool tmat_flag=false, bool disp_flag=false) noexcept(false);
+
+    // Polymorphic clone
+    std::shared_ptr<Element> clone() const override { return std::make_shared<Quadrupole>(*this); }
 };

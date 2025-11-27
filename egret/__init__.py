@@ -47,6 +47,12 @@ __all__ = [
 	"DispersionArray",
 ]
 
+# Expose `pyegret` lazily via the internal bridge module so importing
+# `egret.pyegret` or doing `from egret import pyegret` triggers a single
+# canonical loader implemented in `egret._pyegret_bridge`.
+if "pyegret" not in __all__:
+	__all__.append("pyegret")
+
 _LAZY_MAP = {
 	'Object': ('.object', 'Object'),
 	'Element': ('.element', 'Element'),
@@ -65,6 +71,7 @@ _LAZY_MAP = {
 	'EnvelopeArray': ('.envelopearray', 'EnvelopeArray'),
 	'Dispersion': ('.dispersion', 'Dispersion'),
 	'DispersionArray': ('.dispersionarray', 'DispersionArray'),
+    'pyegret': ('._pyegret_bridge', 'pyegret'),
 }
 
 def __getattr__(name: str):

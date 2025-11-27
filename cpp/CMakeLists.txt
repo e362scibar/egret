@@ -3,7 +3,19 @@ cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -Werror")
+
+# Configure common warning flags but do NOT force -Werror globally. For
+# packaging builds (PEP 517) global -Werror can cause LTO / compiler-time
+# warnings (e.g. Eigen false-positives) to turn into fatal link errors.
+set(DEFAULT_WARNING_FLAGS "-Wall -Wextra -Wpedantic")
+string(APPEND CMAKE_CXX_FLAGS " ${DEFAULT_WARNING_FLAGS}")
+
+# Optionally enable treating warnings as errors. Use this during local dev
+# builds by passing -DWARNINGS_AS_ERRORS=ON to cmake if desired.
+option(WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
+if(WARNINGS_AS_ERRORS)
+  string(APPEND CMAKE_CXX_FLAGS " -Werror")
+endif()
 
 # Try to extract Python package version from pyproject.toml so the C++ code
 # and package version remain in sync. If parsing fails, fall back to 0.0.0.
@@ -30,6 +42,22 @@ option(USE_OPENMP "Enable OpenMP parallelization in pyegret helper" OFF)
 # Prefer system-installed pybind11; fall back to requiring it to be available
 option(BUILD_PYEXT "Build Python extension with pybind11" OFF)
 if(BUILD_PYEXT)
+  # Prefer using CMake's modern FindPython to avoid pybind11 triggering
+  # legacy FindPythonInterp/FindPythonLibs behavior. Set policy CMP0148
+  # to NEW so CMake does not emit the dev warning about removed modules.
+  if(POLICY CMP0148)
+    cmake_policy(SET CMP0148 NEW)
+  endif()
+
+  # Resolve Python explicitly (Interpreter + Development) prior to invoking
+  # pybind11. This prevents pybind11 from falling back to older FindPython
+  # modules and eliminates the CMP0148 warning.
+  find_package(Python COMPONENTS Interpreter Development REQUIRED)
+
+  # Instruct pybind11's CMake helpers to use the modern FindPython results
+  # instead of trying legacy FindPythonInterp/FindPythonLibs.
+  set(PYBIND11_FINDPYTHON ON CACHE BOOL "" FORCE)
+
   find_package(pybind11 CONFIG REQUIRED)
 endif()
 
@@ -43,9 +71,9 @@ find_package(GSL REQUIRED)
 
 add_library(egret_core STATIC
   src/basearray.cpp
+  src/envelope.cpp
   src/coordinatearray.cpp
   src/dispersionarray.cpp
-  src/envelope.cpp
   src/envelopearray.cpp
   src/element.cpp
   src/drift.cpp
@@ -61,12 +89,23 @@ add_library(egret_core STATIC
 target_include_directories(egret_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(egret_core PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include)
 target_link_libraries(egret_core PUBLIC Eigen3::Eigen)
+# Initialize Eigen matrices by zero to avoid spurious -Wmaybe-uninitialized warnings
+target_compile_definitions(egret_core PUBLIC EIGEN_INITIALIZE_MATRICES_BY_ZERO=1)
+# Ensure egret_core is position-independent so it can be linked into the
+# Python extension (shared object) without PIC-related link errors.
+set_target_properties(egret_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Link GSL to the core library so consumers (eg. the pybind11 module)
+# do not need to manually link GSL and to avoid unresolved symbols at link.
+target_link_libraries(egret_core PUBLIC GSL::gsl GSL::gslcblas)
 
 if(BUILD_PYEXT)
   pybind11_add_module(pyegret src/bindings.cpp)
   target_link_libraries(pyegret PRIVATE egret_core)
   target_include_directories(pyegret PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
   target_include_directories(pyegret PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)
+  # Ensure the pybind11 extension also uses zero-initialized Eigen matrices
+  target_compile_definitions(pyegret PRIVATE EIGEN_INITIALIZE_MATRICES_BY_ZERO=1)
   if(USE_OPENMP)
     target_link_libraries(pyegret PRIVATE OpenMP::OpenMP_CXX)
     target_compile_definitions(pyegret PRIVATE USE_OPENMP)

@@ -123,4 +123,7 @@ public:
     // (x'+jy' = - k0 L - k1 L x + j k1 L y)
     std::tuple<std::complex<double>, std::complex<double>>
     get_k(const Coordinate &cood) const noexcept override;
+
+    // Polymorphic clone
+    std::shared_ptr<Element> clone() const override { return std::make_shared<Octupole>(*this); }
 };

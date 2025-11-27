@@ -29,6 +29,23 @@
 #include <cmath>
 #include <ranges>
 
+#if 0
+egret::Element::Element(const Element &other) :
+    Object(other), length_(other.length_), angle_(other.angle_),
+    dx_(other.dx_), dy_(other.dy_), ds_(other.ds_), tilt_(other.tilt_), info_(other.info_),
+    elements_(std::nullopt),
+    indices_(other.indices_) {
+    if (other.elements_) {
+        // copy child elements
+
+        elements_ = std::make_optional<std::vector<std::shared_ptr<Element>>>();
+        for (const auto &elem : *other.elements_) {
+            elements_->push_back(std::make_shared<Element>(*elem));
+        }
+      elements_(other.elements_ ? std::make_optional<std::vector<std::shared_ptr<Element>>>(*other.elements_) : std::nullopt),
+}
+#endif
+
 /**
  * @brief Generate an array of s values based on length and step size.
  * @param length Length of the element
@@ -65,7 +82,8 @@ Eigen::Matrix4d egret::Element::transfer_matrix(
     Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
     if (!elements_) {
         // Default: identity matrix
-        return M;
+        //return M;
+        throw std::runtime_error("Element::transfer_matrix: Do not call on base Element.");
     }
     Coordinate cood = cood0.value_or(Coordinate());
     for (const auto &elem : *elements_) {
@@ -88,9 +106,10 @@ egret::Element::transfer_matrix_array(
     const double ds, const bool endpoint) const noexcept(false) {
     if (!elements_) {
         // Default: identity matrix array
-        Eigen::ArrayXd s_array = this->s_array(ds, endpoint);
-        std::vector<Eigen::Matrix4d> M_array(s_array.size(), Eigen::Matrix4d::Identity());
-        return std::make_tuple(M_array, s_array);
+        //Eigen::ArrayXd s_array = this->s_array(ds, endpoint);
+        //std::vector<Eigen::Matrix4d> M_array(s_array.size(), Eigen::Matrix4d::Identity());
+        //return std::make_tuple(M_array, s_array);
+        throw std::runtime_error("Element::transfer_matrix_array: Do not call on base Element.");
     }
     Coordinate cood = cood0.value_or(Coordinate());
     double s = 0.0;
@@ -129,6 +148,7 @@ Eigen::Vector4d egret::Element::dispersion(
     if (!elements_) {
         // Default: zero dispersion
         return Eigen::Vector4d::Zero();
+        //throw std::runtime_error("Element::dispersion: Do not call on base Element.");
     }
     Coordinate cood = cood0.value_or(Coordinate());
     Dispersion disp;
@@ -156,6 +176,7 @@ egret::Element::dispersion_array(
         const auto s_array = this->s_array(ds, endpoint);
         const auto disp_vec_array = Eigen::Matrix<double, 4, Eigen::Dynamic>::Zero(4, s_array.size());
         return std::make_tuple(disp_vec_array, s_array);
+        //throw std::runtime_error("Element::dispersion_array: Do not call on base Element.");
     }
     double s = 0.0;
     Coordinate cood = cood0.value_or(Coordinate());
@@ -225,7 +246,7 @@ egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> 
     }
     std::optional<Dispersion> disp = disp0;
     if (disp) {
-        const auto disp_v_out = M * disp->vector() + dispersion(cood0err, ds); // Vector4d
+        const Eigen::Vector4d disp_v_out = M * disp->vector() + dispersion(cood0err, ds);
         disp->vector(disp_v_out);
         disp->s(disp->s() + length_);
     }
@@ -335,7 +356,8 @@ egret::Element::radiation_integrals(const Coordinate &cood0, const Envelope &evl
     const Dispersion &disp0, const double ds) const noexcept(false) {
     if (!elements_) {
         // Default: zero radiation integrals
-        return std::make_tuple(0., 0., 0., 0., 0., 0.);
+        //return std::make_tuple(0., 0., 0., 0., 0., 0.);
+        throw std::runtime_error("Element::radiation_integrals: Do not call on base Element.");
     }
     Coordinate cood = cood0;
     std::optional<Envelope> evlp = evlp0;

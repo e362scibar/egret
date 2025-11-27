@@ -21,6 +21,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include "egret/quadrupole.hpp"
+#include "egret/drift.hpp"
 
 int main(int argc, char **argv) {
     double length = 0.5;
@@ -38,6 +39,27 @@ int main(int argc, char **argv) {
     for (int i=0;i<4;++i) {
         for (int j=0;j<4;++j) {
             std::cout << t(i,j);
+            if (j<3) std::cout << ' ';
+        }
+        std::cout << '\n';
+    }
+    // test polymorphism
+    std::unique_ptr<egret::Element> elem = std::make_unique<egret::Quadrupole>("Q1",length, k1);
+    Eigen::Matrix4d t2 = elem->transfer_matrix();
+    std::cout << "Transfer matrix from polymorphic call:\n";
+    for (int i=0;i<4;++i) {
+        for (int j=0;j<4;++j) {
+            std::cout << t2(i,j);
+            if (j<3) std::cout << ' ';
+        }
+        std::cout << '\n';
+    }
+    std::unique_ptr<egret::Element> elem2 = std::make_unique<egret::Drift>("D1",length);
+    Eigen::Matrix4d t3 = elem2->transfer_matrix();
+    std::cout << "Drift transfer matrix from polymorphic call:\n";
+    for (int i=0;i<4;++i) {
+        for (int j=0;j<4;++j) {
+            std::cout << t3(i,j);
             if (j<3) std::cout << ' ';
         }
         std::cout << '\n';

@@ -160,4 +160,7 @@ public:
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
         double ds=0.1) const noexcept(false) override;
+
+    // Polymorphic clone
+    std::shared_ptr<Element> clone() const override { return std::make_shared<Dipole>(*this); }
 };

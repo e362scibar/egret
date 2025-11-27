@@ -47,4 +47,7 @@ public:
 
     // Calculate total bending angle of a vector of elements
     static double angle(const std::vector<std::shared_ptr<Element>> &elements) noexcept;
+
+    // Polymorphic clone
+    std::shared_ptr<Element> clone() const override;
 };

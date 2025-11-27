@@ -49,10 +49,34 @@ egret::Ring::Ring(const std::string &name,
     energy_(energy), tune_x_(0.0), tune_y_(0.0), cood0_(), evlp0_(), disp0_() {
     elements_ = std::vector<std::shared_ptr<Element>>();
     for (const auto &elem: elements) {
-        // Copy of elements
-        elements_->push_back(std::make_shared<Element>(*elem));
+        // Deep-copy each element to preserve dynamic type
+        elements_->push_back(elem->clone());
     }
     set_indices();
+}
+std::shared_ptr<egret::Element> egret::Ring::clone() const {
+    /*
+    std::vector<std::shared_ptr<Element>> elems;
+    if (elements_) {
+        for (const auto &e : *elements_) {
+            elems.push_back(e->clone());
+        }
+    }
+    */
+    auto newring = std::make_shared<Ring>(name(), elements_, energy_, info());
+    // copy runtime state
+    newring->cood0_ = cood0_;
+    newring->evlp0_ = evlp0_;
+    newring->disp0_ = disp0_;
+    newring->emittance_x_ = emittance_x_;
+    newring->emittance_y_ = emittance_y_;
+    newring->J_x_ = J_x_;
+    newring->J_y_ = J_y_;
+    newring->J_z_ = J_z_;
+    newring->tune_x_ = tune_x_;
+    newring->tune_y_ = tune_y_;
+    newring->set_indices();
+    return newring;
 }
 
 /**

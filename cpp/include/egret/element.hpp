@@ -76,6 +76,12 @@ public:
             const double tilt=0.0, const std::string &info="") :
         Object(name), length_(length), angle_(angle),
         dx_(dx), dy_(dy), ds_(ds), tilt_(tilt), info_(info) {}
+    // Copy constructor
+    //Element(const Element &other);
+    // Move constructor
+    //Element(Element &&other) noexcept;
+    // Copy assignment operator
+    //Element& operator=(const Element &other);
     /**
      * @brief Virtual destructor
      */
@@ -239,4 +245,10 @@ public:
 
     // Set indices for all child elements
     void set_indices(const std::vector<size_t> &indices={}) noexcept;
+
+    // Polymorphic clone to support deep-copying elements while preserving dynamic type
+    virtual std::shared_ptr<Element> clone() const {
+        //return std::make_shared<Element>(*this);
+        throw std::runtime_error("Do not call Element::clone() in the base class.");
+    }
 };

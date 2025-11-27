@@ -115,7 +115,7 @@ public:
      * @param kick_x Steering kick in x direction or std::nullopt to leave unchanged
      * @param kick_y Steering kick in y direction or std::nullopt to leave unchanged
      */
-    virtual void set_steering(const std::optional<double> &kick_x,
+    void set_steering(const std::optional<double> &kick_x,
         const std::optional<double> &kick_y) {
         if (kick_x) {
             k0x_ = -(*kick_x) / length_;
@@ -170,4 +170,7 @@ public:
         const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt,
         double ds=0.1, bool endpoint=false) const noexcept(false) override;
+
+    // Polymorphic clone (default shallow for this intermediate base)
+    std::shared_ptr<Element> clone() const override { return std::make_shared<NonlinearMultipole>(*this); }
 };

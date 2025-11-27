@@ -78,4 +78,7 @@ public:
         (void)cood0; // unused parameter
         return transfer_matrix_array(length_, ds, endpoint);
     }
+
+    // Polymorphic clone
+    std::shared_ptr<Element> clone() const override { return std::make_shared<Drift>(*this); }
 };

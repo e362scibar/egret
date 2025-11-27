@@ -33,6 +33,13 @@ def _try_load_installed_egret_so():
         if p and 'site-packages' in p and p not in candidates:
             candidates.append(p)
 
+    import sys
+    # If the compiled extension is already loaded under its canonical name,
+    # return it to avoid loading the same shared object twice under another
+    # module name which causes pybind11 duplicate registration errors.
+    if 'pyegret' in sys.modules:
+        return sys.modules['pyegret']
+
     for base in candidates:
         pkg_dir = os.path.join(base, 'egret')
         if not os.path.isdir(pkg_dir):
@@ -44,12 +51,28 @@ def _try_load_installed_egret_so():
             if matches:
                 so = matches[0]
                 try:
-                    loader = importlib.machinery.ExtensionFileLoader('egret.pyegret', so)
-                    spec = importlib.util.spec_from_loader('egret.pyegret', loader)
+                    # Load the extension under its canonical compiled name
+                    # 'pyegret' to prevent duplicate registration of C++ types
+                    # if the same .so is imported under multiple module names.
+                    loader = importlib.machinery.ExtensionFileLoader('pyegret', so)
+                    spec = importlib.util.spec_from_loader('pyegret', loader)
                     mod = importlib.util.module_from_spec(spec)
+                    # register under canonical name first
+                    import sys
+                    sys.modules['pyegret'] = mod
                     loader.exec_module(mod)
+                    # also alias under package-qualified name if needed
+                    pkg_name = 'egret.pyegret'
+                    if pkg_name not in sys.modules:
+                        sys.modules[pkg_name] = mod
                     return mod
                 except Exception:
+                    # If loading fails, ensure we don't leave a half-initialized entry
+                    try:
+                        if 'pyegret' in sys.modules:
+                            del sys.modules['pyegret']
+                    except Exception:
+                        pass
                     continue
     return None
 

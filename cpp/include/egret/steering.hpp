@@ -167,4 +167,7 @@ public:
     transfer_array(const Coordinate &cood0, const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt,
         double ds=0.1, bool endpoint=false) const noexcept(false) override;
+
+    // Polymorphic clone
+    std::shared_ptr<Element> clone() const override { return std::make_shared<Steering>(*this); }
 };
