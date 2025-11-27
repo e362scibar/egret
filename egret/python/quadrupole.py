@@ -1,4 +1,4 @@
-# quadrupole.py
+# python/quadrupole.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #

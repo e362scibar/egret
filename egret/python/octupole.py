@@ -1,4 +1,4 @@
-# sextupole.py
+# python/octupole.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -34,19 +34,21 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
-class Sextupole(Element):
+class Octupole(Element):
     '''
-    Sextupole magnet.
+    Octupole magnet.
     '''
 
-    def __init__(self, name: str, length: float, k2: float,
+    def __init__(self, name: str, length: float, k3: float,
                  dx: float = 0., dy: float = 0., ds: float = 0.,
-                 tilt: float = 0., info: str = '', dxp: float = 0., dyp: float = 0.):
+                 tilt: float = 0., info: str = '',
+                 dxp: float = 0., dyp: float = 0.,
+                 k1: float = 0., tilt_quad: float = 0.) -> None:
         '''
         Args:
             name str: Name of the element.
             length float: Length of the element [m].
-            k2 float: Normalized sextupole strength [1/m^3].
+            k3 float: Octupole strength [1/m^4].
             dx float: Horizontal offset of the element [m].
             dy float: Vertical offset of the element [m].
             ds float: Longitudinal offset of the element [m].
@@ -54,21 +56,23 @@ class Sextupole(Element):
             info str: Additional information.
             dxp float: Horizontal kick angle of the steering coil [rad].
             dyp float: Vertical kick angle of the steering coil [rad].
+            k1 float: Additional quadrupole strength [1/m^2].
+            tilt_quad float: Tilt angle of the additional quadrupole [rad] (pi/4 for skew quad).
         '''
         super().__init__(name, length, dx, dy, ds, tilt, info)
-        self.k2 = k2
+        self.k3 = k3
         self.set_steering(dxp, dyp)
+        self.set_quadrupole(k1, tilt_quad)
 
-    def copy(self) -> Sextupole:
+    def copy(self) -> Octupole:
         '''
-        Return a copy of the sextupole.
+        Return a copy of the octupole.
 
         Returns:
-            Sextupole: Copy of the sextupole.
+            Octupole: Copy of the octupole.
         '''
-        return Sextupole(self.name, self.length, self.k2,
-                         self.dx, self.dy, self.ds,
-                         self.tilt, self.info)
+        return Octupole(self.name, self.length, self.k3,
+                        self.dx, self.dy, self.ds, self.tilt, self.info)
 
     def transfer_matrix_by_midpoint_method(self, cood0: Coordinate, ds: float = 0.1,
                                            tmatflag: bool = True, dispflag: bool = False) \
@@ -79,21 +83,23 @@ class Sextupole(Element):
         Args:
             cood0 Coordinate: Initial coordinate
             ds float: Step size [m] for integration.
-            tmatflag bool: Calculate transfer matrix if true. (default: True)
-            dispflag bool: Calculate additive dispersion if True. (default: False)
+            tmatflag bool: Calculate transfer matrix if True. (default: True)
+            dispflag bool: Calculate dispersion if True. (default: False)
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix, if tmatflag is True, else None.
             Coordinate: Final coordinate after the step.
             npt.NDArray[np.floating]: Additive dispersion if dispflag is True, else None.
         '''
-        k2 = self.k2 / (1. + cood0.delta)
+        k3 = self.k3 / (1. + cood0.delta)
         k0x, k0y = self.k0x / (1. + cood0.delta), self.k0y / (1. + cood0.delta)
+        k1 = self.k1 / (1. + cood0.delta)
         x0, y0, xp0, yp0 = cood0['x'], cood0['y'], cood0['xp'], cood0['yp']
         # dipole strength at the entrance (x'+jy' = k0 L)
-        k0a = k2 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0) + k0x + 1.j * k0y
+        k0a = k3 * (x0**3 / 6. - 0.5 * x0 * y0**2 + 1.j * (y0**3 / 6. - 0.5 * x0**2 * y0)) \
+            + k0x + 1.j * k0y + k1 * np.exp(2.j * self.tilt_quad) * (x0 - 1.j * y0)
         # quadrupole strength at the entrance
-        k1a = k2 * (x0 - 1.j * y0)
+        k1a = self.k3 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0) + k1 * np.exp(2.j * self.tilt_quad)
         # tilt angle of the quadrupole
         tilt = np.angle(k1a) * 0.5
         if np.abs(k1a) < 1.e-20:
@@ -101,17 +107,17 @@ class Sextupole(Element):
             x1, y1 = x0 + (xp0 - 0.5*k0a.real*ds) * ds, y0 + (yp0 - 0.5*k0a.imag*ds) * ds
         else:
             # transverse offset to generate dipole kick
-            # offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0a) / np.abs(k1a)
-            offset = - np.exp(2.j*tilt) * np.conj(k0a) / np.abs(k1a)
+            offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0a) / np.abs(k1a)
             # get first quad
             quad1 = Quadrupole(self.name+'_quad1', ds, np.abs(k1a), dx=offset.real, dy=offset.imag, tilt=tilt)
             # get coordinate after first quad
             cood1, _, _ = quad1.transfer(Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.))
             x1, y1 = cood1['x'] + x0, cood1['y'] + y0
         # dipole strength after the first quad
-        k0b = k2 * (0.5 * (x1**2 - y1**2) - 1.j * x1 * y1) + k0x + 1.j * k0y
+        k0b = k3 * (x1**3 / 6. - 0.5 * x1 * y1**2 + 1.j * (y1**3 / 6. - 0.5 * x1**2 * y1)) \
+            + k0x + 1.j * k0y + k1 * np.exp(2.j * self.tilt_quad) * (x1 - 1.j * y1)
         # quadrupole strength after the first quad
-        k1b = k2 * (x1 - 1.j * y1)
+        k1b = k3 * (0.5 * (x1**2 - y1**2) - 1.j * x1 * y1) + k1 * np.exp(2.j * self.tilt_quad)
         # get average dipole strength
         k0 = 0.5 * (k0a + k0b)
         # get average quadrupole strength
@@ -130,8 +136,7 @@ class Sextupole(Element):
                 disp = np.array([0.5 * k0.real * ds**2, k0.real * ds, 0.5 * k0.imag * ds**2, k0.imag * ds])
         else:
             # transverse offset to generate dipole kick
-            # offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
-            offset = - np.exp(2.j*tilt) * np.conj(k0) / np.abs(k1)
+            offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
             # get second quad
             quad2 = Quadrupole(self.name+'_quad2', ds, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
             # get coordinate after second quad
@@ -140,7 +145,7 @@ class Sextupole(Element):
             cood2['x'] += x0
             cood2['y'] += y0
             cood2.delta = cood0.delta
-            # get transfer matrix and additive dispersion of the second quad
+            # get transfer matrix of the second quad
             if tmatflag:
                 tmat = quad2.transfer_matrix()
             if dispflag:
@@ -149,7 +154,7 @@ class Sextupole(Element):
 
     def transfer_matrix(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
-        Transfer matrix of the sextupole calculated by midpoint method.
+        Transfer matrix of the octupole calculated by midpoint method.
 
         Args:
             cood0 Coordinate: Initial coordinate
@@ -195,7 +200,7 @@ class Sextupole(Element):
 
     def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
-        Additive dispersion vector at the exit of the sextupole.
+        Additive dispersion vector at the exit of the octupole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
@@ -216,7 +221,7 @@ class Sextupole(Element):
     def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
-        Additive dispersion array along the sextupole.
+        Additive dispersion array along the octupole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
@@ -224,7 +229,7 @@ class Sextupole(Element):
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: 4xN Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
+            npt.NDArray[np.floating]: Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
             npt.NDArray[np.floating]: Longitudinal position array [s].
         '''
         n_step = int(self.length / ds) + 1
@@ -240,7 +245,7 @@ class Sextupole(Element):
     def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
-        Calculate the coordinate, envelope, and dispersion after the sextupole.
+        Calculate the coordinate, envelope, and dispersion after the octupole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
@@ -267,7 +272,7 @@ class Sextupole(Element):
                 tmat = tmat_step @ tmat
             if disp0 is not None:
                 dispvec = np.dot(tmat_step, dispvec) + disp
-        cood1 = cood
+        cood1 = cood.copy()
         cood1.vector[0] += self.dx
         cood1.vector[2] += self.dy
         cood1.s += self.ds
@@ -286,7 +291,7 @@ class Sextupole(Element):
                        ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
-        Calculate the coordinate, envelope, and dispersion arrays along the sextupole.
+        Calculate the coordinate, envelope, and dispersion arrays along the octupole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
@@ -347,3 +352,16 @@ class Sextupole(Element):
         if dyp is not None:
             self.dyp = dyp
             self.k0y = - self.dyp / self.length
+
+    def set_quadrupole(self, k1: float = None, tilt_quad: float = None) -> None:
+        '''
+        Set additional quadrupole strength and tilt angle.
+
+        Args:
+            k1 float: Additional quadrupole strength [1/m^2].
+            tilt_quad float: Tilt angle of the additional quadrupole [rad] (pi/4 for skew quad).
+        '''
+        if k1 is not None:
+            self.k1 = k1
+        if tilt_quad is not None:
+            self.tilt_quad = tilt_quad

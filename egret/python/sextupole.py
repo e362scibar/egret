@@ -1,4 +1,4 @@
-# sextupole.py
+# python/sextupole.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #

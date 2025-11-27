@@ -182,7 +182,7 @@ public:
     }
 };
 
-PYBIND11_MODULE(pyegret, m) {
+PYBIND11_MODULE(cppegret, m) {
     m.doc() = "pybind11 bindings for egret";
 
     py::class_<egret::BaseArray, egret::PyBaseArray, py::smart_holder>(m, "BaseArray")

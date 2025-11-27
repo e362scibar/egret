@@ -37,7 +37,7 @@ configure_file(
 )
 
 # Option to enable OpenMP parallelization in the Python extension
-option(USE_OPENMP "Enable OpenMP parallelization in pyegret helper" OFF)
+option(USE_OPENMP "Enable OpenMP parallelization in cppegret helper" OFF)
 
 # Prefer system-installed pybind11; fall back to requiring it to be available
 option(BUILD_PYEXT "Build Python extension with pybind11" OFF)
@@ -100,21 +100,21 @@ set_target_properties(egret_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(egret_core PUBLIC GSL::gsl GSL::gslcblas)
 
 if(BUILD_PYEXT)
-  pybind11_add_module(pyegret src/bindings.cpp)
-  target_link_libraries(pyegret PRIVATE egret_core)
-  target_include_directories(pyegret PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-  target_include_directories(pyegret PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)
+  pybind11_add_module(cppegret src/bindings.cpp)
+  target_link_libraries(cppegret PRIVATE egret_core)
+  target_include_directories(cppegret PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_include_directories(cppegret PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)
   # Ensure the pybind11 extension also uses zero-initialized Eigen matrices
-  target_compile_definitions(pyegret PRIVATE EIGEN_INITIALIZE_MATRICES_BY_ZERO=1)
+  target_compile_definitions(cppegret PRIVATE EIGEN_INITIALIZE_MATRICES_BY_ZERO=1)
   if(USE_OPENMP)
-    target_link_libraries(pyegret PRIVATE OpenMP::OpenMP_CXX)
-    target_compile_definitions(pyegret PRIVATE USE_OPENMP)
+    target_link_libraries(cppegret PRIVATE OpenMP::OpenMP_CXX)
+    target_compile_definitions(cppegret PRIVATE USE_OPENMP)
   endif()
   # Install python extension into a relative `egret` directory under the
   # install prefix. scikit-build-core sets the install prefix to a temporary
   # directory when building a wheel, so installing to the relative path
   # `egret/` ensures the shared object ends up in the package directory.
-  install(TARGETS pyegret
+  install(TARGETS cppegret
     LIBRARY DESTINATION egret
     RUNTIME DESTINATION egret
     ARCHIVE DESTINATION egret)

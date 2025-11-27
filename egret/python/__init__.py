@@ -1,4 +1,4 @@
-# __init__.py
+# python/__init__.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -17,8 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-from .version import __version__
 
 from .coordinate import Coordinate
 from .envelope import Envelope

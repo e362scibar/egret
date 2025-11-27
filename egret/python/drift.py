@@ -1,4 +1,4 @@
-# drift.py
+# python/drift.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
