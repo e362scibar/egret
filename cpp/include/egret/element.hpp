@@ -76,12 +76,6 @@ public:
             const double tilt=0.0, const std::string &info="") :
         Object(name), length_(length), angle_(angle),
         dx_(dx), dy_(dy), ds_(ds), tilt_(tilt), info_(info) {}
-    // Copy constructor
-    //Element(const Element &other);
-    // Move constructor
-    //Element(Element &&other) noexcept;
-    // Copy assignment operator
-    //Element& operator=(const Element &other);
     /**
      * @brief Virtual destructor
      */
@@ -216,13 +210,6 @@ public:
     virtual std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
         const Dispersion &disp0, double ds=0.1) const noexcept(false);
-        /* {
-        (void)cood0; // unused parameter
-        (void)evlp0; // unused parameter
-        (void)disp0; // unused parameter
-        (void)ds; // unused parameter
-        return std::make_tuple(0., 0., 0., 0., 0., 0.);
-    }*/
 
     // Simpson's rule integration
     static double simpson_integration(const Eigen::ArrayXd &y_array, double dx) noexcept(false);

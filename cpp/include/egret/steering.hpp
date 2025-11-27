@@ -168,7 +168,6 @@ public:
         const std::optional<Dispersion> &disp0 = std::nullopt,
         double ds=0.1, bool endpoint=false) const noexcept(false) override;
 
-    // Polymorphic clone
     /**
      * @brief Clone the Steering object.
      * @return std::shared_ptr<Element> Shared pointer to the cloned Steering object

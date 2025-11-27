@@ -84,5 +84,3 @@ double egret::Lattice::angle(const std::vector<std::shared_ptr<Element>> &elemen
     }
     return angle;
 }
-
-

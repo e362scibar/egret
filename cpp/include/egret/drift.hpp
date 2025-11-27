@@ -79,7 +79,6 @@ public:
         return transfer_matrix_array(length_, ds, endpoint);
     }
 
-    // Polymorphic clone
     /**
      * @brief Clone the Drift object.
      * @return std::shared_ptr<Element> Shared pointer to the cloned Drift object

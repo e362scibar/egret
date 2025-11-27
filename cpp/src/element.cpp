@@ -29,23 +29,6 @@
 #include <cmath>
 #include <ranges>
 
-#if 0
-egret::Element::Element(const Element &other) :
-    Object(other), length_(other.length_), angle_(other.angle_),
-    dx_(other.dx_), dy_(other.dy_), ds_(other.ds_), tilt_(other.tilt_), info_(other.info_),
-    elements_(std::nullopt),
-    indices_(other.indices_) {
-    if (other.elements_) {
-        // copy child elements
-
-        elements_ = std::make_optional<std::vector<std::shared_ptr<Element>>>();
-        for (const auto &elem : *other.elements_) {
-            elements_->push_back(std::make_shared<Element>(*elem));
-        }
-      elements_(other.elements_ ? std::make_optional<std::vector<std::shared_ptr<Element>>>(*other.elements_) : std::nullopt),
-}
-#endif
-
 /**
  * @brief Generate an array of s values based on length and step size.
  * @param length Length of the element
@@ -582,30 +565,3 @@ void egret::Element::set_indices(const std::vector<size_t> &indices) noexcept {
         elem->set_indices(new_indices);
     }
 }
-
-
-
-#if 0
-std::pair<Eigen::Tensor<double,3>, std::vector<double>> Drift::transfer_matrix_array_from_length(double length, double ds, bool endpoint) {
-    std::vector<double> s;
-    if (std::abs(length) > 0.0) {
-        int n_base = static_cast<int>(std::floor(length / ds));
-        int n = n_base + static_cast<int>(endpoint) + 1;
-        s.reserve(n);
-        for (int i = 0; i < n; ++i) s.push_back((static_cast<double>(i) * length) / (n - 1));
-    } else {
-        s.push_back(0.0);
-    }
-
-    int N = static_cast<int>(s.size());
-    Eigen::Tensor<double,3> tmat(4,4,N);
-    tmat.setZero();
-    for (int k=0;k<N;++k) {
-        // identity
-        for (int i=0;i<4;++i) tmat(i,i,k) = 1.0;
-        tmat(0,1,k) = s[k];
-        tmat(2,3,k) = s[k];
-    }
-    return {tmat, s};
-}
-#endif
