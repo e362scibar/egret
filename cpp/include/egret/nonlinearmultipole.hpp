@@ -171,6 +171,9 @@ public:
         const std::optional<Dispersion> &disp0 = std::nullopt,
         double ds=0.1, bool endpoint=false) const noexcept(false) override;
 
-    // Polymorphic clone (default shallow for this intermediate base)
-    std::shared_ptr<Element> clone() const override { return std::make_shared<NonlinearMultipole>(*this); }
+    /**
+     * @brief Clone the NonlinearMultipole object.
+     * @return std::shared_ptr<Element> Shared pointer to the cloned NonlinearMultipole object
+     */
+    std::shared_ptr<Element> clone() const noexcept override { return std::make_shared<NonlinearMultipole>(*this); }
 };

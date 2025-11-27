@@ -49,5 +49,5 @@ public:
     static double angle(const std::vector<std::shared_ptr<Element>> &elements) noexcept;
 
     // Polymorphic clone
-    std::shared_ptr<Element> clone() const override;
+    std::shared_ptr<Element> clone() const noexcept(false) override;
 };

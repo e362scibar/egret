@@ -80,5 +80,9 @@ public:
     }
 
     // Polymorphic clone
-    std::shared_ptr<Element> clone() const override { return std::make_shared<Drift>(*this); }
+    /**
+     * @brief Clone the Drift object.
+     * @return std::shared_ptr<Element> Shared pointer to the cloned Drift object
+     */
+    std::shared_ptr<Element> clone() const noexcept override { return std::make_shared<Drift>(*this); }
 };

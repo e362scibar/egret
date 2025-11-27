@@ -124,6 +124,9 @@ public:
     std::tuple<std::complex<double>, std::complex<double>>
     get_k(const Coordinate &cood) const noexcept override;
 
-    // Polymorphic clone
-    std::shared_ptr<Element> clone() const override { return std::make_shared<Octupole>(*this); }
+    /**
+     * @brief Clone the Octupole object.
+     * @return std::shared_ptr<Element> Shared pointer to the cloned Octupole object
+     */
+    std::shared_ptr<Element> clone() const noexcept override { return std::make_shared<Octupole>(*this); }
 };

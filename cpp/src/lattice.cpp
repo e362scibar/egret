@@ -43,26 +43,19 @@ egret::Lattice::Lattice(const std::string &name,
     const double tilt, const std::string &info) noexcept(false) :
     Element(name, Lattice::length(elements), Lattice::angle(elements),
         dx, dy, ds, tilt, info) {
+    elements_ = std::vector<std::shared_ptr<Element>>(); // std::optional<std::vector<std::shared_ptr<Element>>>
     // Deep-copy incoming elements by calling their polymorphic clone()
-    elements_ = std::vector<std::shared_ptr<Element>>();
     for (const auto &elem: elements) {
         elements_->push_back(elem->clone());
     }
 }
 
-// Polymorphic clone implementation for Lattice: clone children as well.
-std::shared_ptr<egret::Element> egret::Lattice::clone() const {
-    /*
-    std::vector<std::shared_ptr<Element>> elems;
-    if (elements_) {
-        for (const auto &e : *elements_) {
-            elems.push_back(e->clone());
-        }
-    }
-    */
-    auto newlat = std::make_shared<Lattice>(name(), elements_, dx(), dy(), ds(), tilt(), info());
-    // copy indices if needed
-    //newlat->set_indices();
+/**
+ * @brief Clone the Lattice object.
+ * @return std::shared_ptr<egret::Element> Shared pointer to the cloned Lattice object
+ */
+std::shared_ptr<egret::Element> egret::Lattice::clone() const noexcept(false) {
+    auto newlat = std::make_shared<Lattice>(name_, *elements_, dx_, dy_, ds_, tilt_, info_);
     return newlat;
 }
 

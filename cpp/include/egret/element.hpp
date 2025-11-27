@@ -246,8 +246,12 @@ public:
     // Set indices for all child elements
     void set_indices(const std::vector<size_t> &indices={}) noexcept;
 
-    // Polymorphic clone to support deep-copying elements while preserving dynamic type
-    virtual std::shared_ptr<Element> clone() const {
+    /**
+     * @brief Clone the Element object.
+     * @return std::shared_ptr<Element> Shared pointer to the cloned Element object (of derived type)
+     * @throws std::runtime_error if called on the base class.
+     */
+    virtual std::shared_ptr<Element> clone() const noexcept(false) {
         //return std::make_shared<Element>(*this);
         throw std::runtime_error("Do not call Element::clone() in the base class.");
     }

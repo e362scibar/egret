@@ -169,5 +169,9 @@ public:
         double ds=0.1, bool endpoint=false) const noexcept(false) override;
 
     // Polymorphic clone
-    std::shared_ptr<Element> clone() const override { return std::make_shared<Steering>(*this); }
+    /**
+     * @brief Clone the Steering object.
+     * @return std::shared_ptr<Element> Shared pointer to the cloned Steering object
+     */
+    std::shared_ptr<Element> clone() const noexcept override { return std::make_shared<Steering>(*this); }
 };

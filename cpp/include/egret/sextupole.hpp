@@ -80,5 +80,9 @@ public:
     get_k(const Coordinate &cood) const noexcept override;
 
     // Polymorphic clone
-    std::shared_ptr<Element> clone() const override { return std::make_shared<Sextupole>(*this); }
+    /**
+     * @brief Clone the Sextupole object.
+     * @return std::shared_ptr<Element> Shared pointer to the cloned Sextupole object
+     */
+    std::shared_ptr<Element> clone() const noexcept override { return std::make_shared<Sextupole>(*this); }
 };

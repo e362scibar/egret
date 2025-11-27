@@ -47,24 +47,20 @@ egret::Ring::Ring(const std::string &name,
     const double energy, const std::string &info) noexcept(false) :
     Element(name, Lattice::length(elements), Lattice::angle(elements), 0.0, 0.0, 0.0, 0.0, info),
     energy_(energy), tune_x_(0.0), tune_y_(0.0), cood0_(), evlp0_(), disp0_() {
-    elements_ = std::vector<std::shared_ptr<Element>>();
+    elements_ = std::vector<std::shared_ptr<Element>>(); // std::optional<std::vector<std::shared_ptr<Element>>>
     for (const auto &elem: elements) {
         // Deep-copy each element to preserve dynamic type
         elements_->push_back(elem->clone());
     }
     set_indices();
 }
-std::shared_ptr<egret::Element> egret::Ring::clone() const {
-    /*
-    std::vector<std::shared_ptr<Element>> elems;
-    if (elements_) {
-        for (const auto &e : *elements_) {
-            elems.push_back(e->clone());
-        }
-    }
-    */
-    auto newring = std::make_shared<Ring>(name(), elements_, energy_, info());
-    // copy runtime state
+
+/**
+ * @brief Clone the Ring object.
+ * @return std::shared_ptr<egret::Element> Shared pointer to the cloned Ring object
+ */
+std::shared_ptr<egret::Element> egret::Ring::clone() const noexcept(false) {
+    auto newring = std::make_shared<Ring>(name_, *elements_, energy_, info_);
     newring->cood0_ = cood0_;
     newring->evlp0_ = evlp0_;
     newring->disp0_ = disp0_;

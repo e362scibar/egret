@@ -130,5 +130,5 @@ public:
     Coordinate find_initial_coordinate_of_closed_orbit(const Coordinate &cood_guess) const noexcept(false);
 
     // Polymorphic clone
-    std::shared_ptr<Element> clone() const override;
+    std::shared_ptr<Element> clone() const noexcept(false) override;
 };
