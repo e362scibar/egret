@@ -1,4 +1,4 @@
-# coordinate.py
+# basecoordinate.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -20,12 +20,13 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import numpy as np
 import numpy.typing as npt
 
-class Coordinate:
+class BaseCoordinate(ABC):
     '''
-    Phase-space coordinate.
+    Base class of phase-space coordinates.
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
