@@ -1,4 +1,4 @@
-# basecoordinate.py
+# base/coordinate.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -21,29 +21,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-import numpy as np
-import numpy.typing as npt
 
-class BaseCoordinate(ABC):
+class Coordinate(ABC):
     '''
     Base class of phase-space coordinates.
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, vector: npt.NDArray[np.floating] = np.zeros(4),
-                 s: float = 0., z: float = 0., delta: float = 0.):
-        '''
-        Args:
-            vector npt.NDArray[np.floating]: 4D phase-space vector [x, x', y, y'].
-            s float: Longitudinal position along the reference orbit [m].
-            z float: Longitudinal displacement [m].
-            delta float: Relative momentum deviation.
-        '''
-        self.vector = vector.copy()
-        self.s = s
-        self.z = z
-        self.delta = delta
-
+    @abstractmethod
     def __getitem__(self, key: str) -> float:
         '''
         Get coordinate value by key.
@@ -67,6 +52,7 @@ class BaseCoordinate(ABC):
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
+    @abstractmethod
     def __setitem__(self, key: str, value: float) -> None:
         '''
         Set coordinate value by key.
@@ -88,9 +74,10 @@ class BaseCoordinate(ABC):
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
+    @abstractmethod
     def copy(self) -> Coordinate:
         '''
         Returns:
             Coordinate: A copy of the coordinate object.
         '''
-        return Coordinate(self.vector, self.s, self.z, self.delta)
+        pass

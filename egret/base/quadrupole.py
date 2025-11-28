@@ -1,4 +1,4 @@
-# __init__.py
+# base/quadrupole.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -18,6 +18,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .version import __version__
+from __future__ import annotations
+from abc import abstractmethod
+from .element import Element
 
-from .cpp import *
+class Quadrupole(Element):
+    '''
+    Base class of a quadrupole magnet.
+    '''
+
+    @property
+    @abstractmethod
+    def k1(self) -> float:
+        '''
+        Normalized gradient [1/m^2]. (k1 > 0: focusing in horizontal plane)
+        '''
+        pass
+
+    @k1.setter
+    @abstractmethod
+    def k1(self, value: float) -> None:
+        '''
+        Set normalized gradient [1/m^2]. (k1 > 0: focusing in horizontal plane)
+        '''
+        pass

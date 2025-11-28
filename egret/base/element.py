@@ -1,4 +1,4 @@
-# element.py
+# base/element.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,7 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
+from abc import abstractmethod
 from .object import Object
 from .coordinate import Coordinate
 from .coordinatearray import CoordinateArray
@@ -27,7 +27,6 @@ from .envelope import Envelope
 from .envelopearray import EnvelopeArray
 from .dispersion import Dispersion
 from .dispersionarray import DispersionArray
-
 import numpy as np
 import numpy.typing as npt
 from typing import Tuple
@@ -37,27 +36,103 @@ class Element(Object):
     Base class of an accelerator element.
     '''
 
-    def __init__(self, name: str, length: float,
-                 dx: float = 0., dy: float = 0., ds: float = 0.,
-                 tilt: float = 0., info: str = ''):
+    @property
+    @abstractmethod
+    def length(self) -> float:
         '''
-        Args:
-            name str: Name of the element.
-            length float: Length of the element [m].
-            dx float: Horizontal offset of the element [m].
-            dy float: Vertical offset of the element [m].
-            ds float: Longitudinal offset of the element [m].
-            tilt float: Tilt angle of the element [rad].
-            info str: Additional information.
+        Length of the element [m].
         '''
-        super().__init__(name)
-        self.length = length
-        self.dx = dx
-        self.dy = dy
-        self.ds = ds
-        self.tilt = tilt
-        self.info = info
+        pass
 
+    @property
+    @abstractmethod
+    def dx(self) -> float:
+        '''
+        Horizontal offset of the element [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def dy(self) -> float:
+        '''
+        Vertical offset of the element [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def ds(self) -> float:
+        '''
+        Longitudinal offset of the element [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def tilt(self) -> float:
+        '''
+        Tilt angle of the element [rad].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def info(self) -> str:
+        '''
+        Additional information.
+        '''
+        pass
+
+    @length.setter
+    @abstractmethod
+    def length(self, value: float) -> None:
+        '''
+        Set length of the element [m].
+        '''
+        pass
+
+    @dx.setter
+    @abstractmethod
+    def dx(self, value: float) -> None:
+        '''
+        Set horizontal offset of the element [m].
+        '''
+        pass
+
+    @dy.setter
+    @abstractmethod
+    def dy(self, value: float) -> None:
+        '''
+        Set vertical offset of the element [m].
+        '''
+        pass
+
+    @ds.setter
+    @abstractmethod
+    def ds(self, value: float) -> None:
+        '''
+        Set longitudinal offset of the element [m].
+        '''
+        pass
+
+    @tilt.setter
+    @abstractmethod
+    def tilt(self, value: float) -> None:
+        '''
+        Set tilt angle of the element [rad].
+        '''
+        pass
+
+    @info.setter
+    @abstractmethod
+    def info(self, value: str) -> None:
+        '''
+        Set additional information.
+        '''
+        pass
+
+    @abstractmethod
     def copy(self) -> Element:
         '''
         Create a copy of the element.
@@ -65,8 +140,9 @@ class Element(Object):
         Returns:
             Element: A copy of the element.
         '''
-        return Element(self.name, self.length, self.dx, self.dy, self.ds, self.tilt, self.info)
+        pass
 
+    @abstractmethod
     def set_index(self, index: Tuple[int, ...] | None = None) -> None:
         '''
         Set the index of the element in the lattice.
@@ -74,12 +150,9 @@ class Element(Object):
         Args:
             index Tuple[int, ...] | None: Index tuple representing the position of the element in the lattice.
         '''
-        self.index = index
-        if hasattr(self, 'elements'):
-            for i, elem in enumerate(self.elements):
-                next_index = index + (i,) if index is not None else (i,)
-                elem.set_index(next_index)
+        pass
 
+    @abstractmethod
     def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
@@ -91,8 +164,9 @@ class Element(Object):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
-        return np.eye(4)
+        pass
 
+    @abstractmethod
     def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = True) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
@@ -107,9 +181,9 @@ class Element(Object):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint)
-        return np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2), s
+        pass
 
+    @abstractmethod
     def dispersion(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the element.
@@ -121,8 +195,9 @@ class Element(Object):
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
         '''
-        return np.zeros(4)
+        pass
 
+    @abstractmethod
     def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
@@ -137,10 +212,9 @@ class Element(Object):
             npt.NDArray[np.floating]: Dispersion array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        n = int(self.length / ds) + int(endpoint) + 1
-        s = np.linspace(0., self.length, n, endpoint)
-        return np.zeros((4, n)), s
+        pass
 
+    @abstractmethod
     def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
@@ -157,36 +231,9 @@ class Element(Object):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        cood0err = cood0.copy()
-        cood0err.vector[0] -= self.dx
-        cood0err.vector[2] -= self.dy
-        cood0err.s -= self.ds
-        if hasattr(self, 'elements'):
-            cood = cood0err
-            evlp = evlp0.copy() if evlp0 is not None else None
-            disp = disp0.copy() if disp0 is not None else None
-            for elem in self.elements:
-                cood, evlp, disp = elem.transfer(cood, evlp, disp)
-            cood1, evlp1, disp1 = cood, evlp, disp
-        else:
-            tmat = self.transfer_matrix(cood0err, ds)
-            cood = np.dot(tmat, cood0err.vector)
-            cood1 = Coordinate(cood, cood0err.s + self.length, cood0err.z, cood0err.delta)
-            if evlp0 is not None:
-                evlp1 = evlp0.copy()
-                evlp1.transfer(tmat, self.length)
-            else:
-                evlp1 = None
-            if disp0 is not None:
-                disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds)
-                disp1 = Dispersion(disp, disp0.s + self.length)
-            else:
-                disp1 = None
-        cood1.vector[0] += self.dx
-        cood1.vector[2] += self.dy
-        cood1.s += self.ds
-        return cood1, evlp1, disp1
+        pass
 
+    @abstractmethod
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
                        ds: float = 0.1, endpoint: bool = True) \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
@@ -205,60 +252,9 @@ class Element(Object):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        cood0err = cood0.copy()
-        cood0err.vector[0] -= self.dx
-        cood0err.vector[2] -= self.dy
-        cood0err.s -= self.ds
-        if hasattr(self, 'elements'):
-            cood = cood0err
-            evlp = evlp0.copy() if evlp0 is not None else None
-            disp = disp0.copy() if disp0 is not None else None
-            cood1, evlp1, disp1 = None, None, None
-            for elem in self.elements:
-                coodarray, evlparray, disparray = elem.transfer_array(cood, evlp, disp, ds, False)
-                if cood1 is None:
-                    cood1 = coodarray
-                else:
-                    cood1.append(coodarray)
-                if evlp0 is not None:
-                    if evlp1 is None:
-                        evlp1 = evlparray
-                    else:
-                        evlp1.append(evlparray)
-                if disp0 is not None:
-                    if disp1 is None:
-                        disp1 = disparray
-                    else:
-                        disp1.append(disparray)
-                cood, evlp, disp = elem.transfer(cood, evlp, disp)
-            if endpoint:
-                cood1.append(CoordinateArray(cood.vector[:, np.newaxis], np.array([cood.s])))
-                if evlp0 is not None:
-                    evlp1.append(EnvelopeArray(evlp.cov[:, :, np.newaxis], np.array([evlp.s]), evlp.T[:, :, np.newaxis]))
-                if disp0 is not None:
-                    disp1.append(DispersionArray(disp.vector[:, np.newaxis], np.array([disp.s])))
-            cood1.vector[0] += self.dx
-            cood1.vector[2] += self.dy
-            cood1.s += self.ds
-        else:
-            tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint)
-            cood = np.matmul(tmat.transpose(2,0,1), cood0err.vector).T
-            cood[0] += self.dx
-            cood[2] += self.dy
-            cood1 = CoordinateArray(cood, s + cood0.s + self.ds,
-                                    np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
-            if evlp0 is not None:
-                evlp1 = EnvelopeArray.transport(evlp0, tmat, s)
-            else:
-                evlp1 = None
-            if disp0 is not None:
-                disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
-                disp = np.matmul(tmat.transpose(2,0,1), disp0.vector).T + disp_add
-                disp1 = DispersionArray(disp, s + disp0.s)
-            else:
-                disp1 = None
-        return cood1, evlp1, disp1
+        pass
 
+    @abstractmethod
     def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
         -> Tuple[float, float, float]:
         '''
@@ -273,8 +269,9 @@ class Element(Object):
         Returns:
             Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
         '''
-        return 0., 0., 0., 0., 0., 0.
+        pass
 
+    @abstractmethod
     def get_element_from_s(self, s: float) -> Tuple[Element, float]:
         '''
         Get element and local longitudinal position by longitudinal position.
@@ -286,18 +283,9 @@ class Element(Object):
             Element: Element at the specified longitudinal position.
             float: Local longitudinal position in the element [m].
         '''
-        if s < 0. or s >= self.length:
-            raise ValueError('Longitudinal position out of range.')
-        if hasattr(self, 'elements'):
-            s0 = 0.
-            for elem in self.elements:
-                if s < s0 + elem.length:
-                    return elem.get_element_from_s(s - s0)
-                s0 += elem.length
-            raise ValueError('Longitudinal position out of range.')
-        else:
-            return self, s
+        pass
 
+    @abstractmethod
     def transfer_matrix_from_s(self, s: float, cood0: Coordinate = Coordinate(), ds: float = 0.1) \
         -> npt.NDArray[np.floating]:
         '''
@@ -311,23 +299,4 @@ class Element(Object):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix from s to the end of the element.
         '''
-        if s < 0. or s > self.length:
-            raise ValueError('Longitudinal position out of range.')
-        if hasattr(self, 'elements'):
-            s0 = 0.
-            cood = cood0.copy()
-            for elem in self.elements:
-                if s >= s0 and s < s0 + elem.length:
-                    tmat = elem.transfer_matrix_from_s(s - s0, cood, ds)
-                    coodvec = np.dot(tmat, cood.vector)
-                    cood = Coordinate(coodvec, cood.s + elem.length - (s - s0), cood.z, cood.delta)
-                elif s < s0:
-                    tmat_elem = elem.transfer_matrix(cood, ds)
-                    tmat = np.dot(tmat_elem, tmat)
-                    cood, _, _ = elem.transfer(cood)
-                s0 += elem.length
-            return tmat
-        else:
-            elem = self.copy()
-            elem.length -= s
-            return elem.transfer_matrix(cood0, ds)
+        pass

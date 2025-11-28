@@ -1,4 +1,4 @@
-# dispersion.py
+# base/dispersionarray.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,25 +19,38 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
+from abc import ABC, abstractmethod
+from .basearray import BaseArray
+from .dispersion import Dispersion
 import numpy as np
 import numpy.typing as npt
 
-class Dispersion:
+class DispersionArray(BaseArray):
     '''
-    Energy dispersion.
+    Base class for energy dispersion array.
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, vector: npt.NDArray[np.floating] = np.zeros(4) , s: float = 0.):
+    @property
+    @abstractmethod
+    def vector(self) -> npt.NDArray[np.floating]:
         '''
-        Args:
-            vector npt.NDArray[np.floating]: 4D dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
-            s float: Longitudinal position along the reference orbit [m].
+        4xN array of 4D dispersion vectors [Dx, Dpx, Dy, Dpy].
         '''
-        self.vector = vector.copy()
-        self.s = s
+        pass
 
+    @vector.setter
+    @abstractmethod
+    def vector(self, value: npt.NDArray[np.floating]) -> None:
+        '''
+        Set 4xN array of 4D dispersion vectors [Dx, Dpx, Dy, Dpy].
+
+        Args:
+            value NDArray: 4xN array of dispersion vectors.
+        '''
+        pass
+
+    @abstractmethod
     def __getitem__(self, key: str) -> float:
         '''
         Get coordinate value by key.
@@ -46,7 +59,7 @@ class Dispersion:
             key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
 
         Returns:
-            float: Value of the coordinate corresponding to the key.
+            NDArray: Value of the coordinate corresponding to the key.
         '''
         try:
             return self.vector[self.index[key]]
@@ -57,13 +70,14 @@ class Dispersion:
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
+    @abstractmethod
     def __setitem__(self, key: str, value: float) -> None:
         '''
         Set coordinate value by key.
 
         Args:
             key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-            value float: Value to set.
+            value NDArray: Value to set.
         '''
         try:
             self.vector[self.index[key]] = value
@@ -74,9 +88,33 @@ class Dispersion:
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
-    def copy(self) -> Dispersion:
+    @abstractmethod
+    def copy(self) -> DispersionArray:
         '''
         Returns:
-            Dispersion: A copy of the coordinate object.
+            DispersionArray: A copy of the dispersion array object.
         '''
-        return Dispersion(self.vector, self.s)
+        pass
+
+    @abstractmethod
+    def append(self, disp: DispersionArray):
+        '''
+        Append another dispersion array to this one.
+
+        Args:
+            disp DispersionArray: Another dispersion array to append.
+        '''
+        pass
+
+    @abstractmethod
+    def from_s(self, s: float) -> Dispersion:
+        '''
+        Get dispersion at the specified longitudinal position by linear interpolation.
+
+        Args:
+            s float: Longitudinal position [m]
+
+        Returns:
+            Coordinate: Coordinate at the specified position.
+        '''
+        pass

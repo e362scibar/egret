@@ -1,4 +1,4 @@
-# base/basearray.py
+# base/steering.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -18,70 +18,61 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from abc import ABC, abstractmethod
+from __future__ import annotations
+from abc import abstractmethod
+from .element import Element
 
-class BaseArray(ABC):
+class Steering(Element):
     '''
-    Abstract base class for array types.
+    Base class of a steering magnet.
     '''
 
     @property
     @abstractmethod
-    def s_array(self):
+    def dxp(self) -> float:
         '''
-        Array of s positions
-        '''
-        pass
-
-    @s_array.setter
-    @abstractmethod
-    def s_array(self, value):
-        '''
-        Set the array of s positions.
+        Horizontal deflection angle [rad].
         '''
         pass
 
+    @property
     @abstractmethod
-    def __len__(self) -> int:
+    def dyp(self) -> float:
         '''
-        Return the length of the array.
+        Vertical deflection angle [rad].
         '''
         pass
 
+    @dxp.setter
     @abstractmethod
-    def copy(self):
+    def dxp(self, value: float) -> None:
         '''
-        Return a copy of the array.
-        '''
-        pass
-
-
-    @abstractmethod
-    def ds(self) -> float:
-        '''
-        Return the step size of the array.
-        '''
-
-    @abstractmethod
-    def append(self, other):
-        '''
-        Append another item to the array.
-        '''
-        pass
-
-    @abstractmethod
-    def index_from_s(self, s: float) -> int:
-        '''
-        Return the index corresponding to the given s position.
+        Set horizontal deflection angle.
 
         Args:
-            s float: s position.
-
-        Returns:
-            int: Index corresponding to the s position.
+            value float: Horizontal deflection angle [rad].
         '''
         pass
 
-BaseArray.register('CoordinateArray')
-BaseArray.register('EnvelopeArray')
-BaseArray.register('DispersionArray')
+    @dyp.setter
+    @abstractmethod
+    def dyp(self, value: float) -> None:
+        '''
+        Set vertical deflection angle.
+
+        Args:
+            value float: Vertical deflection angle [rad].
+        '''
+        pass
+
+    @abstractmethod
+    def set_steering(self, dxp: float, dyp: float) -> None:
+        '''
+        Set the steering angles.
+
+        Args:
+            dxp float: Horizontal deflection angle [rad].
+            dyp float: Vertical deflection angle [rad].
+        '''
+        self.dxp = dxp
+        self.dyp = dyp

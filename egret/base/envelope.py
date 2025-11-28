@@ -1,4 +1,4 @@
-# envelope.py
+# base/envelope.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -18,28 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-from unittest import case
-
+from abc import ABC, abstractmethod
 import numpy as np
 import numpy.typing as npt
 
 class Envelope:
     '''
-    Beam envelope object.
+    Base class for beam envelope object.
     '''
 
-    def __init__(self, cov: npt.NDArray[np.floating] = np.eye(4), s: float = 0., T: npt.NDArray[np.floating] = None):
-        '''
-        Args:
-            cov npt.NDArray[np.floating]: 4x4 positive-definite covariance matrix with the determinant of unity.
-            s float: Longitudinal position [m].
-            T npt.NDArray[np.floating]: 2x2 coordinate transformation matrix for eigenmode. (Optional)
-        '''
-        self.cov = cov.copy()
-        self.s = s
-        self.calc_eigenmode(T)
-
+    @abstractmethod
     def __getitem__(self, key):
         '''
         Get beta function value by key.
@@ -80,6 +68,73 @@ class Envelope:
             case _:
                 raise KeyError(f'Invalid key: {key}')
 
+    @property
+    @abstractmethod
+    def cov(self) -> npt.NDArray[np.floating]:
+        '''
+        Get the 4x4 covariance matrix.
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 covariance matrix.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def s(self) -> float:
+        '''
+        Get the longitudinal position.
+
+        Returns:
+            float: Longitudinal position.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def T(self) -> npt.NDArray[np.floating]:
+        '''
+        Get the 2x2 eigenmode transformation matrix.
+
+        Returns:
+            npt.NDArray[np.floating]: 2x2 eigenmode transformation matrix.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def U(self) -> npt.NDArray[np.floating]:
+        '''
+        Get the 2x2 eigenmode covariance matrix U.
+
+        Returns:
+            npt.NDArray[np.floating]: 2x2 eigenmode covariance matrix U.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def V(self) -> npt.NDArray[np.floating]:
+        '''
+        Get the 2x2 eigenmode covariance matrix V.
+
+        Returns:
+            npt.NDArray[np.floating]: 2x2 eigenmode covariance matrix V.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def tau(self) -> float:
+        '''
+        Get the eigenmode coupling parameter tau.
+
+        Returns:
+            float: Eigenmode coupling parameter tau.
+        '''
+        pass
+
+    @abstractmethod
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None):
         '''
         Calculate eigenmode transformation matrix.
@@ -87,39 +142,16 @@ class Envelope:
         Args:
             T npt.NDArray[np.floating]: 4x4 coordinate transformation matrix for eigenmode. (Optional)
         '''
-        Sxx, Sxy, Syy = self.cov[0:2, 0:2], self.cov[0:2, 2:4], self.cov[2:4, 2:4]
-        if T is not None:
-            self.T = T.copy()
-        else:
-            # Calculate T from the covariance matrix
-            mat = np.array([[-Sxx[0,0], -Sxx[0,1]-Syy[0,1], 0., Syy[0,0]],
-                            [0., -Syy[1,1], -Sxx[0,0], -Sxx[0,1]+Syy[0,1]],
-                            [-Sxx[0,1]+Syy[0,1], -Sxx[1,1], -Syy[0,0], 0.],
-                            [Syy[1,1], 0., -Sxx[0,1]-Syy[0,1], -Sxx[1,1]]])
-            vec = Sxy.reshape(4)
-            try:
-                res = np.linalg.solve(mat, vec)
-            except np.linalg.LinAlgError:
-                res = np.zeros(4)
-            T = res.reshape(2,2)
-            self.T = T
-        T_ = np.array([[T[1,1], -T[0,1]], [-T[1,0], T[0,0]]])
-        tau = np.sqrt(1. - np.linalg.det(T))
-        chi = 1. / (2. * tau**2 - 1.)
-        sqrtchi = np.sqrt(chi)
-        self.U = sqrtchi * (tau**2 * Sxx - T_ @ Syy @ T_.T)
-        self.V = sqrtchi * (tau**2 * Syy - T @ Sxx @ T.T)
-        self.tau = tau
+        pass
 
-    def copy(self) -> Envelope:
+    @abstractmethod
+    def copy(self):
         '''
         Create a copy of the envelope.
-
-        Returns:
-            Envelope: A copy of the envelope object.
         '''
-        return Envelope(self.cov, self.s, self.T)
+        pass
 
+    @abstractmethod
     def transfer(self, tmat: npt.NDArray[np.floating], length: float) -> None:
         '''
         Transfer the envelope using the given transfer matrix.
@@ -128,23 +160,9 @@ class Envelope:
             tmat npt.NDArray[np.floating]: 4x4 transfer matrix.
             length float: Length of the element [m].
         '''
-        self.cov = tmat @ self.cov @ tmat.T
-        Mxx, Mxy, Myx, Myy = tmat[0:2,0:2], tmat[0:2,2:4], tmat[2:4,0:2], tmat[2:4,2:4]
-        Mxx_ = np.array([[Mxx[1,1], -Mxx[0,1]], [-Mxx[1,0], Mxx[0,0]]])
-        Mxy_ = np.array([[Mxy[1,1], -Mxy[0,1]], [-Mxy[1,0], Mxy[0,0]]])
-        T0, tau0 = self.T, self.tau
-        T0_ = np.array([[T0[1,1], -T0[0,1]], [-T0[1,0], T0[0,0]]])
-        tauMu, tauMv = tau0 * Mxx - Mxy @ T0, tau0 * Myy + Myx @ T0_
-        tau = np.sqrt(0.5 * (np.linalg.det(tauMu) + np.linalg.det(tauMv)))
-        Mu, Mv = tauMu / tau, tauMv / tau
-        Mu_ = np.array([[Mu[1,1], -Mu[0,1]], [-Mu[1,0], Mu[0,0]]])
-        Mv_T1, T1Mu = tau0 * Mxy_ + T0 @ Mxx_, -tau0 * Myx + Myy @ T0
-        self.T = 0.5 * (Mv @ Mv_T1 + T1Mu @ Mu_)
-        self.tau = tau
-        self.U = Mu @ self.U @ Mu.T
-        self.V = Mv @ self.V @ Mv.T
-        self.s += length
+        pass
 
+    @abstractmethod
     def T_matrix(self) -> npt.NDArray[np.floating]:
         '''
         Get the 4x4 transformation matrix for eigenmode.
@@ -152,7 +170,4 @@ class Envelope:
         Returns:
             npt.NDArray[np.floating]: 4x4 transformation matrix.
         '''
-        mat = np.eye(4) * self.tau
-        mat[2:4,0:2] = self.T
-        mat[0:2,2:4] = -np.array([[self.T[1,1], -self.T[0,1]], [-self.T[1,0], self.T[0,0]]])
-        return mat
+        pass

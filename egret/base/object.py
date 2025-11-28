@@ -1,4 +1,4 @@
-# object.py
+# base/object.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -18,22 +18,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-class Object:
+from abc import ABC, abstractmethod
+
+class Object(ABC):
     '''
     Base class of any objects.
     '''
-    def __init__(self, name: str):
-        '''
-        Args:
-            name (str): name of the object
-        '''
-        self.name = name
 
-    def get_name(self) -> str:
+    @property
+    @abstractmethod
+    def name(self) -> str:
         '''
         Get the name of the object.
-        
+
         Returns:
             str: name of the object
         '''
-        return self.name
+        pass
+
+    @name.setter
+    @abstractmethod
+    def name(self, value: str) -> None:
+        '''
+        Set the name of the object.
+
+        Args:
+            value str: name of the object
+        '''
+        pass

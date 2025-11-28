@@ -1,4 +1,4 @@
-# python/coordinatearray.py
+# base/coordinatearray.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,38 +19,67 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
+from abc import ABC, abstractmethod
+from .basearray import BaseArray
 from .coordinate import Coordinate
-
 import numpy as np
 import numpy.typing as npt
 
-class CoordinateArray:
+class CoordinateArray(BaseArray):
     '''
-    Phase-space coordinate array.
+    Base class for phase-space coordinate array.
     '''
     index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
-    def __init__(self, vector: npt.NDArray[np.floating], s: npt.NDArray[np.floating],
-                 z: npt.NDArray[np.floating] = None, delta: npt.NDArray[np.floating] = None):
+    @property
+    @abstractmethod
+    def vector(self) -> npt.NDArray[np.floating]:
         '''
-        Args:
-            vector npt.NDArray[np.floating]: 4xN 4D phase-space vectors [x, x', y, y'].
-            s npt.NDArray[np.floating]: Longitudinal position array along the reference orbit [m] with shape (N,).
-            z npt.NDArray[np.floating]: Longitudinal displacement array [m] with shape (N,).
-            delta npt.NDArray[np.floating]: Relative momentum deviation array with shape (N,).
+        4xN array of 4D phase-space vectors [x, x', y, y'].
         '''
-        self.vector = vector.copy()
-        self.s = s.copy()
-        if z is None:
-            self.z = np.zeros_like(s)
-        else:
-            self.z = z.copy()
-        if delta is None:
-            self.delta = np.zeros_like(s)
-        else:
-            self.delta = delta.copy()
+        pass
 
+    @property
+    @abstractmethod
+    def z(self) -> npt.NDArray[np.floating]:
+        '''
+        Longitudinal displacement array [m] with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def delta(self) -> npt.NDArray[np.floating]:
+        '''
+        Relative momentum deviation array with shape (N,).
+        '''
+        pass
+
+    @vector.setter
+    @abstractmethod
+    def vector(self, value: npt.NDArray[np.floating]) -> None:
+        '''
+        Set 4xN array of 4D phase-space vectors [x, x', y, y'].
+        '''
+        pass
+
+    @z.setter
+    @abstractmethod
+    def z(self, value: npt.NDArray[np.floating]) -> None:
+        '''
+        Set longitudinal displacement array [m] with shape (N,).
+        '''
+        pass
+
+    @delta.setter
+    @abstractmethod
+    def delta(self, value: npt.NDArray[np.floating]) -> None:
+        '''
+        Set relative momentum deviation array with shape (N,).
+        '''
+        pass
+
+    @abstractmethod
     def __getitem__(self, key: str) -> float:
         '''
         Get coordinate value by key.
@@ -74,6 +103,7 @@ class CoordinateArray:
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
+    @abstractmethod
     def __setitem__(self, key: str, value: float) -> None:
         '''
         Set coordinate value by key.
@@ -95,13 +125,15 @@ class CoordinateArray:
                 case _:
                     raise KeyError(f'Invalid key: {key}')
 
+    @abstractmethod
     def copy(self) -> CoordinateArray:
         '''
         Returns:
             CoordinateArray: A copy of the coordinate array object.
         '''
-        return CoordinateArray(self.vector, self.s, self.z, self.delta)
+        pass
 
+    @abstractmethod
     def append(self, cood: CoordinateArray) -> None:
         '''
         Append another coordinate array to this one.
@@ -109,11 +141,9 @@ class CoordinateArray:
         Args:
             cood CoordinateArray: Coordinate array to append.
         '''
-        self.vector = np.hstack((self.vector, cood.vector))
-        self.s = np.hstack((self.s, cood.s))
-        self.z = np.hstack((self.z, cood.z))
-        self.delta = np.hstack((self.delta, cood.delta))
+        pass
 
+    @abstractmethod
     def from_s(self, s: float) -> Coordinate:
         '''
         Get coordinate at the specified longitudinal position by linear interpolation.
@@ -124,15 +154,4 @@ class CoordinateArray:
         Returns:
             Coordinate: Coordinate at the specified position.
         '''
-        idx = np.searchsorted(self.s, s)
-        if isinstance(idx, np.ndarray):
-            idx = idx[0]
-        if idx == len(self.s) - 1:
-            raise ValueError(f'Out of range: s={s}, max={self.s[-1]}')
-        s0, s1 = self.s[idx], self.s[idx+1]
-        ds = s1 - s0
-        a = np.array([(s1-s)/ds, (s-s0)/ds]) if ds != 0. else np.array([0.5, 0.5])
-        vec = np.sum(self.vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
-        z = np.sum(self.z[idx:idx+2] * a)
-        delta = np.sum(self.delta[idx:idx+2] * a)
-        return Coordinate(vec, s, z, delta)
+        pass
