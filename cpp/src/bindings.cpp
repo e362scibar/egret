@@ -165,6 +165,9 @@ public:
     }
 };
 
+/**
+ * @brief Trampoline class of NonlinearMultipole for pybind11 polymorphism
+ */
 class egret::PyNonlinearMultipole : public egret::NonlinearMultipole {
 public:
     // Inherit parent constructor
@@ -187,10 +190,10 @@ PYBIND11_MODULE(cppegret, m) {
 
     py::class_<egret::BaseArray, egret::PyBaseArray, py::smart_holder>(m, "BaseArray")
         .def(py::init<const Eigen::ArrayXd&>(), py::arg("s_array"))
-        .def_property_readonly("size", &egret::BaseArray::size)
         .def_property("s_array",
             static_cast<const Eigen::ArrayXd&(egret::BaseArray::*)() const>(&egret::BaseArray::s_array),
             static_cast<void(egret::BaseArray::*)(const Eigen::ArrayXd&)>(&egret::BaseArray::s_array))
+        .def("__len__", &egret::BaseArray::size)
         .def("ds", &egret::BaseArray::ds)
         .def("append", &egret::BaseArray::append, py::arg("other"))
         .def("index_from_s", &egret::BaseArray::index_from_s, py::arg("s"));
