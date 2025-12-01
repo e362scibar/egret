@@ -1,4 +1,4 @@
-# base/dispersionarray.py
+# cpp/dispersionarray.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,38 +19,48 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
-from .basearray import BaseArray
+from ..base.dispersionarray import DispersionArray as DispersionArrayABC
+from egret.cppegret import DispersionArray as DispersionArrayCPP
 from .dispersion import Dispersion
 import numpy as np
 import numpy.typing as npt
 
-class DispersionArray(BaseArray):
+class DispersionArray(DispersionArrayABC):
     '''
-    Base class for energy dispersion array.
+    Class for energy dispersion array.
     '''
-    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
+
+    def __init__(self, vector: npt.NDArray[np.floating],
+                 s: npt.NDArray[np.floating], **kwargs):
+        '''
+        Initialize DispersionArray object.
+
+        Args:
+            vector npt.NDArray[np.floating]: 4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
+            s npt.NDArray[np.floating]: 1D array of longitudinal positions [m].
+        '''
+        if 'instance' in kwargs:
+            self.instance = kwargs['instance']
+        else:
+            self.instance = DispersionArrayCPP(vector, s)
 
     @property
-    @abstractmethod
     def vector(self) -> npt.NDArray[np.floating]:
         '''
-        4xN array of 4D dispersion vectors [Dx, Dpx, Dy, Dpy].
+        4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
         '''
-        pass
+        return self.instance.vector
 
     @vector.setter
-    @abstractmethod
     def vector(self, value: npt.NDArray[np.floating]) -> None:
         '''
-        Set 4xN array of 4D dispersion vectors [Dx, Dpx, Dy, Dpy].
+        Set 4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
 
         Args:
             value NDArray: 4xN array of dispersion vectors.
         '''
-        pass
+        self.instance.vector = value
 
-    @abstractmethod
     def __getitem__(self, key: str) -> float:
         '''
         Get coordinate value by key.
@@ -61,24 +71,27 @@ class DispersionArray(BaseArray):
         Returns:
             NDArray: Value of the coordinate corresponding to the key.
         '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        match key:
+            case 'x':
+                return self.instance.x_array
+            case 'xp':
+                return self.instance.xp_array
+            case 'y':
+                return self.instance.y_array
+            case 'yp':
+                return self.instance.yp_array
+            case 's':
+                return self.s
+            case _:
+                raise KeyError(f'Invalid key: {key}')
 
-    @abstractmethod
     def copy(self) -> DispersionArray:
         '''
         Returns:
             DispersionArray: A copy of the dispersion array object.
         '''
-        pass
+        return DispersionArray(self.instance.vector, self.instance.s)
 
-    @abstractmethod
     def append(self, disp: DispersionArray):
         '''
         Append another dispersion array to this one.
@@ -86,9 +99,8 @@ class DispersionArray(BaseArray):
         Args:
             disp DispersionArray: Another dispersion array to append.
         '''
-        pass
+        self.instance.append(disp.instance)
 
-    @abstractmethod
     def from_s(self, s: float) -> Dispersion:
         '''
         Get dispersion at the specified longitudinal position by linear interpolation.
@@ -99,4 +111,5 @@ class DispersionArray(BaseArray):
         Returns:
             Coordinate: Coordinate at the specified position.
         '''
-        pass
+        instance = self.instance.from_s(s)
+        return Dispersion(instance=instance)

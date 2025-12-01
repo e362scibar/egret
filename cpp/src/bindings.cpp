@@ -193,6 +193,7 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property("s_array",
             static_cast<const Eigen::ArrayXd&(egret::BaseArray::*)() const>(&egret::BaseArray::s_array),
             static_cast<void(egret::BaseArray::*)(const Eigen::ArrayXd&)>(&egret::BaseArray::s_array))
+        .def("size", &egret::BaseArray::size)
         .def("__len__", &egret::BaseArray::size)
         .def("ds", &egret::BaseArray::ds)
         .def("append", &egret::BaseArray::append, py::arg("other"))
@@ -280,6 +281,7 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("gv", &egret::Envelope::gv)
         .def_property_readonly("T_matrix", &egret::Envelope::T_matrix)
         .def_static("adjoint", &egret::Envelope::adjoint, py::arg("M"))
+        .def("calc_eigenmode", &egret::Envelope::calc_eigenmode, py::arg("T") = nullptr)
         .def("transfer", &egret::Envelope::transfer, py::arg("M"), py::arg("length"));
 
     py::class_<egret::EnvelopeArray, egret::BaseArray, py::smart_holder>(m, "EnvelopeArray")
@@ -304,6 +306,11 @@ PYBIND11_MODULE(cppegret, m) {
         .def("av", &egret::EnvelopeArray::av, py::arg("index"))
         .def("gv", &egret::EnvelopeArray::gv, py::arg("index"))
         .def("T_matrix", &egret::EnvelopeArray::T_matrix, py::arg("index"))
+        .def_property_readonly("cov_array", &egret::EnvelopeArray::cov_array)
+        .def_property_readonly("T_array", &egret::EnvelopeArray::T_array)
+        .def_property_readonly("tau_array", &egret::EnvelopeArray::tau_array)
+        .def_property_readonly("U_array", &egret::EnvelopeArray::U_array)
+        .def_property_readonly("V_array", &egret::EnvelopeArray::V_array)
         .def("bx_array", &egret::EnvelopeArray::bx_array)
         .def("ax_array", &egret::EnvelopeArray::ax_array)
         .def("gx_array", &egret::EnvelopeArray::gx_array)

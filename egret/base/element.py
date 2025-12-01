@@ -286,7 +286,7 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def transfer_matrix_from_s(self, s: float, cood0: Coordinate = Coordinate(), ds: float = 0.1) \
+    def transfer_matrix_from_s(self, s: float, cood0: Coordinate, ds: float = 0.1) \
         -> npt.NDArray[np.floating]:
         '''
         Transfer matrices from the given longitudinal position to the end of the element.

@@ -81,7 +81,3 @@ class BaseArray(ABC):
             int: Index corresponding to the s position.
         '''
         pass
-
-BaseArray.register('CoordinateArray')
-BaseArray.register('EnvelopeArray')
-BaseArray.register('DispersionArray')

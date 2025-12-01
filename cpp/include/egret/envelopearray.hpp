@@ -261,6 +261,32 @@ public:
         return V_array_[index](1,1);
     }
 
+    /**
+     * @brief Get the array of covariance matrices.
+     * @return const std::vector<Eigen::Matrix4d>& Array of covariance matrices.
+     */
+    const std::vector<Eigen::Matrix4d>& cov_array() const { return cov_array_; }
+    /**
+     * @brief Get the array of coordinate transformation matrices for eigenmode.
+     * @return const std::vector<Eigen::Matrix2d>& Array of transformation matrices.
+     */
+    const std::vector<Eigen::Matrix2d>& T_array() const { return T_array_; }
+    /**
+     * @brief Get the array of normalization factors.
+     * @return Eigen::ArrayXd Array of normalization factors.
+     */
+    const Eigen::ArrayXd& tau_array() const { return tau_array_; }
+    /**
+     * @brief Get the array of U matrices for eigenmode parameters.
+     * @return const std::vector<Eigen::Matrix2d>& Array of U matrices.
+     */
+    const std::vector<Eigen::Matrix2d>& U_array() const { return U_array_; }
+    /**
+     * @brief Get the array of V matrices for eigenmode parameters.
+     * @return const std::vector<Eigen::Matrix2d>& Array of V matrices.
+     */
+    const std::vector<Eigen::Matrix2d>& V_array() const { return V_array_; }
+
     //! Get the array of beta functions in the x direction.
     Eigen::ArrayXd bx_array() const noexcept(false);
     //! Get the array of alpha functions in the x direction.
@@ -285,12 +311,6 @@ public:
     Eigen::ArrayXd av_array() const noexcept(false);
     //! Get the array of gamma functions in the eigenmode V.
     Eigen::ArrayXd gv_array() const noexcept(false);
-
-    /**
-     * @brief Get the array of normalization factors.
-     * @return Eigen::ArrayXd Array of normalization factors.
-     */
-    const Eigen::ArrayXd& tau_array() const { return tau_array_; }
 
     // Efficient append (reserve + copy)
     void append(const EnvelopeArray &other);

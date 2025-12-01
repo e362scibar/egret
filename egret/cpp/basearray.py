@@ -19,7 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from ..base import BaseArray as BaseArrayABC
-from cppegret import BaseArray as BaseArrayCPP
+from egret.cppegret import BaseArray as BaseArrayCPP
 import numpy as np
 import numpy.typing as npt
 
@@ -81,7 +81,3 @@ class BaseArray(BaseArrayABC):
             int: Index corresponding to the s position.
         '''
         return self.instance.index_from_s(s)
-
-BaseArray.register('CoordinateArray')
-BaseArray.register('EnvelopeArray')
-BaseArray.register('DispersionArray')

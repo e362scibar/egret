@@ -1,4 +1,4 @@
-# base/envelopearray.py
+# cpp/envelopearray.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,58 +19,67 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
-from .basearray import BaseArray
+from ..base.envelopearray import EnvelopeArray as EnvelopeArrayABC
+from egret.cppegret import EnvelopeArray as EnvelopeArrayCPP
 from .envelope import Envelope
 import numpy as np
 import numpy.typing as npt
 
-class EnvelopeArray(BaseArray):
+class EnvelopeArray(EnvelopeArrayABC):
     '''
-    Base class for beam envelope array.
+    Class for beam envelope array.
     '''
 
+    def __init__(self, cov: npt.NDArray[np.floating], s: npt.NDArray[np.floating],
+                 T: npt.NDArray[np.floating] = None, **kwargs):
+        '''
+        Args:
+            cov npt.NDArray[np.floating]: Nx4x4 positive-definite covariance matrices with the determinant of unity.
+            s npt.NDArray[np.floating]: Longitudinal positions [m] with shape (N,).
+            T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices for eigenmode. (Optional)
+        '''
+        if 'instance' in kwargs:
+            self.instance = kwargs['instance']
+        else:
+            cov_list = [cov[i, :, :] for i in range(cov.shape[0])]
+            T_list = [T[i, :, :] for i in range(T.shape[0])] if T is not None else None
+            self.instance = EnvelopeArrayCPP(cov_list, s, T_list)
+
     @property
-    @abstractmethod
     def cov(self) -> npt.NDArray[np.floating]:
         '''
         Nx4x4 array of 4D positive-definite covariance matrices with the determinant of unity.
         '''
-        pass
+        return np.array(self.instance.cov_array)
 
     @property
-    @abstractmethod
     def T(self) -> npt.NDArray[np.floating]:
         '''
-        Nx2x2 coordinate transformation matrices for eigenmode.
+        2x2xN coordinate transformation matrices for eigenmode.
         '''
-        pass
+        return np.array(self.instance.T_array)
 
     @property
-    @abstractmethod
     def U(self) -> npt.NDArray[np.floating]:
         '''
         Nx2x2 array of 2D positive-definite covariance matrices for eigenmode U with the determinant of unity.
         '''
-        pass
+        return np.array(self.instance.U_array)
 
     @property
-    @abstractmethod
     def V(self) -> npt.NDArray[np.floating]:
         '''
         Nx2x2 array of 2D positive-definite covariance matrices for eigenmode V with the determinant of unity.
         '''
-        pass
+        return np.array(self.instance.V_array)
 
     @property
-    @abstractmethod
     def tau(self) -> npt.NDArray[np.floating]:
         '''
         Array of coupling parameters tau with shape (N,).
         '''
-        pass
+        return self.instance.tau
 
-    @abstractmethod
     def __getitem__(self, key: str) -> npt.NDArray[np.floating]:
         '''
         Get beam envelope value by key.
@@ -83,43 +92,41 @@ class EnvelopeArray(BaseArray):
         '''
         match key:
             case 'bx':
-                return self.cov[0, 0, :]
+                return self.instance.bx_array()
             case 'ax':
-                return -0.5 * (self.cov[0, 1, :] + self.cov[1, 0, :])
+                return self.instance.ax_array()
             case 'gx':
-                return self.cov[1, 1, :]
+                return self.instance.gx_array()
             case 'by':
-                return self.cov[2, 2, :]
+                return self.instance.by_array()
             case 'ay':
-                return -0.5 * (self.cov[2, 3, :] + self.cov[3, 2, :])
+                return self.instance.ay_array()
             case 'gy':
-                return self.cov[3, 3, :]
+                return self.instance.gy_array()
             case 'bu':
-                return self.U[0, 0, :]
+                return self.instance.bu_array()
             case 'au':
-                return -0.5 * (self.U[0, 1, :] + self.U[1, 0, :])
+                return self.instance.au_array()
             case 'gu':
-                return self.U[1, 1, :]
+                return self.instance.gu_array()
             case 'bv':
-                return self.V[0, 0, :]
+                return self.instance.bv_array()
             case 'av':
-                return -0.5 * (self.V[0, 1, :] + self.V[1, 0, :])
+                return self.instance.av_array()
             case 'gv':
-                return self.V[1, 1, :]
+                return self.instance.gv_array()
             case 's':
-                return self.s
+                return self.instance.s_array()
             case _:
                 raise KeyError(f'Invalid key: {key}')
 
-    @abstractmethod
     def copy(self) -> EnvelopeArray:
         '''
         Returns:
             EnvelopeArray: A copy of the envelope array object.
         '''
-        pass
+        return EnvelopeArray(cov=self.instance.cov_array, s=self.instance.s_array, T=self.instance.T_array)
 
-    @abstractmethod
     def append(self, evlp: EnvelopeArray) -> None:
         '''
         Append another envelope array to this one.
@@ -127,10 +134,9 @@ class EnvelopeArray(BaseArray):
         Args:
             evlp EnvelopeArray: Another envelope array to append.
         '''
-        pass
+        self.instance.append(evlp.instance)
 
     @classmethod
-    @abstractmethod
     def transport(cls, evlp0: Envelope, tmat: npt.NDArray[np.floating], s: npt.NDArray[np.floating]) -> EnvelopeArray:
         '''
         Transport the envelope array using the given transfer matrix.
@@ -143,9 +149,10 @@ class EnvelopeArray(BaseArray):
         Returns:
             EnvelopeArray: Transported envelope array.
         '''
-        pass
+        tmat_list = [tmat[i, :, :] for i in range(tmat.shape[0])]
+        instance = EnvelopeArrayCPP.transport(evlp0.instance, tmat_list, s)
+        return EnvelopeArray(None, None, instance=instance)
 
-    @abstractmethod
     def from_s(self, s: float) -> Envelope:
         '''
         Get the envelope at the specified longitudinal position by linear interpolation.
@@ -156,9 +163,9 @@ class EnvelopeArray(BaseArray):
         Returns:
             Envelope: Interpolated envelope at the specified longitudinal position.
         '''
-        pass
+        instance = self.instance.from_s(s)
+        return Envelope(None, None, instance=instance)
 
-    @abstractmethod
     def T_matrix(self) -> npt.NDArray[np.floating]:
         '''
         Get the coordinate transformation matrices for eigenmode.
@@ -166,4 +173,4 @@ class EnvelopeArray(BaseArray):
         Returns:
             npt.NDArray[np.floating]: 4x4xN coordinate transformation matrices for eigenmode.
         '''
-        pass
+        return np.array(self.instance.T_matrix())
