@@ -21,6 +21,7 @@
 from __future__ import annotations
 from abc import abstractmethod
 from .element import Element
+from typing import Tuple
 
 class Steering(Element):
     '''
@@ -29,50 +30,64 @@ class Steering(Element):
 
     @property
     @abstractmethod
-    def dxp(self) -> float:
+    def kick_x(self) -> float:
         '''
-        Horizontal deflection angle [rad].
+        Horizontal kick angle [rad].
         '''
         pass
 
     @property
     @abstractmethod
-    def dyp(self) -> float:
+    def kick_y(self) -> float:
         '''
-        Vertical deflection angle [rad].
+        Vertical kick angle [rad].
         '''
         pass
 
-    @dxp.setter
+    @property
     @abstractmethod
-    def dxp(self, value: float) -> None:
+    def kick(self) -> Tuple[float, float]:
         '''
-        Set horizontal deflection angle.
+        Return a tuple of horizontal and vertical kick angles [rad].
+        '''
+        pass
+
+    @kick_x.setter
+    @abstractmethod
+    def kick_x(self, kick_x: float) -> None:
+        '''
+        Set horizontal kick angle.
 
         Args:
-            value float: Horizontal deflection angle [rad].
+            kick_x float: Horizontal kick angle [rad].
         '''
         pass
 
-    @dyp.setter
+    @kick_y.setter
     @abstractmethod
-    def dyp(self, value: float) -> None:
+    def kick_y(self, kick_y: float) -> None:
         '''
-        Set vertical deflection angle.
-
+        Set vertical kick angle.
         Args:
-            value float: Vertical deflection angle [rad].
+            kick_y float: Vertical kick angle [rad].
+        '''
+        pass
+
+    @kick.setter
+    @abstractmethod
+    def kick(self, kick_x: float, kick_y: float) -> None:
+        '''
+        Set the steering angles.
         '''
         pass
 
     @abstractmethod
-    def set_steering(self, dxp: float, dyp: float) -> None:
+    def set_steering(self, kick_x: float, kick_y: float) -> None:
         '''
         Set the steering angles.
 
         Args:
-            dxp float: Horizontal deflection angle [rad].
-            dyp float: Vertical deflection angle [rad].
+            kick_x float: Horizontal kick angle [rad].
+            kick_y float: Vertical kick angle [rad].
         '''
-        self.dxp = dxp
-        self.dyp = dyp
+        pass

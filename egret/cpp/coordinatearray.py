@@ -107,7 +107,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             vector npt.NDArray[np.floating]: 4xN array of 4D phase-space vectors [x, x', y, y'].
         '''
-        self.instance.vector = vector
+        self.instance.vector_array = vector
 
     @x.setter
     def x(self, x: npt.NDArray[np.floating]) -> None:

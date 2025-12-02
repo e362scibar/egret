@@ -26,7 +26,7 @@ import numpy.typing as npt
 
 class Dispersion(DispersionABC):
     '''
-    Base class for energy dispersion.
+    Class for energy dispersion.
     '''
 
     def __init__(self, vector: npt.NDArray[np.floating],

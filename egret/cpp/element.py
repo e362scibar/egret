@@ -30,7 +30,7 @@ from .dispersion import Dispersion
 from .dispersionarray import DispersionArray
 import numpy as np
 import numpy.typing as npt
-from typing import Tuple
+from typing import Tuple, List
 
 class Element(ElementABC, Object):
     '''
@@ -107,6 +107,16 @@ class Element(ElementABC, Object):
         Additional information.
         '''
         return self.instance.info
+
+    @property
+    def elements(self) -> List[Element] | None:
+        '''
+        List of elements in the lattice (None for non-lattice elements).
+        '''
+        if self.instance.elements is None:
+            return None
+        else:
+            return [Element(instance=elem) for elem in self.instance.elements]
 
     @length.setter
     def length(self, length: float) -> None:

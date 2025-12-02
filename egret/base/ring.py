@@ -24,32 +24,20 @@ from .element import Element
 from .coordinate import Coordinate
 from .envelope import Envelope
 from .dispersion import Dispersion
-import copy
 import numpy as np
 import numpy.typing as npt
-import scipy
-from typing import Tuple, List
+from typing import Final
 
 class Ring(Element):
     '''
     Base class of a ring accelerator.
     '''
 
-    @property
-    @abstractmethod
-    def elements(self) -> List[Element]:
-        '''
-        List of elements in the ring.
-        '''
-        pass
+    C_q: Final = 3.8319e-13  # Quantum excitation factor [m]
+    m_e_eV: Final = 510998.9461  # Electron rest mass [eV/c^2]
 
-    @elements.setter
-    @abstractmethod
-    def elements(self, value: List[Element]) -> None:
-        '''
-        Set list of elements in the ring.
-        '''
-        pass
+    tol_cod = 1.0e-12  # Tolerance for closed orbit calculation [m]
+    max_iter_cod = 50  # Maximum iteration for closed orbit calculation
 
     @property
     @abstractmethod
@@ -59,27 +47,19 @@ class Ring(Element):
         '''
         pass
 
-    @energy.setter
+    @property
     @abstractmethod
-    def energy(self, value: float) -> None:
+    def tune_x(self) -> float:
         '''
-        Set beam energy [eV].
+        Horizontal tune of the ring.
         '''
         pass
 
     @property
     @abstractmethod
-    def tune(self) -> npt.NDArray[np.floating]:
+    def tune_y(self) -> float:
         '''
-        Tune of the ring.
-        '''
-        pass
-
-    @property
-    @abstractmethod
-    def emittance(self) -> npt.NDArray[np.floating]:
-        '''
-        Equilibrium emittance [m.rad].
+        Vertical tune of the ring.
         '''
         pass
 
@@ -104,6 +84,22 @@ class Ring(Element):
     def disp0(self) -> Dispersion:
         '''
         Initial dispersion of the closed orbit.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def emittance_x(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal equilibrium emittance [m.rad].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def emittance_y(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical equilibrium emittance [m.rad].
         '''
         pass
 
@@ -138,6 +134,16 @@ class Ring(Element):
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
+        '''
+        pass
+
+    @abstractmethod
+    def find_initial_coordinate_of_closed_orbit(guess: Coordinate = None) -> None:
+        '''
+        Find initial coordinate of the closed orbit using Newton-Raphson method.
+
+        Args:
+            guess Coordinate: Initial guess of the closed orbit.
         '''
         pass
 

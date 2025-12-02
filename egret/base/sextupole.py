@@ -20,23 +20,11 @@
 
 from __future__ import annotations
 from abc import abstractmethod
-from .element import Element
-from .drift import Drift
-from .quadrupole import Quadrupole
-from .coordinate import Coordinate
-from .coordinatearray import CoordinateArray
-from .envelope import Envelope
-from .envelopearray import EnvelopeArray
-from .dispersion import Dispersion
-from .dispersionarray import DispersionArray
+from .nonlinearmultipole import NonlinearMultipole
 
-import numpy as np
-import numpy.typing as npt
-from typing import Tuple
-
-class Sextupole(Element):
+class Sextupole(NonlinearMultipole):
     '''
-    Base class of a sextupole magnet.
+    Base class for a sextupole magnet.
     '''
 
     @property
@@ -46,126 +34,3 @@ class Sextupole(Element):
         Normalized sextupole strength [1/m^3].
         '''
         pass
-
-    @property
-    @abstractmethod
-    def k0x(self) -> float:
-        '''
-        Horizontal steering strength [1/m].
-        '''
-        pass
-
-    @property
-    @abstractmethod
-    def k0y(self) -> float:
-        '''
-        Vertical steering strength [1/m].
-        '''
-        pass
-
-    @property
-    @abstractmethod
-    def dxp(self) -> float:
-        '''
-        Horizontal kick angle of the steering coil [rad].
-        '''
-        pass
-
-    @property
-    @abstractmethod
-    def dyp(self) -> float:
-        '''
-        Vertical kick angle of the steering coil [rad].
-        '''
-        pass
-
-    @k2.setter
-    @abstractmethod
-    def k2(self, value: float) -> None:
-        '''
-        Set normalized sextupole strength.
-
-        Args:
-            value float: Normalized sextupole strength [1/m^3].
-        '''
-        pass
-
-    @k0x.setter
-    @abstractmethod
-    def k0x(self, value: float) -> None:
-        '''
-        Set horizontal steering strength.
-
-        Args:
-            value float: Horizontal steering strength [1/m].
-        '''
-        pass
-
-    @k0y.setter
-    @abstractmethod
-    def k0y(self, value: float) -> None:
-        '''
-        Set vertical steering strength.
-
-        Args:
-            value float: Vertical steering strength [1/m].
-        '''
-        pass
-
-    @dxp.setter
-    @abstractmethod
-    def dxp(self, value: float) -> None:
-        '''
-        Set horizontal kick angle of the steering coil.
-
-        Args:
-            value float: Horizontal kick angle [rad].
-        '''
-        pass
-
-    @dyp.setter
-    @abstractmethod
-    def dyp(self, value: float) -> None:
-        '''
-        Set vertical kick angle of the steering coil.
-
-        Args:
-            value float: Vertical kick angle [rad].
-        '''
-        pass
-
-    @abstractmethod
-    def transfer_matrix_by_midpoint_method(self, cood0: Coordinate, ds: float = 0.1,
-                                           tmatflag: bool = True, dispflag: bool = False) \
-        -> Tuple[npt.NDArray[np.floating], Coordinate, npt.NDArray[np.floating]]:
-        '''
-        Calculate a single step transfer matrix using the midpoint method.
-
-        Args:
-            cood0 Coordinate: Initial coordinate
-            ds float: Step size [m] for integration.
-            tmatflag bool: Calculate transfer matrix if true. (default: True)
-            dispflag bool: Calculate additive dispersion if True. (default: False)
-
-        Returns:
-            npt.NDArray[np.floating]: 4x4 transfer matrix, if tmatflag is True, else None.
-            Coordinate: Final coordinate after the step.
-            npt.NDArray[np.floating]: Additive dispersion if dispflag is True, else None.
-        '''
-        pass
-
-    @abstractmethod
-    def set_steering(self, dxp: float = None, dyp: float = None) -> None:
-        '''
-        Set steering coil kick angles.
-
-        Args:
-            dxp float: Horizontal kick angle of the steering coil [rad].
-            dyp float: Vertical kick angle of the steering coil [rad].
-        '''
-        if dxp is not None:
-            self.dxp = dxp
-            self.k0x = - self.dxp / self.length
-        if dyp is not None:
-            self.dyp = dyp
-            self.k0y = - self.dyp / self.length

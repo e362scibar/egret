@@ -37,8 +37,11 @@ class Quadrupole(Element):
 
     @k1.setter
     @abstractmethod
-    def k1(self, value: float) -> None:
+    def k1(self, k1: float) -> None:
         '''
         Set normalized gradient [1/m^2]. (k1 > 0: focusing in horizontal plane)
+
+        Args:
+            k1 (float): Normalized gradient [1/m^2].
         '''
         pass

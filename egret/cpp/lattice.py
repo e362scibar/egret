@@ -1,4 +1,4 @@
-# base/lattice.py
+# cpp/lattice.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,17 +19,40 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from abc import abstractmethod
+from ..base.lattice import Lattice as LatticeABC
+from egret.cppegret import Lattice as LatticeCPP
 from .element import Element
 from typing import List
 
-class Lattice(Element):
+class Lattice(LatticeABC, Element):
     '''
-    Base class for a lattice element.
+    Lattice element class.
     '''
 
+    def __init__(self, name: str, elements: List[Element],
+                 dx: float = 0.0, dy: float = 0.0, ds: float = 0.0,
+                 tilt: float = 0.0, info: str = '', **kwargs) -> None:
+        '''
+        Initialize lattice element.
+
+        Args:
+            name str: Element name.
+            elements List[Element, ...]: List of elements in the lattice.
+            dx float: Horizontal offset of the magnetic center [m].
+            dy float: Vertical offset of the magnetic center [m].
+            ds float: Longitudinal offset of the magnetic center [m].
+            tilt float: Rotation angle around the beam axis [rad].
+            info str: Additional information.
+        '''
+        if 'instance' in kwargs:
+            self.instance = kwargs['instance']
+        else:
+            cpp_elements = [elem.instance for elem in elements]
+            self.instance = LatticeCPP(name, cpp_elements,
+                                       dx, dy, ds, tilt, info)
+        super().__init__(instance=self.instance)
+
     @classmethod
-    @abstractmethod
     def length_of(cls, elements: List[Element]) -> float:
         '''
         Calculate total length of the lattice.
@@ -40,10 +63,9 @@ class Lattice(Element):
         Returns:
             float: Total length of the lattice [m].
         '''
-        pass
+        return LatticeCPP.length_of([elem.instance for elem in elements])
 
     @classmethod
-    @abstractmethod
     def angle_of(cls, elements: List[Element]) -> float:
         '''
         Calculate total bending angle of the lattice.
@@ -54,4 +76,4 @@ class Lattice(Element):
         Returns:
             float: Total bending angle of the lattice [rad].
         '''
-        pass
+        return LatticeCPP.angle_of([elem.instance for elem in elements])

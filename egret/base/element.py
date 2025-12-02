@@ -29,7 +29,7 @@ from .dispersion import Dispersion
 from .dispersionarray import DispersionArray
 import numpy as np
 import numpy.typing as npt
-from typing import Tuple
+from typing import Tuple, List
 
 class Element(Object):
     '''
@@ -89,6 +89,14 @@ class Element(Object):
     def info(self) -> str:
         '''
         Additional information.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def elements(self) -> List[Element, ...] | None:
+        '''
+        List of elements (None for single element).
         '''
         pass
 

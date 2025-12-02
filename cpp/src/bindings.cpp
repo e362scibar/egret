@@ -596,9 +596,9 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("disp0", &egret::Ring::disp0)
         .def_property_readonly("emittance_x", &egret::Ring::emittance_x)
         .def_property_readonly("emittance_y", &egret::Ring::emittance_y)
-        .def_property_readonly("J_x", &egret::Ring::J_x)
-        .def_property_readonly("J_y", &egret::Ring::J_y)
-        .def_property_readonly("J_z", &egret::Ring::J_z)
+        .def_property_readonly("Jx", &egret::Ring::Jx)
+        .def_property_readonly("Jy", &egret::Ring::Jy)
+        .def_property_readonly("Jz", &egret::Ring::Jz)
         .def("update", &egret::Ring::update, py::arg("delta") = 0.0)
         .def("find_initial_coordinate_of_closed_orbit",
             &egret::Ring::find_initial_coordinate_of_closed_orbit,

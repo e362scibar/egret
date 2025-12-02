@@ -66,9 +66,9 @@ std::shared_ptr<egret::Element> egret::Ring::clone() const noexcept(false) {
     newring->disp0_ = disp0_;
     newring->emittance_x_ = emittance_x_;
     newring->emittance_y_ = emittance_y_;
-    newring->J_x_ = J_x_;
-    newring->J_y_ = J_y_;
-    newring->J_z_ = J_z_;
+    newring->Jx_ = Jx_;
+    newring->Jy_ = Jy_;
+    newring->Jz_ = Jz_;
     newring->tune_x_ = tune_x_;
     newring->tune_y_ = tune_y_;
     newring->set_indices();
@@ -155,9 +155,9 @@ void egret::Ring::update(double delta) noexcept(false) {
     const double lgamma = energy_ / m_e_eV;
     emittance_x_ = C_q * lgamma * lgamma * I5u / (I2 - I4u);
     emittance_y_ = C_q * lgamma * lgamma * I5v / (I2 - I4v);
-    J_x_ = 1.0 - I4u / I2;
-    J_y_ = 1.0 - I4v / I2;
-    J_z_ = 2.0 + I4 / I2;
+    Jx_ = 1.0 - I4u / I2;
+    Jy_ = 1.0 - I4v / I2;
+    Jz_ = 2.0 + I4 / I2;
 }
 
 namespace {

@@ -1,4 +1,4 @@
-# base/dipole.py
+# cpp/dipole.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,8 +19,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from abc import abstractmethod
+from ..base.dipole import Dipole as DipoleABC
 from .element import Element
+from egret.cppegret import Dipole as DipoleCPP
 from .coordinate import Coordinate
 from .coordinatearray import CoordinateArray
 from .envelope import Envelope
@@ -31,61 +32,84 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
-class Dipole(Element):
+class Dipole(DipoleABC, Element):
     '''
-    Base class for a dipole magnet.
+    Dipole magnet class.
     '''
 
+    def __init__(self, name: str, length: float, angle: float, k1: float = 0.0,
+                 e1: float = 0.0, e2: float = 0.0,
+                 h1: float = 0.0, h2: float = 0.0,
+                 dx: float = 0.0, dy: float = 0.0, ds: float = 0.0,
+                 tilt: float = 0.0, info: str = '', **kwargs) -> None:
+        '''
+        Initialize dipole magnet.
+
+        Args:
+            name (str): Name of the dipole magnet.
+            length (float): Length of the dipole magnet [m].
+            angle (float): Bending angle of the dipole [rad].
+            k1 (float, optional): Quadrupole component [1/m^2]. Defaults to 0.0.
+            e1 (float, optional): Entrance edge angle [rad]. Defaults to 0.0.
+            e2 (float, optional): Exit edge angle [rad]. Defaults to 0.0.
+            h1 (float, optional): Entrance pole-face curvature [1/m]. Defaults to 0.0.
+            h2 (float, optional): Exit pole-face curvature [1/m]. Defaults to 0.0.
+            dx (float, optional): Horizontal offset [m]. Defaults to 0.0.
+            dy (float, optional): Vertical offset [m]. Defaults to 0.0.
+            ds (float, optional): Longitudinal offset [m]. Defaults to 0.0.
+            tilt (float, optional): Tilt angle [rad]. Defaults to 0.0.
+            info (str, optional): Additional information. Defaults to ''.
+        '''
+        if 'instance' in kwargs:
+            self.instance = kwargs['instance']
+        else:
+            self.instance = DipoleCPP(name, length, angle, k1, e1, e2,
+                                      h1, h2, dx, dy, ds, tilt, info)
+        super().__init__(None, None, None, instance=self.instance)
+
     @property
-    @abstractmethod
     def rho(self) -> float:
         '''
         Bending radius of the dipole [m].
         '''
-        pass
+        return self.instance.rho
 
     @property
-    @abstractmethod
     def k1(self) -> float:
         '''
         Quadrupole component [1/m^2].
         '''
-        pass
+        return self.instance.k1
 
     @property
-    @abstractmethod
     def e1(self) -> float:
         '''
         Entrance edge angle [rad].
         '''
-        pass
+        return self.instance.e1
 
     @property
-    @abstractmethod
     def e2(self) -> float:
         '''
         Exit edge angle [rad].
         '''
-        pass
+        return self.instance.e2
 
     @property
-    @abstractmethod
     def h1(self) -> float:
         '''
         Entrance pole-face curvature [1/m].
         '''
-        pass
+        return self.instance.h1
 
     @property
-    @abstractmethod
     def h2(self) -> float:
         '''
         Exit pole-face curvature [1/m].
         '''
-        pass
+        return self.instance.h2
 
     @k1.setter
-    @abstractmethod
     def k1(self, k1: float) -> None:
         '''
         Set quadrupole component [1/m^2].
@@ -93,10 +117,9 @@ class Dipole(Element):
         Args:
             k1 (float): Quadrupole component [1/m^2].
         '''
-        pass
+        self.instance.k1 = k1
 
     @e1.setter
-    @abstractmethod
     def e1(self, e1: float) -> None:
         '''
         Set entrance edge angle [rad].
@@ -104,10 +127,9 @@ class Dipole(Element):
         Args:
             e1 (float): Entrance edge angle [rad].
         '''
-        pass
+        self.instance.e1 = e1
 
     @e2.setter
-    @abstractmethod
     def e2(self, e2: float) -> None:
         '''
         Set exit edge angle [rad].
@@ -115,10 +137,9 @@ class Dipole(Element):
         Args:
             e2 (float): Exit edge angle [rad].
         '''
-        pass
+        self.instance.e2 = e2
 
     @h1.setter
-    @abstractmethod
     def h1(self, h1: float) -> None:
         '''
         Set entrance pole-face curvature [1/m].
@@ -126,10 +147,9 @@ class Dipole(Element):
         Args:
             h1 (float): Entrance pole-face curvature [1/m].
         '''
-        pass
+        self.instance.h1 = h1
 
     @h2.setter
-    @abstractmethod
     def h2(self, h2: float) -> None:
         '''
         Set exit pole-face curvature [1/m].
@@ -137,14 +157,17 @@ class Dipole(Element):
         Args:
             h2 (float): Exit pole-face curvature [1/m].
         '''
-        pass
+        self.instance.h2 = h2
 
-    @abstractmethod
     def copy(self) -> Dipole:
         '''
-        Return a copy of the dipole element.
+        Create a copy of the dipole element.
 
         Returns:
             Dipole: Copied dipole element.
         '''
-        pass
+        return Dipole(self.instance.name, self.instance.length, self.instance.angle,
+                      self.instance.k1, self.instance.e1, self.instance.e2,
+                      self.instance.h1, self.instance.h2,
+                      self.instance.dx, self.instance.dy, self.instance.ds,
+                      self.instance.tilt, self.instance.info)

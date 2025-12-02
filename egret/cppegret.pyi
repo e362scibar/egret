@@ -578,13 +578,13 @@ class Ring(Element, Object):
     def update(self, delta: typing.SupportsFloat = 0.0) -> None:
         ...
     @property
-    def J_x(self) -> float:
+    def Jx(self) -> float:
         ...
     @property
-    def J_y(self) -> float:
+    def Jy(self) -> float:
         ...
     @property
-    def J_z(self) -> float:
+    def Jz(self) -> float:
         ...
     @property
     def cood0(self) -> Coordinate:
