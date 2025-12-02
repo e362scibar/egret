@@ -26,45 +26,101 @@ class Dispersion(ABC):
     '''
     Base class for energy dispersion.
     '''
-    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
+    @property
     @abstractmethod
-    def __getitem__(self, key: str) -> float:
+    def x(self) -> float:
         '''
-        Get coordinate value by key.
+        Horizontal dispersion [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def xp(self) -> float:
+        '''
+        Horizontal angle dispersion [rad].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def y(self) -> float:
+        '''
+        Vertical dispersion [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def yp(self) -> float:
+        '''
+        Vertical angle dispersion [rad].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def s(self) -> float:
+        '''
+        Longitudinal position [m].
+        '''
+        pass
+
+    @x.setter
+    @abstractmethod
+    def x(self, x: float) -> None:
+        '''
+        Set horizontal dispersion.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-
-        Returns:
-            float: Value of the coordinate corresponding to the key.
+            x float: Horizontal dispersion [m].
         '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        pass
 
+    @xp.setter
     @abstractmethod
-    def __setitem__(self, key: str, value: float) -> None:
+    def xp(self, xp: float) -> None:
         '''
-        Set coordinate value by key.
+        Set horizontal angle dispersion.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-            value float: Value to set.
+            xp float: Horizontal angle dispersion [rad].
         '''
-        try:
-            self.vector[self.index[key]] = value
-        except KeyError:
-            match key:
-                case 's':
-                    self.s = value
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        pass
+
+    @y.setter
+    @abstractmethod
+    def y(self, y: float) -> None:
+        '''
+        Set vertical dispersion.
+
+        Args:
+            y float: Vertical dispersion [m].
+        '''
+        pass
+
+    @yp.setter
+    @abstractmethod
+    def yp(self, yp: float) -> None:
+        '''
+        Set vertical angle dispersion.
+
+        Args:
+            yp float: Vertical angle dispersion [rad].
+        '''
+        pass
+
+    @s.setter
+    @abstractmethod
+    def s(self, s: float) -> None:
+        '''
+        Set longitudinal position.
+
+        Args:
+            s float: Longitudinal position [m].
+        '''
+        pass
 
     @abstractmethod
     def copy(self) -> Dispersion:

@@ -43,59 +43,141 @@ class Coordinate(CoordinateABC):
         else:
             self.instance = CoordinateCPP(vector, s, z, delta)
 
-    def __getitem__(self, key: str) -> float:
+    @property
+    def vector(self) -> npt.NDArray[np.floating]:
         '''
-        Get coordinate value by key.
+        Phase-space vector [x, x', y, y'].
+        '''
+        return self.instance.vector
+
+    @property
+    def x(self) -> float:
+        '''
+        Horizontal position.
+        '''
+        return self.instance.x
+
+    @property
+    def xp(self) -> float:
+        '''
+        Horizontal angle.
+        '''
+        return self.instance.xp
+
+    @property
+    def y(self) -> float:
+        '''
+        Vertical position.
+        '''
+        return self.instance.y
+
+    @property
+    def yp(self) -> float:
+        '''
+        Vertical angle.
+        '''
+        return self.instance.yp
+
+    @property
+    def s(self) -> float:
+        '''
+        Longitudinal position.
+        '''
+        return self.instance.s
+
+    @property
+    def z(self) -> float:
+        '''
+        Longitudinal displacement.
+        '''
+        return self.instance.z
+
+    @property
+    def delta(self) -> float:
+        '''
+        Relative energy deviation.
+        '''
+        return self.instance.delta
+
+    @vector.setter
+    def vector(self, vector: npt.NDArray[np.floating]):
+        '''
+        Set the phase-space vector.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-
-        Returns:
-            float: Value of the coordinate corresponding to the key.
+            vector npt.NDArray[np.floating]: Phase-space vector. [x, x', y, y']
         '''
-        match key:
-            case 'x':
-                return self.instance.x
-            case 'xp':
-                return self.instance.xp
-            case 'y':
-                return self.instance.y
-            case 'yp':
-                return self.instance.yp
-            case 's':
-                return self.instance.s
-            case 'z':
-                return self.instance.z
-            case 'delta':
-                return self.instance.delta
-            case _:
-                raise KeyError(f'Invalid key: {key}')
+        self.instance.vector = vector
 
-    def __setitem__(self, key: str, value: float) -> None:
+    @x.setter
+    def x(self, x: float):
         '''
-        Set coordinate value by key.
+        Set the horizontal position.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-            value float: Value to set.
+            x float: Horizontal position.
         '''
-        match key:
-            case 'x':
-                self.instance.x = value
-            case 'xp':
-                self.instance.xp = value
-            case 'y':
-                self.instance.y = value
-            case 'yp':
-                self.instance.yp = value
-            case 's':
-                self.instance.s = value
-            case 'z':
-                self.instance.z = value
-            case 'delta':
-                self.instance.delta = value
-            case _:
-                raise KeyError(f'Invalid key: {key}')
+        self.instance.x = x
+
+    @xp.setter
+    def xp(self, xp: float):
+        '''
+        Set the horizontal angle.
+
+        Args:
+            xp float: Horizontal angle.
+        '''
+        self.instance.xp = xp
+
+    @y.setter
+    def y(self, y: float):
+        '''
+        Set the vertical position.
+
+        Args:
+            y float: Vertical position.
+        '''
+        self.instance.y = y
+
+    @yp.setter
+    def yp(self, yp: float):
+        '''
+        Set the vertical angle.
+
+        Args:
+            yp float: Vertical angle.
+        '''
+        self.instance.yp = yp
+
+    @s.setter
+    def s(self, s: float):
+        '''
+        Set the longitudinal position.
+
+        Args:
+            s float: Longitudinal position.
+        '''
+        self.instance.s = s
+
+    @z.setter
+    def z(self, z: float):
+        '''
+        Set the longitudinal displacement.
+
+        Args:
+            z float: Longitudinal displacement.
+        '''
+        self.instance.z = z
+
+    @delta.setter
+    def delta(self, delta: float):
+        '''
+        Set the relative energy deviation.
+
+        Args:
+            delta float: Relative energy deviation.
+        '''
+        self.instance.delta = delta
 
     def copy(self) -> Coordinate:
         '''

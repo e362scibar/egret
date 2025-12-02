@@ -28,22 +28,34 @@ class BaseArray(BaseArrayABC):
     Base class for C++ array types.
     '''
 
-    def __init__(self, s_array: npt.NDArray[np.floating]):
-        self.instance = BaseArrayCPP(s_array)
+    def __init__(self, s_array: npt.NDArray[np.floating], **kwargs):
+        '''
+        Initialize the BaseArray.
+
+        Args:
+            s_array (npt.NDArray[np.floating]): Array of s positions.
+        '''
+        if 'instance' in kwargs:
+            self.instance = kwargs['instance']
+        else:
+            self.instance = BaseArrayCPP(s_array)
 
     @property
-    def s_array(self) -> npt.NDArray[np.floating]:
+    def s(self) -> npt.NDArray[np.floating]:
         '''
         Array of s positions
         '''
         return self.instance.s_array
 
-    @s_array.setter
-    def s_array(self, s_array: npt.NDArray[np.floating]):
+    @s.setter
+    def s(self, s: npt.NDArray[np.floating]):
         '''
         Set the array of s positions.
+
+        Args:
+            s npt.NDArray[np.floating]: Array of s positions.
         '''
-        self.instance.s_array = s_array
+        self.instance.s_array = s
 
     def __len__(self) -> int:
         '''

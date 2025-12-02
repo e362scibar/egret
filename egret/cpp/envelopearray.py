@@ -21,11 +21,12 @@
 from __future__ import annotations
 from ..base.envelopearray import EnvelopeArray as EnvelopeArrayABC
 from egret.cppegret import EnvelopeArray as EnvelopeArrayCPP
+from .basearray import BaseArray
 from .envelope import Envelope
 import numpy as np
 import numpy.typing as npt
 
-class EnvelopeArray(EnvelopeArrayABC):
+class EnvelopeArray(EnvelopeArrayABC, BaseArray):
     '''
     Class for beam envelope array.
     '''
@@ -44,6 +45,7 @@ class EnvelopeArray(EnvelopeArrayABC):
             cov_list = [cov[i, :, :] for i in range(cov.shape[0])]
             T_list = [T[i, :, :] for i in range(T.shape[0])] if T is not None else None
             self.instance = EnvelopeArrayCPP(cov_list, s, T_list)
+        super().__init__(None, instance=self.instance)
 
     @property
     def cov(self) -> npt.NDArray[np.floating]:
@@ -78,47 +80,91 @@ class EnvelopeArray(EnvelopeArrayABC):
         '''
         Array of coupling parameters tau with shape (N,).
         '''
-        return self.instance.tau
+        return self.instance.tau_array
 
-    def __getitem__(self, key: str) -> npt.NDArray[np.floating]:
+    @property
+    def bx(self) -> npt.NDArray[np.floating]:
         '''
-        Get beam envelope value by key.
-
-        Args:
-            key str: Key of the coordinate. 'bx', 'ax', 'gx', 'by', 'ay', 'gy', 'bu', 'au', 'gu', 'bv', 'av', 'gv', or 's'.
-
-        Returns:
-            NDArray: Value of the coordinate corresponding to the key.
+        Array of horizontal beta function bx [m].
         '''
-        match key:
-            case 'bx':
-                return self.instance.bx_array()
-            case 'ax':
-                return self.instance.ax_array()
-            case 'gx':
-                return self.instance.gx_array()
-            case 'by':
-                return self.instance.by_array()
-            case 'ay':
-                return self.instance.ay_array()
-            case 'gy':
-                return self.instance.gy_array()
-            case 'bu':
-                return self.instance.bu_array()
-            case 'au':
-                return self.instance.au_array()
-            case 'gu':
-                return self.instance.gu_array()
-            case 'bv':
-                return self.instance.bv_array()
-            case 'av':
-                return self.instance.av_array()
-            case 'gv':
-                return self.instance.gv_array()
-            case 's':
-                return self.instance.s_array()
-            case _:
-                raise KeyError(f'Invalid key: {key}')
+        return self.instance.bx_array
+
+    @property
+    def ax(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of horizontal alpha function ax.
+        '''
+        return self.instance.ax_array
+
+    @property
+    def gx(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of horizontal gamma function gx [1/m].
+        '''
+        return self.instance.gx_array
+
+    @property
+    def by(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of vertical beta function by [m].
+        '''
+        return self.instance.by_array
+
+    @property
+    def ay(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of vertical alpha function ay.
+        '''
+        return self.instance.ay_array
+
+    @property
+    def gy(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of vertical gamma function gy [1/m].
+        '''
+        return self.instance.gy_array
+
+    @property
+    def bu(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of eigenmode U beta function bu [m].
+        '''
+        return self.instance.bu_array
+
+    @property
+    def au(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of eigenmode U alpha function au.
+        '''
+        return self.instance.au_array
+
+    @property
+    def gu(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of eigenmode U gamma function gu [1/m].
+        '''
+        return self.instance.gu_array
+
+    @property
+    def bv(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of eigenmode V beta function bv [m].
+        '''
+        return self.instance.bv_array
+
+    @property
+    def av(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of eigenmode V alpha function av.
+        '''
+        return self.instance.av_array
+
+    @property
+    def gv(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of eigenmode V gamma function gv [1/m].
+        '''
+        return self.instance.gv_array
 
     def copy(self) -> EnvelopeArray:
         '''

@@ -22,51 +22,10 @@ from abc import ABC, abstractmethod
 import numpy as np
 import numpy.typing as npt
 
-class Envelope:
+class Envelope(ABC):
     '''
     Base class for beam envelope object.
     '''
-
-    @abstractmethod
-    def __getitem__(self, key):
-        '''
-        Get beta function value by key.
-
-        Args:
-            key str: Key of the beta function. 'bx', 'ax', 'gx', 'by', 'ay', 'gy', 'bu', 'au', 'gu', 'bv', 'av', 'gv', or 's'.
-
-        Returns:
-            float: Value of the beta function corresponding to the key.
-        '''
-        match key:
-            case 'bx':
-                return self.cov[0, 0]
-            case 'ax':
-                return -0.5 * (self.cov[0, 1] + self.cov[1, 0])
-            case 'gx':
-                return self.cov[1, 1]
-            case 'by':
-                return self.cov[2, 2]
-            case 'ay':
-                return -0.5 * (self.cov[2, 3] + self.cov[3, 2])
-            case 'gy':
-                return self.cov[3, 3]
-            case 'bu':
-                return self.U[0, 0]
-            case 'au':
-                return -0.5 * (self.U[0, 1] + self.U[1, 0])
-            case 'gu':
-                return self.U[1, 1]
-            case 'bv':
-                return self.V[0, 0]
-            case 'av':
-                return -0.5 * (self.V[0, 1] + self.V[1, 0])
-            case 'gv':
-                return self.V[1, 1]
-            case 's':
-                return self.s
-            case _:
-                raise KeyError(f'Invalid key: {key}')
 
     @property
     @abstractmethod
@@ -131,6 +90,102 @@ class Envelope:
 
         Returns:
             float: Eigenmode coupling parameter tau.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def bx(self) -> float:
+        '''
+        Horizontal beta function [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def ax(self) -> float:
+        '''
+        Horizontal alpha function.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def gx(self) -> float:
+        '''
+        Horizontal gamma function [1/m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def by(self) -> float:
+        '''
+        Vertical beta function [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def ay(self) -> float:
+        '''
+        Vertical alpha function.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def gy(self) -> float:
+        '''
+        Vertical gamma function [1/m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def bu(self) -> float:
+        '''
+        Eigenmode U beta function [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def au(self) -> float:
+        '''
+        Eigenmode U alpha function.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def gu(self) -> float:
+        '''
+        Eigenmode U gamma function [1/m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def bv(self) -> float:
+        '''
+        Eigenmode V beta function [m].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def av(self) -> float:
+        '''
+        Eigenmode V alpha function.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def gv(self) -> float:
+        '''
+        Eigenmode V gamma function [1/m].
         '''
         pass
 

@@ -243,16 +243,16 @@ PYBIND11_MODULE(cppegret, m) {
             static_cast<const Eigen::ArrayXd&(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::delta_array),
             static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::delta_array))
         .def_property("x_array",
-            static_cast<const Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::x_array),
+            static_cast<Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::x_array),
             static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::x_array))
         .def_property("xp_array",
-            static_cast<const Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::xp_array),
+            static_cast<Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::xp_array),
             static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::xp_array))
         .def_property("y_array",
-            static_cast<const Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::y_array),
+            static_cast<Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::y_array),
             static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::y_array))
         .def_property("yp_array",
-            static_cast<const Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::yp_array),
+            static_cast<Eigen::ArrayXd(egret::CoordinateArray::*)() const>(&egret::CoordinateArray::yp_array),
             static_cast<void(egret::CoordinateArray::*)(const Eigen::ArrayXd&)>(&egret::CoordinateArray::yp_array))
         .def("append", &egret::CoordinateArray::append, py::arg("other"))
         .def("from_s", &egret::CoordinateArray::from_s, py::arg("s"));
@@ -311,18 +311,18 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("tau_array", &egret::EnvelopeArray::tau_array)
         .def_property_readonly("U_array", &egret::EnvelopeArray::U_array)
         .def_property_readonly("V_array", &egret::EnvelopeArray::V_array)
-        .def("bx_array", &egret::EnvelopeArray::bx_array)
-        .def("ax_array", &egret::EnvelopeArray::ax_array)
-        .def("gx_array", &egret::EnvelopeArray::gx_array)
-        .def("by_array", &egret::EnvelopeArray::by_array)
-        .def("ay_array", &egret::EnvelopeArray::ay_array)
-        .def("gy_array", &egret::EnvelopeArray::gy_array)
-        .def("bu_array", &egret::EnvelopeArray::bu_array)
-        .def("au_array", &egret::EnvelopeArray::au_array)
-        .def("gu_array", &egret::EnvelopeArray::gu_array)
-        .def("bv_array", &egret::EnvelopeArray::bv_array)
-        .def("av_array", &egret::EnvelopeArray::av_array)
-        .def("gv_array", &egret::EnvelopeArray::gv_array)
+        .def_property_readonly("bx_array", &egret::EnvelopeArray::bx_array)
+        .def_property_readonly("ax_array", &egret::EnvelopeArray::ax_array)
+        .def_property_readonly("gx_array", &egret::EnvelopeArray::gx_array)
+        .def_property_readonly("by_array", &egret::EnvelopeArray::by_array)
+        .def_property_readonly("ay_array", &egret::EnvelopeArray::ay_array)
+        .def_property_readonly("gy_array", &egret::EnvelopeArray::gy_array)
+        .def_property_readonly("bu_array", &egret::EnvelopeArray::bu_array)
+        .def_property_readonly("au_array", &egret::EnvelopeArray::au_array)
+        .def_property_readonly("gu_array", &egret::EnvelopeArray::gu_array)
+        .def_property_readonly("bv_array", &egret::EnvelopeArray::bv_array)
+        .def_property_readonly("av_array", &egret::EnvelopeArray::av_array)
+        .def_property_readonly("gv_array", &egret::EnvelopeArray::gv_array)
         .def("append", &egret::EnvelopeArray::append, py::arg("other"))
         .def("from_s", &egret::EnvelopeArray::from_s, py::arg("s"))
         .def("transport", &egret::EnvelopeArray::transport,
@@ -354,11 +354,21 @@ PYBIND11_MODULE(cppegret, m) {
     py::class_<egret::DispersionArray, egret::BaseArray, py::smart_holder>(m, "DispersionArray")
         .def(py::init<const Eigen::Matrix<double, 4, Eigen::Dynamic>&, const Eigen::ArrayXd&>(),
             py::arg("vector_array"), py::arg("s_array"))
-        .def_property_readonly("vector_array", &egret::DispersionArray::vector_array)
-        .def_property_readonly("x_array", &egret::DispersionArray::x_array)
-        .def_property_readonly("xp_array", &egret::DispersionArray::xp_array)
-        .def_property_readonly("y_array", &egret::DispersionArray::y_array)
-        .def_property_readonly("yp_array", &egret::DispersionArray::yp_array)
+        .def_property("vector_array",
+            static_cast<const Eigen::Matrix<double, 4, Eigen::Dynamic>&(egret::DispersionArray::*)() const>(&egret::DispersionArray::vector_array),
+            static_cast<void(egret::DispersionArray::*)(const Eigen::Matrix<double, 4, Eigen::Dynamic>&)>(&egret::DispersionArray::vector_array))
+        .def_property("x_array",
+            static_cast<Eigen::ArrayXd(egret::DispersionArray::*)() const>(&egret::DispersionArray::x_array),
+            static_cast<void(egret::DispersionArray::*)(const Eigen::ArrayXd&)>(&egret::DispersionArray::x_array))
+        .def_property("xp_array",
+            static_cast<Eigen::ArrayXd(egret::DispersionArray::*)() const>(&egret::DispersionArray::xp_array),
+            static_cast<void(egret::DispersionArray::*)(const Eigen::ArrayXd&)>(&egret::DispersionArray::xp_array))
+        .def_property("y_array",
+            static_cast<Eigen::ArrayXd(egret::DispersionArray::*)() const>(&egret::DispersionArray::y_array),
+            static_cast<void(egret::DispersionArray::*)(const Eigen::ArrayXd&)>(&egret::DispersionArray::y_array))
+        .def_property("yp_array",
+            static_cast<Eigen::ArrayXd(egret::DispersionArray::*)() const>(&egret::DispersionArray::yp_array),
+            static_cast<void(egret::DispersionArray::*)(const Eigen::ArrayXd&)>(&egret::DispersionArray::yp_array))
         .def("append", &egret::DispersionArray::append, py::arg("other"))
         .def("from_s", &egret::DispersionArray::from_s, py::arg("s"));
 

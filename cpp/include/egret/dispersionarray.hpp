@@ -77,6 +77,33 @@ public:
      */
     Eigen::ArrayXd yp_array() const { return vector_array_.row(3).array(); }
 
+    /**
+     * @brief Set the array of dispersion functions.
+     * @param vec_array Array of dispersion functions as a 4 x N matrix
+     */
+    void vector_array(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec_array) { vector_array_ = vec_array; }
+
+    /**
+     * @brief Set the array of x components of the dispersion functions.
+     * @param x_array Array of x components
+     */
+    void x_array(const Eigen::ArrayXd& x_array) { vector_array_.row(0) = x_array.transpose(); }
+    /**
+     * @brief Set the array of x' components of the dispersion functions.
+     * @param xp_array Array of x' components
+     */
+    void xp_array(const Eigen::ArrayXd& xp_array) { vector_array_.row(1) = xp_array.transpose(); }
+    /**
+     * @brief Set the array of y components of the dispersion functions.
+     * @param y_array Array of y components
+     */
+    void y_array(const Eigen::ArrayXd& y_array) { vector_array_.row(2) = y_array.transpose(); }
+    /**
+     * @brief Set the array of y' components of the dispersion functions.
+     * @param yp_array Array of y' components
+     */
+    void yp_array(const Eigen::ArrayXd& yp_array) { vector_array_.row(3) = yp_array.transpose(); }
+
     // Efficient append (reserve + copy)
     void append(const DispersionArray &other);
 

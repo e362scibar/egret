@@ -57,59 +57,93 @@ class Dispersion(DispersionABC):
         '''
         return self.instance.s
 
+    @property
+    def x(self) -> float:
+        '''
+        Horizontal dispersion [m].
+        '''
+        return self.instance.x
+
+    @property
+    def xp(self) -> float:
+        '''
+        Horizontal angle dispersion [rad].
+        '''
+        return self.instance.xp
+
+    @property
+    def y(self) -> float:
+        '''
+        Vertical dispersion [m].
+        '''
+        return self.instance.y
+
+    @property
+    def yp(self) -> float:
+        '''
+        Vertical angle dispersion [rad].
+        '''
+        return self.instance.yp
+
     @vector.setter
-    def vector(self, value: npt.NDArray[np.floating]) -> None:
-        self.instance.vector = value
+    def vector(self, vector: npt.NDArray[np.floating]) -> None:
+        '''
+        Set the 4D dispersion vector.
+
+        Args:
+            vector npt.NDArray[np.floating]: 4D dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
+        '''
+        self.instance.vector = vector
 
     @s.setter
-    def s(self, value: float) -> None:
-        self.instance.s = value
-
-    def __getitem__(self, key: str) -> float:
+    def s(self, s: float) -> None:
         '''
-        Get coordinate value by key.
+        Set the longitudinal position [m].
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-
-        Returns:
-            float: Value of the coordinate corresponding to the key.
+            s float: Longitudinal position
         '''
-        match key:
-            case 'x':
-                return self.instance.x
-            case 'xp':
-                return self.instance.xp
-            case 'y':
-                return self.instance.y
-            case 'yp':
-                return self.instance.yp
-            case 's':
-                return self.s
-            case _:
-                raise KeyError(f'Invalid key: {key}')
+        self.instance.s = s
 
-    def __setitem__(self, key: str, value: float) -> None:
+    @x.setter
+    def x(self, x: float) -> None:
         '''
-        Set coordinate value by key.
+        Set the horizontal dispersion [m].
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-            value float: Value to set.
+            x float: Horizontal dispersion [m].
         '''
-        match key:
-            case 'x':
-                self.instance.x = value
-            case 'xp':
-                self.instance.xp = value
-            case 'y':
-                self.instance.y = value
-            case 'yp':
-                self.instance.yp = value
-            case 's':
-                self.s = value
-            case _:
-                raise KeyError(f'Invalid key: {key}')
+        self.instance.x = x
+
+    @xp.setter
+    def xp(self, xp: float) -> None:
+        '''
+        Set the horizontal angle dispersion [rad].
+
+        Args:
+            xp float: Horizontal angle dispersion [rad].
+        '''
+        self.instance.xp = xp
+
+    @y.setter
+    def y(self, y: float) -> None:
+        '''
+        Set the vertical dispersion [m].
+
+        Args:
+            y float: Vertical dispersion [m].
+        '''
+        self.instance.y = y
+
+    @yp.setter
+    def yp(self, yp: float) -> None:
+        '''
+        Set the vertical angle dispersion [rad].
+
+        Args:
+            yp float: Vertical angle dispersion [rad].
+        '''
+        self.instance.yp = yp
 
     def copy(self) -> Dispersion:
         '''

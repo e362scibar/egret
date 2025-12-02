@@ -40,105 +40,131 @@ class Envelope(EnvelopeABC):
         else:
             self.instance = EnvelopeCPP(cov, s)
 
-    def __getitem__(self, key):
-        '''
-        Get beta function value by key.
-
-        Args:
-            key str: Key of the beta function. 'bx', 'ax', 'gx', 'by', 'ay', 'gy', 'bu', 'au', 'gu', 'bv', 'av', 'gv', or 's'.
-
-        Returns:
-            float: Value of the beta function corresponding to the key.
-        '''
-        match key:
-            case 'bx':
-                return self.instance.bx
-            case 'ax':
-                return self.instance.ax
-            case 'gx':
-                return self.instance.gx
-            case 'by':
-                return self.instance.by
-            case 'ay':
-                return self.instance.ay
-            case 'gy':
-                return self.instance.gy
-            case 'bu':
-                return self.instance.bu
-            case 'au':
-                return self.instance.au
-            case 'gu':
-                return self.instance.gu
-            case 'bv':
-                return self.instance.bv
-            case 'av':
-                return self.instance.av
-            case 'gv':
-                return self.instance.gv
-            case 's':
-                return self.instance.s
-            case _:
-                raise KeyError(f'Invalid key: {key}')
-
     @property
     def cov(self) -> npt.NDArray[np.floating]:
         '''
-        Get the 4x4 covariance matrix.
-
-        Returns:
-            npt.NDArray[np.floating]: 4x4 covariance matrix.
+        4x4 covariance matrix.
         '''
         return self.instance.cov
 
     @property
     def s(self) -> float:
         '''
-        Get the longitudinal position.
-
-        Returns:
-            float: Longitudinal position.
+        Longitudinal position.
         '''
         return self.instance.s
 
     @property
     def T(self) -> npt.NDArray[np.floating]:
         '''
-        Get the 2x2 eigenmode transformation matrix.
-
-        Returns:
-            npt.NDArray[np.floating]: 2x2 eigenmode transformation matrix.
+        2x2 eigenmode transformation matrix.
         '''
         return self.instance.T
 
     @property
+    def tau(self) -> float:
+        '''
+        Eigenmode coupling parameter tau.
+        '''
+        return self.instance.tau
+
+    @property
     def U(self) -> npt.NDArray[np.floating]:
         '''
-        Get the 2x2 eigenmode covariance matrix U.
-
-        Returns:
-            npt.NDArray[np.floating]: 2x2 eigenmode covariance matrix U.
+        2x2 eigenmode covariance matrix U.
         '''
         return self.instance.U
 
     @property
     def V(self) -> npt.NDArray[np.floating]:
         '''
-        Get the 2x2 eigenmode covariance matrix V.
-
-        Returns:
-            npt.NDArray[np.floating]: 2x2 eigenmode covariance matrix V.
+        2x2 eigenmode covariance matrix V.
         '''
         return self.instance.V
 
     @property
-    def tau(self) -> float:
+    def bx(self) -> float:
         '''
-        Get the eigenmode coupling parameter tau.
+        Horizontal beta function [m].
+        '''
+        return self.instance.bx
 
-        Returns:
-            float: Eigenmode coupling parameter tau.
+    @property
+    def ax(self) -> float:
         '''
-        return self.instance.tau
+        Horizontal alpha function [m].
+        '''
+        return self.instance.ax
+
+    @property
+    def gx(self) -> float:
+        '''
+        Horizontal gamma function [1/m].
+        '''
+        return self.instance.gx
+
+    @property
+    def by(self) -> float:
+        '''
+        Vertical beta function [m].
+        '''
+        return self.instance.by
+
+    @property
+    def ay(self) -> float:
+        '''
+        Vertical alpha function [m].
+        '''
+        return self.instance.ay
+
+    @property
+    def gy(self) -> float:
+        '''
+        Vertical gamma function [1/m].
+        '''
+        return self.instance.gy
+
+    @property
+    def bu(self) -> float:
+        '''
+        Eigenmode U beta function [m].
+        '''
+        return self.instance.bu
+
+    @property
+    def au(self) -> float:
+        '''
+        Eigenmode U alpha function [m].
+        '''
+        return self.instance.au
+
+    @property
+    def gu(self) -> float:
+        '''
+        Eigenmode U gamma function [1/m].
+        '''
+        return self.instance.gu
+
+    @property
+    def bv(self) -> float:
+        '''
+        Eigenmode V beta function [m].
+        '''
+        return self.instance.bv
+
+    @property
+    def av(self) -> float:
+        '''
+        Eigenmode V alpha function [m].
+        '''
+        return self.instance.av
+
+    @property
+    def gv(self) -> float:
+        '''
+        Eigenmode V gamma function [1/m].
+        '''
+        return self.instance.gv
 
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None):
         '''

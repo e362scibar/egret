@@ -20,7 +20,13 @@
 
 from .coordinate import Coordinate
 from .envelope import Envelope
+from .dispersion import Dispersion
 
 from .basearray import BaseArray
 from .coordinatearray import CoordinateArray
 from .envelopearray import EnvelopeArray
+from .dispersionarray import DispersionArray
+
+from .object import Object
+from .element import Element
+from .drift import Drift

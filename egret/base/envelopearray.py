@@ -19,7 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from .basearray import BaseArray
 from .envelope import Envelope
 import numpy as np
@@ -70,46 +70,109 @@ class EnvelopeArray(BaseArray):
         '''
         pass
 
+    @property
     @abstractmethod
-    def __getitem__(self, key: str) -> npt.NDArray[np.floating]:
+    def s(self) -> npt.NDArray[np.floating]:
         '''
-        Get beam envelope value by key.
-
-        Args:
-            key str: Key of the coordinate. 'bx', 'ax', 'gx', 'by', 'ay', 'gy', 'bu', 'au', 'gu', 'bv', 'av', 'gv', or 's'.
-
-        Returns:
-            NDArray: Value of the coordinate corresponding to the key.
+        Array of longitudinal positions [m] with shape (N,).
         '''
-        match key:
-            case 'bx':
-                return self.cov[0, 0, :]
-            case 'ax':
-                return -0.5 * (self.cov[0, 1, :] + self.cov[1, 0, :])
-            case 'gx':
-                return self.cov[1, 1, :]
-            case 'by':
-                return self.cov[2, 2, :]
-            case 'ay':
-                return -0.5 * (self.cov[2, 3, :] + self.cov[3, 2, :])
-            case 'gy':
-                return self.cov[3, 3, :]
-            case 'bu':
-                return self.U[0, 0, :]
-            case 'au':
-                return -0.5 * (self.U[0, 1, :] + self.U[1, 0, :])
-            case 'gu':
-                return self.U[1, 1, :]
-            case 'bv':
-                return self.V[0, 0, :]
-            case 'av':
-                return -0.5 * (self.V[0, 1, :] + self.V[1, 0, :])
-            case 'gv':
-                return self.V[1, 1, :]
-            case 's':
-                return self.s
-            case _:
-                raise KeyError(f'Invalid key: {key}')
+        pass
+
+    @property
+    @abstractmethod
+    def bx(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal beta function array [m] with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def ax(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal alpha function array with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def gx(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal gamma function array with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def by(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical beta function array [m] with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def ay(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical alpha function array with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def gy(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical gamma function array with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def bu(self) -> npt.NDArray[np.floating]:
+        '''
+        Beta function array for eigenmode U [m] with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def au(self) -> npt.NDArray[np.floating]:
+        '''
+        Alpha function array for eigenmode U with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def gu(self) -> npt.NDArray[np.floating]:
+        '''
+        Gamma function array for eigenmode U with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def bv(self) -> npt.NDArray[np.floating]:
+        '''
+        Beta function array for eigenmode V [m] with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def av(self) -> npt.NDArray[np.floating]:
+        '''
+        Alpha function array for eigenmode V with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def gv(self) -> npt.NDArray[np.floating]:
+        '''
+        Gamma function array for eigenmode V with shape (N,).
+        '''
+        pass
 
     @abstractmethod
     def copy(self) -> EnvelopeArray:

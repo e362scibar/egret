@@ -1,4 +1,4 @@
-# base/element.py
+# cpp/element.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,7 +19,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from abc import abstractmethod
+from ..base.element import Element as ElementABC
+from egret.cppegret import Element as ElementCPP
 from .object import Object
 from .coordinate import Coordinate
 from .coordinatearray import CoordinateArray
@@ -31,124 +32,142 @@ import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
-class Element(Object):
+class Element(ElementABC, Object):
     '''
     Base class of an accelerator element.
     '''
 
+    def __init__(self, name: str, length: float, angle: float,
+                 dx: float = 0.0, dy: float = 0.0, ds: float = 0.0,
+                 tilt: float = 0.0, info: str = "", **kwargs) -> None:
+        '''
+        Initialize the Element.
+
+        Args:
+            name str: Name of the element.
+            length float: Length of the element [m].
+            angle float: Bending angle of the element [rad].
+            dx float: Horizontal offset of the element [m].
+            dy float: Vertical offset of the element [m].
+            ds float: Longitudinal offset of the element [m].
+            tilt float: Tilt angle of the element [rad].
+            info str: Additional information.
+        '''
+        if 'instance' in kwargs:
+            self.instance = kwargs['instance']
+        else:
+            self.instance = ElementCPP(name, length, angle, dx, dy, ds, tilt, info)
+        super().__init__(None, instance=self.instance)
+
     @property
-    @abstractmethod
     def length(self) -> float:
         '''
         Length of the element [m].
         '''
-        pass
+        return self.instance.length
 
     @property
-    @abstractmethod
     def angle(self) -> float:
         '''
         Bending angle of the element [rad].
         '''
-        pass
+        return self.instance.angle
 
     @property
-    @abstractmethod
     def dx(self) -> float:
         '''
         Horizontal offset of the element [m].
         '''
-        pass
+        return self.instance.dx
 
     @property
-    @abstractmethod
     def dy(self) -> float:
         '''
         Vertical offset of the element [m].
         '''
-        pass
+        return self.instance.dy
 
     @property
-    @abstractmethod
     def ds(self) -> float:
         '''
         Longitudinal offset of the element [m].
         '''
-        pass
+        return self.instance.ds
 
     @property
-    @abstractmethod
     def tilt(self) -> float:
         '''
         Tilt angle of the element [rad].
         '''
-        pass
+        return self.instance.tilt
 
     @property
-    @abstractmethod
     def info(self) -> str:
         '''
         Additional information.
         '''
-        pass
+        return self.instance.info
 
     @length.setter
-    @abstractmethod
-    def length(self, value: float) -> None:
+    def length(self, length: float) -> None:
         '''
         Set length of the element [m].
-        '''
-        pass
 
-    @angle.setter
-    @abstractmethod
-    def angle(self, value: float) -> None:
+        Args:
+            length float: Length of the element
         '''
-        Set bending angle of the element [rad].
-        '''
-        pass
+        self.instance.length = length
 
     @dx.setter
-    @abstractmethod
-    def dx(self, value: float) -> None:
+    def dx(self, dx: float) -> None:
         '''
         Set horizontal offset of the element [m].
+
+        Args:
+            dx float: Horizontal offset of the element.
         '''
-        pass
+        self.instance.dx = dx
 
     @dy.setter
-    @abstractmethod
-    def dy(self, value: float) -> None:
+    def dy(self, dy: float) -> None:
         '''
         Set vertical offset of the element [m].
+
+        Args:
+            dy float: Vertical offset of the element.
         '''
-        pass
+        self.instance.dy = dy
 
     @ds.setter
-    @abstractmethod
-    def ds(self, value: float) -> None:
+    def ds(self, ds: float) -> None:
         '''
         Set longitudinal offset of the element [m].
+
+        Args:
+            ds float: Longitudinal offset of the element.
         '''
-        pass
+        self.instance.ds = ds
 
     @tilt.setter
-    @abstractmethod
-    def tilt(self, value: float) -> None:
+    def tilt(self, tilt: float) -> None:
         '''
         Set tilt angle of the element [rad].
+
+        Args:
+            tilt float: Tilt angle of the element.
         '''
-        pass
+        self.instance.tilt = tilt
 
     @info.setter
-    @abstractmethod
-    def info(self, value: str) -> None:
+    def info(self, info: str) -> None:
         '''
         Set additional information.
-        '''
-        pass
 
-    @abstractmethod
+        Args:
+            info str: Additional information
+        '''
+        self.instance.info = info
+
     def copy(self) -> Element:
         '''
         Create a copy of the element.
@@ -156,9 +175,10 @@ class Element(Object):
         Returns:
             Element: A copy of the element.
         '''
-        pass
+        return Element(self.instance.name, self.instance.length, self.instance.angle,
+                       self.instance.dx, self.instance.dy, self.instance.ds,
+                       self.instance.tilt, self.instance.info)
 
-    @abstractmethod
     def set_indices(self, indices: Tuple[int, ...] | None = None) -> None:
         '''
         Set the indices of the element in the lattice.
@@ -166,9 +186,8 @@ class Element(Object):
         Args:
             indices Tuple[int, ...] | None: Tuple of indices representing the position of the element in the lattice.
         '''
-        pass
+        self.instance.set_indices(indices)
 
-    @abstractmethod
     def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
@@ -180,9 +199,8 @@ class Element(Object):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
-        pass
+        return self.instance.transfer_matrix(cood0.instance if cood0 is not None else None, ds)
 
-    @abstractmethod
     def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = True) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
@@ -194,12 +212,12 @@ class Element(Object):
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        pass
+        tmat, s = self.instance.transfer_matrix_array(cood0.instance if cood0 is not None else None, ds, endpoint)
+        return np.array(tmat), s
 
-    @abstractmethod
     def dispersion(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the element.
@@ -211,9 +229,8 @@ class Element(Object):
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
         '''
-        pass
+        return self.instance.dispersion(cood0.instance if cood0 is not None else None, ds)
 
-    @abstractmethod
     def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
@@ -228,9 +245,8 @@ class Element(Object):
             npt.NDArray[np.floating]: Dispersion array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        pass
+        return self.instance.dispersion_array(cood0.instance if cood0 is not None else None, ds, endpoint)
 
-    @abstractmethod
     def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
@@ -247,9 +263,14 @@ class Element(Object):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        pass
+        cood, evlp, disp =  self.instance.transfer(cood0.instance,
+                                                   evlp0.instance if evlp0 is not None else None,
+                                                   disp0.instance if disp0 is not None else None,
+                                                   ds)
+        return Coordinate(instance=cood), \
+            Envelope(instance=evlp) if evlp is not None else None, \
+            Dispersion(instance=disp) if disp is not None else None
 
-    @abstractmethod
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
                        ds: float = 0.1, endpoint: bool = True) \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
@@ -268,9 +289,14 @@ class Element(Object):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        pass
+        cood, evlp, disp = self.instance.transfer_array(cood0.instance,
+                                                        evlp0.instance if evlp0 is not None else None,
+                                                        disp0.instance if disp0 is not None else None,
+                                                        ds, endpoint)
+        return CoordinateArray(instance=cood), \
+            EnvelopeArray(instance=evlp) if evlp is not None else None, \
+            DispersionArray(instance=disp) if disp is not None else None
 
-    @abstractmethod
     def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
         -> Tuple[float, float, float]:
         '''
@@ -285,9 +311,8 @@ class Element(Object):
         Returns:
             Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
         '''
-        pass
+        return self.instance.radiation_integrals(cood0.instance, evlp0.instance, disp0.instance, ds)
 
-    @abstractmethod
     def get_element_from_s(self, s: float) -> Tuple[Element, float]:
         '''
         Get element and local longitudinal position by longitudinal position.
@@ -299,9 +324,9 @@ class Element(Object):
             Element: Element at the specified longitudinal position.
             float: Local longitudinal position in the element [m].
         '''
-        pass
+        elem_cpp, s_local = self.instance.get_element_from_s(s)
+        return Element(instance=elem_cpp), s_local
 
-    @abstractmethod
     def transfer_matrix_from_s(self, s: float, cood0: Coordinate, ds: float = 0.1) \
         -> npt.NDArray[np.floating]:
         '''
@@ -315,4 +340,4 @@ class Element(Object):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix from s to the end of the element.
         '''
-        pass
+        return self.instance.transfer_matrix_from_s(s, cood0.instance, ds)

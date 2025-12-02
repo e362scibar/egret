@@ -19,7 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from .basearray import BaseArray
 from .coordinate import Coordinate
 import numpy as np
@@ -41,6 +41,38 @@ class CoordinateArray(BaseArray):
 
     @property
     @abstractmethod
+    def x(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal position array with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def xp(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal angle array with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def y(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical position array with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def yp(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical angle array with shape (N,).
+        '''
+        pass
+
+    @property
+    @abstractmethod
     def z(self) -> npt.NDArray[np.floating]:
         '''
         Longitudinal displacement array [m] with shape (N,).
@@ -57,77 +89,86 @@ class CoordinateArray(BaseArray):
 
     @vector.setter
     @abstractmethod
-    def vector(self, value: npt.NDArray[np.floating]) -> None:
+    def vector(self, vector: npt.NDArray[np.floating]) -> None:
         '''
         Set 4xN array of 4D phase-space vectors [x, x', y, y'].
+
+        Args:
+            vector npt.NDArray[np.floating]: 4xN array of phase-space vectors.
+        '''
+        pass
+
+    @x.setter
+    @abstractmethod
+    def x(self, x: npt.NDArray[np.floating]) -> None:
+        '''
+        Set horizontal position array with shape (N,).
+
+        Args:
+            x float: Horizontal position array.
+        '''
+        pass
+
+    @xp.setter
+    @abstractmethod
+    def xp(self, xp: npt.NDArray[np.floating]) -> None:
+        '''
+        Set horizontal angle array with shape (N,).
+
+        Args:
+            xp float: Horizontal angle array.
+        '''
+        pass
+
+    @y.setter
+    @abstractmethod
+    def y(self, y: npt.NDArray[np.floating]) -> None:
+        '''
+        Set vertical position array with shape (N,).
+
+        Args:
+            y float: Vertical position array.
+        '''
+        pass
+
+    @yp.setter
+    @abstractmethod
+    def yp(self, yp: npt.NDArray[np.floating]) -> None:
+        '''
+        Set vertical angle array with shape (N,).
+
+        Args:
+            yp float: Vertical angle array.
         '''
         pass
 
     @z.setter
     @abstractmethod
-    def z(self, value: npt.NDArray[np.floating]) -> None:
+    def z(self, z: npt.NDArray[np.floating]) -> None:
         '''
         Set longitudinal displacement array [m] with shape (N,).
+
+        Args:
+            z float: Longitudinal displacement array.
         '''
         pass
 
     @delta.setter
     @abstractmethod
-    def delta(self, value: npt.NDArray[np.floating]) -> None:
+    def delta(self, delta: npt.NDArray[np.floating]) -> None:
         '''
         Set relative momentum deviation array with shape (N,).
+
+        Args:
+            delta float: Relative momentum deviation array.
         '''
         pass
 
     @abstractmethod
-    def __getitem__(self, key: str) -> float:
-        '''
-        Get coordinate value by key.
-
-        Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-
-        Returns:
-            NDArray: Value of the coordinate corresponding to the key.
-        '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case 'z':
-                    return self.z
-                case 'delta':
-                    return self.delta
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
-
-    @abstractmethod
-    def __setitem__(self, key: str, value: float) -> None:
-        '''
-        Set coordinate value by key.
-
-        Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-            value NDArray: Value to set.
-        '''
-        try:
-            self.vector[self.index[key]] = value
-        except KeyError:
-            match key:
-                case 's':
-                    self.s = value
-                case 'z':
-                    self.z = value
-                case 'delta':
-                    self.delta = value
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
-
-    @abstractmethod
     def copy(self) -> CoordinateArray:
         '''
+        Create a copy.
+
         Returns:
             CoordinateArray: A copy of the coordinate array object.
         '''

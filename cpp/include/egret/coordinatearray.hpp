@@ -79,22 +79,22 @@ public:
      * @brief Get the array of x coordinates.
      * @return const Eigen::ArrayXd
      */
-    const Eigen::ArrayXd x_array() const { return vector_array_.row(0).array(); }
+    Eigen::ArrayXd x_array() const { return vector_array_.row(0).array(); }
     /**
      * @brief Get the array of x' coordinates.
      * @return const Eigen::ArrayXd
      */
-    const Eigen::ArrayXd xp_array() const { return vector_array_.row(1).array(); }
+    Eigen::ArrayXd xp_array() const { return vector_array_.row(1).array(); }
     /**
      * @brief Get the array of y coordinates.
      * @return const Eigen::ArrayXd
      */
-    const Eigen::ArrayXd y_array() const { return vector_array_.row(2).array(); }
+    Eigen::ArrayXd y_array() const { return vector_array_.row(2).array(); }
     /**
      * @brief Get the array of y' coordinates.
      * @return const Eigen::ArrayXd
      */
-    const Eigen::ArrayXd yp_array() const { return vector_array_.row(3).array(); }
+    Eigen::ArrayXd yp_array() const { return vector_array_.row(3).array(); }
 
     /**
      * @brief Set the array of particle coordinate vectors.

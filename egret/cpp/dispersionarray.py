@@ -21,11 +21,12 @@
 from __future__ import annotations
 from ..base.dispersionarray import DispersionArray as DispersionArrayABC
 from egret.cppegret import DispersionArray as DispersionArrayCPP
+from .basearray import BaseArray
 from .dispersion import Dispersion
 import numpy as np
 import numpy.typing as npt
 
-class DispersionArray(DispersionArrayABC):
+class DispersionArray(DispersionArrayABC, BaseArray):
     '''
     Class for energy dispersion array.
     '''
@@ -43,6 +44,7 @@ class DispersionArray(DispersionArrayABC):
             self.instance = kwargs['instance']
         else:
             self.instance = DispersionArrayCPP(vector, s)
+        super().__init__(None, instance=self.instance)
 
     @property
     def vector(self) -> npt.NDArray[np.floating]:
@@ -51,46 +53,90 @@ class DispersionArray(DispersionArrayABC):
         '''
         return self.instance.vector
 
+    @property
+    def x(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of horizontal dispersion eta_x [m].
+        '''
+        return self.instance.x_array
+
+    @property
+    def xp(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of horizontal dispersion angle eta'_x [rad].
+        '''
+        return self.instance.xp_array
+
+    @property
+    def y(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of vertical dispersion eta_y [m].
+        '''
+        return self.instance.y_array
+
+    @property
+    def yp(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of vertical dispersion angle eta'_y [rad].
+        '''
+        return self.instance.yp_array
+
     @vector.setter
-    def vector(self, value: npt.NDArray[np.floating]) -> None:
+    def vector(self, vector: npt.NDArray[np.floating]):
         '''
-        Set 4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
+        Set the 4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
 
         Args:
-            value NDArray: 4xN array of dispersion vectors.
+            vector npt.NDArray[np.floating]: 4xN array of 4D dispersion vectors.
         '''
-        self.instance.vector = value
+        self.instance.vector_array = vector
 
-    def __getitem__(self, key: str) -> float:
+    @x.setter
+    def x(self, x: npt.NDArray[np.floating]):
         '''
-        Get coordinate value by key.
+        Set the array of horizontal dispersion eta_x [m].
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-
-        Returns:
-            NDArray: Value of the coordinate corresponding to the key.
+            x npt.NDArray[np.floating]: Array of horizontal dispersion.
         '''
-        match key:
-            case 'x':
-                return self.instance.x_array
-            case 'xp':
-                return self.instance.xp_array
-            case 'y':
-                return self.instance.y_array
-            case 'yp':
-                return self.instance.yp_array
-            case 's':
-                return self.s
-            case _:
-                raise KeyError(f'Invalid key: {key}')
+        self.instance.x_array = x
+
+    @xp.setter
+    def xp(self, xp: npt.NDArray[np.floating]):
+        '''
+        Set the array of horizontal dispersion angle eta'_x [rad].
+
+        Args:
+            xp npt.NDArray[np.floating]: Array of horizontal dispersion angle.
+        '''
+        self.instance.xp_array = xp
+
+    @y.setter
+    def y(self, y: npt.NDArray[np.floating]):
+        '''
+        Set the array of vertical dispersion eta_y [m].
+
+        Args:
+            y npt.NDArray[np.floating]: Array of vertical dispersion.
+        '''
+        self.instance.y_array = y
+
+    @yp.setter
+    def yp(self, yp: npt.NDArray[np.floating]):
+        '''
+        Set the array of vertical dispersion angle eta'_y [rad].
+
+        Args:
+            yp npt.NDArray[np.floating]: Array of vertical dispersion angle.
+        '''
+        self.instance.yp_array = yp
 
     def copy(self) -> DispersionArray:
         '''
         Returns:
             DispersionArray: A copy of the dispersion array object.
         '''
-        return DispersionArray(self.instance.vector, self.instance.s)
+        return DispersionArray(self.instance.vector_array, self.instance.s_array)
 
     def append(self, disp: DispersionArray):
         '''

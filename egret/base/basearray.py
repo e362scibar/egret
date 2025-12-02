@@ -27,17 +27,20 @@ class BaseArray(ABC):
 
     @property
     @abstractmethod
-    def s_array(self):
+    def s(self):
         '''
-        Array of s positions
+        Array of longitudinal positions
         '''
         pass
 
-    @s_array.setter
+    @s.setter
     @abstractmethod
-    def s_array(self, value):
+    def s(self, s):
         '''
-        Set the array of s positions.
+        Set the array of longitudinal positions.
+
+        Args:
+            s float: Array of longitudinal positions.
         '''
         pass
 

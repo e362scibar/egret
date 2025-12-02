@@ -19,60 +19,166 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
 from abc import ABC, abstractmethod
+import numpy as np
+import numpy.typing as npt
 
 class Coordinate(ABC):
     '''
     Base class of phase-space coordinates.
     '''
-    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
+    @property
     @abstractmethod
-    def __getitem__(self, key: str) -> float:
+    def vector(self) -> npt.NDArray[np.floating]:
         '''
-        Get coordinate value by key.
+        Phase-space coordinate vector [x, x', y, y'].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def x(self) -> float:
+        '''
+        Horizontal position.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def xp(self) -> float:
+        '''
+        Horizontal angle.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def y(self) -> float:
+        '''
+        Vertical position.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def yp(self) -> float:
+        '''
+        Vertical angle.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def s(self) -> float:
+        '''
+        Longitudinal position.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def z(self) -> float:
+        '''
+        Longitudinal coordinate.
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def delta(self) -> float:
+        '''
+        Relative momentum deviation.
+        '''
+        pass
+
+    @vector.setter
+    @abstractmethod
+    def vector(self, vector: npt.NDArray[np.floating]):
+        '''
+        Set the phase-space coordinate vector [x, x', y, y'].
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-
-        Returns:
-            float: Value of the coordinate corresponding to the key.
+            vector npt.NDArray[np.floating]: Phase-space coordinate vector.
         '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case 'z':
-                    return self.z
-                case 'delta':
-                    return self.delta
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        pass
 
+    @x.setter
     @abstractmethod
-    def __setitem__(self, key: str, value: float) -> None:
+    def x(self, x: float):
         '''
-        Set coordinate value by key.
+        Set the horizontal position.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-            value float: Value to set.
+            x float: Horizontal position.
         '''
-        try:
-            self.vector[self.index[key]] = value
-        except KeyError:
-            match key:
-                case 's':
-                    self.s = value
-                case 'z':
-                    self.z = value
-                case 'delta':
-                    self.delta = value
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        pass
+
+    @xp.setter
+    @abstractmethod
+    def xp(self, xp: float):
+        '''
+        Set the horizontal angle.
+
+        Args:
+            xp float: Horizontal angle.
+        '''
+        pass
+
+    @y.setter
+    @abstractmethod
+    def y(self, y: float):
+        '''
+        Set the vertical position.
+
+        Args:
+            y float: Vertical position.
+        '''
+        pass
+
+    @yp.setter
+    @abstractmethod
+    def yp(self, yp: float):
+        '''
+        Set the vertical angle.
+
+        Args:
+            yp float: Vertical angle.
+        '''
+        pass
+
+    @s.setter
+    @abstractmethod
+    def s(self, s: float):
+        '''
+        Set the longitudinal position.
+
+        Args:
+            s float: Longitudinal position.
+        '''
+        pass
+
+    @z.setter
+    @abstractmethod
+    def z(self, z: float):
+        '''
+        Set the longitudinal displacement.
+
+        Args:
+            z float: Longitudinal displacement.
+        '''
+        pass
+
+    @delta.setter
+    @abstractmethod
+    def delta(self, delta: float):
+        '''
+        Set the relative momentum deviation.
+
+        Args:
+            delta float: Relative momentum deviation.
+        '''
+        pass
 
     @abstractmethod
     def copy(self) -> Coordinate:
