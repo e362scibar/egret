@@ -94,7 +94,7 @@ class Element(Object):
 
     @property
     @abstractmethod
-    def elements(self) -> List[Element, ...] | None:
+    def elements(self) -> List[Element] | None:
         '''
         List of elements (None for single element).
         '''
@@ -102,57 +102,78 @@ class Element(Object):
 
     @length.setter
     @abstractmethod
-    def length(self, value: float) -> None:
+    def length(self, length: float) -> None:
         '''
         Set length of the element [m].
+
+        Args:
+            length float: Length of the element [m].
         '''
         pass
 
     @angle.setter
     @abstractmethod
-    def angle(self, value: float) -> None:
+    def angle(self, angle: float) -> None:
         '''
         Set bending angle of the element [rad].
+
+        Args:
+            angle float: Bending angle of the element [rad].
         '''
         pass
 
     @dx.setter
     @abstractmethod
-    def dx(self, value: float) -> None:
+    def dx(self, dx: float) -> None:
         '''
         Set horizontal offset of the element [m].
+
+        Args:
+            dx float: Horizontal offset of the element [m].
         '''
         pass
 
     @dy.setter
     @abstractmethod
-    def dy(self, value: float) -> None:
+    def dy(self, dy: float) -> None:
         '''
         Set vertical offset of the element [m].
+
+        Args:
+            dy float: Vertical offset of the element [m].
         '''
         pass
 
     @ds.setter
     @abstractmethod
-    def ds(self, value: float) -> None:
+    def ds(self, ds: float) -> None:
         '''
         Set longitudinal offset of the element [m].
+
+        Args:
+            ds float: Longitudinal offset of the element [m].
         '''
         pass
 
     @tilt.setter
     @abstractmethod
-    def tilt(self, value: float) -> None:
+    def tilt(self, tilt: float) -> None:
         '''
         Set tilt angle of the element [rad].
+
+        Args:
+            tilt float: Tilt angle of the element [rad].
         '''
         pass
 
     @info.setter
     @abstractmethod
-    def info(self, value: str) -> None:
+    def info(self, info: str) -> None:
         '''
         Set additional information.
+
+        Args:
+            info str: Additional information.
         '''
         pass
 
@@ -173,6 +194,20 @@ class Element(Object):
 
         Args:
             indices Tuple[int, ...] | None: Tuple of indices representing the position of the element in the lattice.
+        '''
+        pass
+
+    @abstractmethod
+    def s_array(self, ds: float = 0.1, endpoint: bool = True) -> npt.NDArray[np.floating]:
+        '''
+        Longitudinal position array along the element.
+
+        Args:
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+
+        Returns:
+            npt.NDArray[np.floating]: Longitudinal position array [m].
         '''
         pass
 

@@ -19,17 +19,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
+from ..base.drift import Drift as DriftABC
 from .element import Element
 from .coordinate import Coordinate
-
 import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
-class Drift(Element):
+class Drift(DriftABC, Element):
     '''
-    Drift space element.
+    Drift space element class.
     '''
 
     def __init__(self, name: str, length: float,
@@ -45,7 +44,7 @@ class Drift(Element):
             tilt float: Tilt angle of the element [rad].
             info str: Additional information.
         '''
-        super().__init__(name, length, dx, dy, ds, tilt, info)
+        super().__init__(name, length, 0.0, dx, dy, ds, tilt, info)
 
     def copy(self) -> Drift:
         '''
@@ -54,7 +53,8 @@ class Drift(Element):
         Returns:
             Drift: A copy of the element.
         '''
-        return Drift(self.name, self.length, self.dx, self.dy, self.ds, self.tilt, self.info)
+        return Drift(self._name, self._length, self._dx, self._dy, self._ds,
+                     self._tilt, self._info)
 
     def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
@@ -67,7 +67,7 @@ class Drift(Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
-        return Drift.transfer_matrix_from_length(self.length)
+        return Drift.transfer_matrix_from_length(self._length)
 
     def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
@@ -83,7 +83,7 @@ class Drift(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        return Drift.transfer_matrix_array_from_length(self.length, ds, endpoint)
+        return Drift.transfer_matrix_array_from_length(self._length, ds, endpoint)
 
     @classmethod
     def transfer_matrix_from_length(cls, length: float) -> npt.NDArray[np.floating]:
@@ -116,8 +116,8 @@ class Drift(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        s = np.linspace(0., length, int(length / ds) + int(endpoint) + 1, endpoint) if np.abs(length) > 0. else np.array([0.])
-        tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
-        tmat[0,1,:] = s
-        tmat[2,3,:] = s
+        s = cls.s_array_from_length(length, ds, endpoint)
+        tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
+        tmat[:,0,1] = s
+        tmat[:,2,3] = s
         return tmat, s

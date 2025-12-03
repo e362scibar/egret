@@ -18,7 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-class Object:
+from __future__ import annotations
+
+from anyio import value
+from ..base.object import Object as ObjectABC
+
+class Object(ObjectABC):
     '''
     Base class of any objects.
     '''
@@ -27,13 +32,24 @@ class Object:
         Args:
             name (str): name of the object
         '''
-        self.name = name
+        self._name = name
 
-    def get_name(self) -> str:
+    @property
+    def name(self) -> str:
         '''
         Get the name of the object.
 
         Returns:
             str: name of the object
         '''
-        return self.name
+        return self._name
+
+    @name.setter
+    def name(self, name: str) -> None:
+        '''
+        Set the name of the object.
+
+        Args:
+            name (str): name of the object
+        '''
+        self._name = name

@@ -19,17 +19,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
+from ..base.coordinatearray import CoordinateArray as CoordinateArrayABC
+from .basearray import BaseArray
 from .coordinate import Coordinate
-
 import numpy as np
 import numpy.typing as npt
 
-class CoordinateArray:
+class CoordinateArray(CoordinateArrayABC, BaseArray):
     '''
-    Phase-space coordinate array.
+    Phase-space coordinate array class.
     '''
-    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
     def __init__(self, vector: npt.NDArray[np.floating], s: npt.NDArray[np.floating],
                  z: npt.NDArray[np.floating] = None, delta: npt.NDArray[np.floating] = None):
@@ -40,67 +39,142 @@ class CoordinateArray:
             z npt.NDArray[np.floating]: Longitudinal displacement array [m] with shape (N,).
             delta npt.NDArray[np.floating]: Relative momentum deviation array with shape (N,).
         '''
-        self.vector = vector.copy()
-        self.s = s.copy()
+        super().__init__(s)
+        self._vector = vector.copy()
         if z is None:
-            self.z = np.zeros_like(s)
+            self._z = np.zeros_like(s)
         else:
-            self.z = z.copy()
+            self._z = z.copy()
         if delta is None:
-            self.delta = np.zeros_like(s)
+            self._delta = np.zeros_like(s)
         else:
-            self.delta = delta.copy()
+            self._delta = delta.copy()
 
-    def __getitem__(self, key: str) -> float:
+    @property
+    def vector(self) -> npt.NDArray[np.floating]:
         '''
-        Get coordinate value by key.
+        4xN array of 4D phase-space vectors [x, x', y, y'].
+        '''
+        return self._vector
+
+    @property
+    def z(self) -> npt.NDArray[np.floating]:
+        '''
+        Longitudinal displacement array [m] with shape (N,).
+        '''
+        return self._z
+
+    @property
+    def delta(self) -> npt.NDArray[np.floating]:
+        '''
+        Relative momentum deviation array with shape (N,).
+        '''
+        return self._delta
+
+    @property
+    def x(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal position array with shape (N,).
+        '''
+        return self._vector[0, :]
+
+    @property
+    def xp(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal angle array with shape (N,).
+        '''
+        return self._vector[1, :]
+
+    @property
+    def y(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical position array with shape (N,).
+        '''
+        return self._vector[2, :]
+
+    @property
+    def yp(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical angle array with shape (N,).
+        '''
+        return self._vector[3, :]
+
+    @vector.setter
+    def vector(self, vector: npt.NDArray[np.floating]) -> None:
+        '''
+        Set the 4xN array of 4D phase-space vectors [x, x', y, y'].
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-
-        Returns:
-            NDArray: Value of the coordinate corresponding to the key.
+            vector npt.NDArray[np.floating]: New 4xN array of 4D phase-space vectors.
         '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case 'z':
-                    return self.z
-                case 'delta':
-                    return self.delta
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        self._vector = vector.copy()
 
-    def __setitem__(self, key: str, value: float) -> None:
+    @z.setter
+    def z(self, z: npt.NDArray[np.floating]) -> None:
         '''
-        Set coordinate value by key.
+        Set the longitudinal displacement array [m] with shape (N,).
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', 'z', 'delta', or 's'.
-            value NDArray: Value to set.
+            z npt.NDArray[np.floating]: New longitudinal displacement array.
         '''
-        try:
-            self.vector[self.index[key]] = value
-        except KeyError:
-            match key:
-                case 's':
-                    self.s = value
-                case 'z':
-                    self.z = value
-                case 'delta':
-                    self.delta = value
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        self._z = z.copy()
+
+    @delta.setter
+    def delta(self, delta: npt.NDArray[np.floating]) -> None:
+        '''
+        Set the relative momentum deviation array with shape (N,).
+
+        Args:
+            delta npt.NDArray[np.floating]: New relative momentum deviation array.
+        '''
+        self._delta = delta.copy()
+
+    @x.setter
+    def x(self, x: npt.NDArray[np.floating]) -> None:
+        '''
+        Set the horizontal position array with shape (N,).
+
+        Args:
+            x npt.NDArray[np.floating]: New horizontal position array.
+        '''
+        self._vector[0, :] = x
+
+    @xp.setter
+    def xp(self, xp: npt.NDArray[np.floating]) -> None:
+        '''
+        Set the horizontal angle array with shape (N,).
+
+        Args:
+            xp npt.NDArray[np.floating]: New horizontal angle array.
+        '''
+        self._vector[1, :] = xp
+
+    @y.setter
+    def y(self, y: npt.NDArray[np.floating]) -> None:
+        '''
+        Set the vertical position array with shape (N,).
+
+        Args:
+            y npt.NDArray[np.floating]: New vertical position array.
+        '''
+        self._vector[2, :] = y
+
+    @yp.setter
+    def yp(self, yp: npt.NDArray[np.floating]) -> None:
+        '''
+        Set the vertical angle array with shape (N,).
+
+        Args:
+            yp npt.NDArray[np.floating]: New vertical angle array.
+        '''
+        self._vector[3, :] = yp
 
     def copy(self) -> CoordinateArray:
         '''
         Returns:
             CoordinateArray: A copy of the coordinate array object.
         '''
-        return CoordinateArray(self.vector, self.s, self.z, self.delta)
+        return CoordinateArray(self._vector, self._s, self._z, self._delta)
 
     def append(self, cood: CoordinateArray) -> None:
         '''
@@ -109,10 +183,10 @@ class CoordinateArray:
         Args:
             cood CoordinateArray: Coordinate array to append.
         '''
-        self.vector = np.hstack((self.vector, cood.vector))
-        self.s = np.hstack((self.s, cood.s))
-        self.z = np.hstack((self.z, cood.z))
-        self.delta = np.hstack((self.delta, cood.delta))
+        super().append(cood)
+        self._vector = np.hstack((self._vector, cood._vector))
+        self._z = np.hstack((self._z, cood._z))
+        self._delta = np.hstack((self._delta, cood._delta))
 
     def from_s(self, s: float) -> Coordinate:
         '''
@@ -124,15 +198,11 @@ class CoordinateArray:
         Returns:
             Coordinate: Coordinate at the specified position.
         '''
-        idx = np.searchsorted(self.s, s)
-        if isinstance(idx, np.ndarray):
-            idx = idx[0]
-        if idx == len(self.s) - 1:
-            raise ValueError(f'Out of range: s={s}, max={self.s[-1]}')
-        s0, s1 = self.s[idx], self.s[idx+1]
+        idx = self.index_from_s(s)
+        s0, s1 = self._s[idx], self._s[idx+1]
         ds = s1 - s0
         a = np.array([(s1-s)/ds, (s-s0)/ds]) if ds != 0. else np.array([0.5, 0.5])
-        vec = np.sum(self.vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
-        z = np.sum(self.z[idx:idx+2] * a)
-        delta = np.sum(self.delta[idx:idx+2] * a)
+        vec = np.sum(self._vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
+        z = np.sum(self._z[idx:idx+2] * a)
+        delta = np.sum(self._delta[idx:idx+2] * a)
         return Coordinate(vec, s, z, delta)

@@ -1,4 +1,4 @@
-# base/basearray.py
+# python/basearray.py
 #
 # Copyright (C) 2025 Hirokazu Maesaka (RIKEN SPring-8 Center)
 #
@@ -19,25 +19,32 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from ..base.basearray import BaseArray as BaseArrayABC
 import numpy as np
 import numpy.typing as npt
 
-class BaseArray(ABC):
+class BaseArray(BaseArrayABC):
     '''
-    Abstract base class for array types.
+    Base class for array types.
     '''
 
+    def __init__(self, s: npt.NDArray[np.floating]) -> None:
+        '''
+        Initialize the BaseArray.
+
+        Args:
+            s npt.NDArray[np.floating]: Array of longitudinal positions.
+        '''
+        self._s = s.copy()
+
     @property
-    @abstractmethod
     def s(self) -> npt.NDArray[np.floating]:
         '''
         Array of longitudinal positions
         '''
-        pass
+        return self._s
 
     @s.setter
-    @abstractmethod
     def s(self, s: npt.NDArray[np.floating]) -> None:
         '''
         Set the array of longitudinal positions.
@@ -45,38 +52,34 @@ class BaseArray(ABC):
         Args:
             s npt.NDArray[np.floating]: Array of longitudinal positions.
         '''
-        pass
+        self._s = s.copy()
 
-    @abstractmethod
     def __len__(self) -> int:
         '''
         Return the length of the array.
         '''
-        pass
+        return len(self._s)
 
-    @abstractmethod
-    def copy(self) -> BaseArray:
+    def copy(self):
         '''
         Return a copy of the array.
         '''
-        pass
+        return BaseArray(self._s.copy())
 
-
-    @abstractmethod
     def ds(self) -> float:
         '''
         Return the step size of the array.
         '''
-        pass
+        if len(self._s) < 2:
+            raise ValueError("Array must have at least two elements to compute step size.")
+        return self._s[1] - self._s[0]
 
-    @abstractmethod
     def append(self, other: BaseArray) -> None:
         '''
         Append another item to the array.
         '''
-        pass
+        self._s = np.concatenate((self._s, other._s))
 
-    @abstractmethod
     def index_from_s(self, s: float) -> int:
         '''
         Return the index corresponding to the given s position.
@@ -87,4 +90,9 @@ class BaseArray(ABC):
         Returns:
             int: Index corresponding to the s position.
         '''
-        pass
+        idx = np.searchsorted(self._s, s)
+        if isinstance(idx, np.ndarray):
+            idx = idx[0]
+        if idx == len(self._s) - 1:
+            raise ValueError(f'Out of range: s={s}, max={self._s[-1]}')
+        return idx

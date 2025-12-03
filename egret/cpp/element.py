@@ -198,6 +198,19 @@ class Element(ElementABC, Object):
         '''
         self.instance.set_indices(indices)
 
+    def s_array(self, ds: float = 0.1, endpoint: bool = True) -> npt.NDArray[np.floating]:
+        '''
+        Longitudinal position array along the element.
+
+        Args:
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+
+        Returns:
+            npt.NDArray[np.floating]: Longitudinal position array [m].
+        '''
+        return self.instance.s_array(ds, endpoint)
+
     def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.

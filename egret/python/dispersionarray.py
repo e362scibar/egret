@@ -19,17 +19,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
+from ..base.dispersionarray import DispersionArray as DispersionArrayABC
+from .basearray import BaseArray
 from .dispersion import Dispersion
-
 import numpy as np
 import numpy.typing as npt
 
-class DispersionArray:
+class DispersionArray(DispersionArrayABC, BaseArray):
     '''
     Energy dispersion array.
     '''
-    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
     def __init__(self, vector: npt.NDArray[np.floating], s: npt.NDArray[np.floating]):
         '''
@@ -37,51 +36,100 @@ class DispersionArray:
             vector npt.NDArray[np.floating]: 4xN 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
             s npt.NDArray[np.floating]: Longitudinal position array along the reference orbit [m] with shape (N,).
         '''
-        self.vector = vector.copy()
-        self.s = s.copy()
+        super().__init__(s)
+        self._vector = vector.copy()
 
-    def __getitem__(self, key: str) -> float:
+    @property
+    def vector(self) -> npt.NDArray[np.floating]:
         '''
-        Get coordinate value by key.
+        4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
+        '''
+        return self._vector
+
+    @property
+    def x(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal dispersion array with shape (N,).
+        '''
+        return self._vector[0, :]
+
+    @property
+    def xp(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal angle dispersion array with shape (N,).
+        '''
+        return self._vector[1, :]
+
+    @property
+    def y(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical dispersion array with shape (N,).
+        '''
+        return self._vector[2, :]
+
+    @property
+    def yp(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical angle dispersion array with shape (N,).
+        '''
+        return self._vector[3, :]
+
+    @vector.setter
+    def vector(self, vector: npt.NDArray[np.floating]):
+        '''
+        Set the 4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-
-        Returns:
-            NDArray: Value of the coordinate corresponding to the key.
+            vector npt.NDArray[np.floating]: 4xN array of dispersion vectors.
         '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        self._vector = vector.copy()
 
-    def __setitem__(self, key: str, value: float) -> None:
+    @x.setter
+    def x(self, x: npt.NDArray[np.floating]):
         '''
-        Set coordinate value by key.
+        Set the horizontal dispersion array with shape (N,).
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-            value NDArray: Value to set.
+            x npt.NDArray[np.floating]: Horizontal dispersion array.
         '''
-        try:
-            self.vector[self.index[key]] = value
-        except KeyError:
-            match key:
-                case 's':
-                    self.s = value
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        self._vector[0, :] = x.copy()
+
+    @xp.setter
+    def xp(self, xp: npt.NDArray[np.floating]):
+        '''
+        Set the horizontal angle dispersion array with shape (N,).
+
+        Args:
+            xp npt.NDArray[np.floating]: Horizontal angle dispersion array.
+        '''
+        self._vector[1, :] = xp.copy()
+
+    @y.setter
+    def y(self, y: npt.NDArray[np.floating]):
+        '''
+        Set the vertical dispersion array with shape (N,).
+
+        Args:
+            y npt.NDArray[np.floating]: Vertical dispersion array.
+        '''
+        self._vector[2, :] = y.copy()
+
+    @yp.setter
+    def yp(self, yp: npt.NDArray[np.floating]):
+        '''
+        Set the vertical angle dispersion array with shape (N,).
+
+        Args:
+            yp npt.NDArray[np.floating]: Vertical angle dispersion array.
+        '''
+        self._vector[3, :] = yp.copy()
 
     def copy(self) -> DispersionArray:
         '''
         Returns:
             DispersionArray: A copy of the dispersion array object.
         '''
-        return DispersionArray(self.vector, self.s)
+        return DispersionArray(self._vector, self._s)
 
     def append(self, disp: DispersionArray):
         '''
@@ -90,8 +138,8 @@ class DispersionArray:
         Args:
             disp DispersionArray: Another dispersion array to append.
         '''
-        self.vector = np.hstack((self.vector, disp.vector))
-        self.s = np.hstack((self.s, disp.s))
+        super().append(disp)
+        self._vector = np.hstack((self._vector, disp._vector))
 
     def from_s(self, s: float) -> Dispersion:
         '''
@@ -103,13 +151,9 @@ class DispersionArray:
         Returns:
             Coordinate: Coordinate at the specified position.
         '''
-        idx = np.searchsorted(self.s, s)
-        if isinstance(idx, np.ndarray):
-            idx = idx[0]
-        if idx == len(self.s) - 1:
-            raise ValueError(f'Out of range: s={s}, max={self.s[-1]}')
-        s0, s1 = self.s[idx], self.s[idx+1]
+        idx = self.index_from_s(s)
+        s0, s1 = self._s[idx], self._s[idx+1]
         ds = s1 - s0
         a = np.array([(s1-s)/ds, (s-s0)/ds]) if ds != 0. else np.array([0.5, 0.5])
-        vec = np.sum(self.vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
+        vec = np.sum(self._vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
         return Dispersion(vec, s)

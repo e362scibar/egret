@@ -19,15 +19,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
+from ..base.dispersion import Dispersion as DispersionABC
 import numpy as np
 import numpy.typing as npt
 
-class Dispersion:
+class Dispersion(DispersionABC):
     '''
-    Energy dispersion.
+    Energy dispersion class.
     '''
-    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
     def __init__(self, vector: npt.NDArray[np.floating] = np.zeros(4) , s: float = 0.):
         '''
@@ -35,48 +34,120 @@ class Dispersion:
             vector npt.NDArray[np.floating]: 4D dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
             s float: Longitudinal position along the reference orbit [m].
         '''
-        self.vector = vector.copy()
-        self.s = s
+        self._vector = vector.copy()
+        self._s = s
 
-    def __getitem__(self, key: str) -> float:
+    @property
+    def vector(self) -> npt.NDArray[np.floating]:
         '''
-        Get coordinate value by key.
-
-        Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-
         Returns:
-            float: Value of the coordinate corresponding to the key.
+            npt.NDArray[np.floating]: 4D dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
         '''
-        try:
-            return self.vector[self.index[key]]
-        except KeyError:
-            match key:
-                case 's':
-                    return self.s
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        return self._vector
 
-    def __setitem__(self, key: str, value: float) -> None:
+    @property
+    def s(self) -> float:
         '''
-        Set coordinate value by key.
+        Returns:
+            float: Longitudinal position along the reference orbit [m].
+        '''
+        return self._s
+
+    @property
+    def x(self) -> float:
+        '''
+        Returns:
+            float: Horizontal dispersion [m].
+        '''
+        return self._vector[0]
+
+    @property
+    def xp(self) -> float:
+        '''
+        Returns:
+            float: Horizontal angle dispersion [rad].
+        '''
+        return self._vector[1]
+
+    @property
+    def y(self) -> float:
+        '''
+        Returns:
+            float: Vertical dispersion [m].
+        '''
+        return self._vector[2]
+
+    @property
+    def yp(self) -> float:
+        '''
+        Returns:
+            float: Vertical angle dispersion [rad].
+        '''
+        return self._vector[3]
+
+    @vector.setter
+    def vector(self, vector: npt.NDArray[np.floating]) -> None:
+        '''
+        Set the 4D dispersion vector.
 
         Args:
-            key str: Key of the coordinate. 'x', 'xp', 'y', 'yp', or 's'.
-            value float: Value to set.
+            vector npt.NDArray[np.floating]: 4D dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
         '''
-        try:
-            self.vector[self.index[key]] = value
-        except KeyError:
-            match key:
-                case 's':
-                    self.s = value
-                case _:
-                    raise KeyError(f'Invalid key: {key}')
+        self._vector = vector.copy()
+
+    @s.setter
+    def s(self, s: float) -> None:
+        '''
+        Set the longitudinal position along the reference orbit.
+
+        Args:
+            s float: Longitudinal position [m].
+        '''
+        self._s = s
+
+    @x.setter
+    def x(self, x: float) -> None:
+        '''
+        Set horizontal dispersion.
+
+        Args:
+            x float: Horizontal dispersion [m].
+        '''
+        self._vector[0] = x
+
+    @xp.setter
+    def xp(self, xp: float) -> None:
+        '''
+        Set horizontal angle dispersion.
+
+        Args:
+            xp float: Horizontal angle dispersion [rad].
+        '''
+        self._vector[1] = xp
+
+    @y.setter
+    def y(self, y: float) -> None:
+        '''
+        Set vertical dispersion.
+
+        Args:
+            y float: Vertical dispersion [m].
+        '''
+        self._vector[2] = y
+
+    @yp.setter
+    def yp(self, yp: float) -> None:
+        '''
+        Set vertical angle dispersion.
+
+        Args:
+            yp float: Vertical angle dispersion [rad].
+        '''
+        self._vector[3] = yp
 
     def copy(self) -> Dispersion:
         '''
         Returns:
             Dispersion: A copy of the coordinate object.
         '''
-        return Dispersion(self.vector, self.s)
+        return Dispersion(self._vector, self._s)

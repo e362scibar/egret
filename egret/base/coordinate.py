@@ -27,6 +27,7 @@ class Coordinate(ABC):
     '''
     Base class of phase-space coordinates.
     '''
+    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
     @property
     @abstractmethod

@@ -19,7 +19,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
+from ..base.dipole import Dipole as DipoleABC
 from .element import Element
 from .coordinate import Coordinate
 from .coordinatearray import CoordinateArray
@@ -28,15 +28,14 @@ from .envelopearray import EnvelopeArray
 from .dispersion import Dispersion
 from .dispersionarray import DispersionArray
 from .drift import Drift
-
 import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 import scipy
 
-class Dipole(Element):
+class Dipole(DipoleABC, Element):
     '''
-    Dipole magnet.
+    Dipole magnet class.
     '''
 
     def __init__(self, name: str, length: float, angle: float, k1: float = 0.,
@@ -61,14 +60,105 @@ class Dipole(Element):
         '''
         if angle == 0.:
             raise ValueError(f'Angle is zero.')
-        super().__init__(name, length, dx, dy, ds, tilt, info)
-        self.angle = angle
-        self.radius = length / angle
-        self.k1 = k1
-        self.e1 = e1
-        self.e2 = e2
-        self.h1 = h1
-        self.h2 = h2
+        super().__init__(name, length, angle, dx, dy, ds, tilt, info)
+        self._rho = length / angle
+        self._k1 = k1
+        self._e1 = e1
+        self._e2 = e2
+        self._h1 = h1
+        self._h2 = h2
+
+    @property
+    def rho(self) -> float:
+        '''
+        Bending radius of the dipole [m].
+        '''
+        return self._rho
+
+    @property
+    def k1(self) -> float:
+        '''
+        Quadrupole component [1/m^2].
+        '''
+        return self._k1
+
+    @property
+    def e1(self) -> float:
+        '''
+        Entrance edge angle [rad].
+        '''
+        return self._e1
+
+    @property
+    def e2(self) -> float:
+        '''
+        Exit edge angle [rad].
+        '''
+        return self._e2
+
+    @property
+    def h1(self) -> float:
+        '''
+        Entrance pole-face curvature [1/m].
+        '''
+        return self._h1
+
+    @property
+    def h2(self) -> float:
+        '''
+        Exit pole-face curvature [1/m].
+        '''
+        return self._h2
+
+    @k1.setter
+    def k1(self, k1: float) -> None:
+        '''
+        Set quadrupole component.
+
+        Args:
+            k1 float: Quadrupole component [1/m^2].
+        '''
+        self._k1 = k1
+
+    @e1.setter
+    def e1(self, e1: float) -> None:
+        '''
+        Set entrance edge angle.
+
+        Args:
+            e1 float: Entrance edge angle [rad].
+        '''
+        self._e1 = e1
+
+    @e2.setter
+    def e2(self, e2: float) -> None:
+        '''
+        Set exit edge angle.
+
+        Args:
+            e2 float: Exit edge angle [rad].
+        '''
+        self._e2 = e2
+
+    @h1.setter
+    def h1(self, h1: float) -> None:
+        '''
+        Set entrance pole-face curvature.
+
+        Args:
+            h1 float: Entrance pole-face curvature [1/m].
+        '''
+        self._h1 = h1
+
+    @h2.setter
+    def h2(self, h2: float) -> None:
+        '''
+        Set exit pole-face curvature.
+
+        Args:
+            h2 float: Exit pole-face curvature [1/m].
+        '''
+        self._h2 = h2
 
     def copy(self) -> Dipole:
         '''
@@ -77,9 +167,9 @@ class Dipole(Element):
         Returns:
             Dipole: Copied dipole element.
         '''
-        return Dipole(self.name, self.length, self.angle, self.k1,
-                      self.e1, self.e2, self.h1, self.h2,
-                      self.dx, self.dy, self.ds, self.tilt, self.info)
+        return Dipole(self._name, self._length, self._angle, self._k1,
+                      self._e1, self._e2, self._h1, self._h2,
+                      self._dx, self._dy, self._ds, self._tilt, self._info)
 
     def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
@@ -93,21 +183,21 @@ class Dipole(Element):
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
         delta = 0. if cood0 is None else cood0.delta
-        rho = self.radius * (1. + delta)
+        rho = self._rho * (1. + delta)
         tmat = np.eye(4)
-        if self.k1 == 0.: # simple dipole
-            phi = self.angle / (1. + delta)
+        if self._k1 == 0.: # simple dipole
+            phi = self._angle / (1. + delta)
             cosphi, sinphi = np.cos(phi), np.sin(phi)
             tmat[0:2, 0:2] = np.array([[cosphi, rho*sinphi], [-sinphi/rho, cosphi]])
-            tmat[2, 3] = self.length
+            tmat[2, 3] = self._length
         else: # combined-function dipole
-            k1 = self.k1 / (1. + delta)
+            k1 = self._k1 / (1. + delta)
             kx = k1 + 1./rho**2
             sqrtkx = np.sqrt(np.abs(kx))
-            psix = sqrtkx * self.length
+            psix = sqrtkx * self._length
             ky = -k1
             sqrtky = np.sqrt(np.abs(ky))
-            psiy = sqrtky * self.length
+            psiy = sqrtky * self._length
             if kx < 0.: # defocusing dipole
                 coshx, sinhx = np.cosh(psix), np.sinh(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
@@ -140,16 +230,16 @@ class Dipole(Element):
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         delta = 0. if cood0 is None else cood0.delta
-        rho = self.radius * (1. + delta)
-        s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint)
+        rho = self._rho * (1. + delta)
+        s = self.s_array(ds, endpoint)
         tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
-        if self.k1 == 0.: # simple dipole
+        if self._k1 == 0.: # simple dipole
             phi = s / rho
             cosphi, sinphi = np.cos(phi), np.sin(phi)
             tmat[0:2,0:2] = np.array([[cosphi, rho*sinphi], [-sinphi/rho, cosphi]])
             tmat[2,3] = s
         else: # combined-function dipole
-            k1 = self.k1 / (1. + delta)
+            k1 = self._k1 / (1. + delta)
             kx = k1 + 1./rho**2
             sqrtkx = np.sqrt(np.abs(kx))
             psix = sqrtkx * s
@@ -184,51 +274,51 @@ class Dipole(Element):
         Returns:
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].
         '''
-        rho = self.radius * (1. + cood0.delta)
+        rho = self._rho * (1. + cood0.delta)
         cood0vec = cood0.vector.copy()
-        if self.k1 == 0.: # simple dipole
-            phi = self.length / rho
+        if self._k1 == 0.: # simple dipole
+            phi = self._length / rho
             cosphi, sinphi = np.cos(phi), np.sin(phi)
             disp = np.array([rho*(1.-cosphi), sinphi, 0., 0.])
-            Mx1 = np.array([[sinphi, -rho*cosphi], [cosphi/rho, sinphi]]) * 0.5 * self.length / rho
+            Mx1 = np.array([[sinphi, -rho*cosphi], [cosphi/rho, sinphi]]) * 0.5 * self._length / rho
             Mx2 = np.array([[0., rho*sinphi], [sinphi/rho, 0.]]) * 0.5
             disp[0:2] += np.dot(Mx1 + Mx2, cood0vec[0:2])
         else: # combined-function dipole
-            k1 = self.k1 / (1. + cood0.delta)
+            k1 = self._k1 / (1. + cood0.delta)
             kx = k1 + 1./rho**2
             sqrtkx = np.sqrt(np.abs(kx))
-            psix = sqrtkx * self.length
+            psix = sqrtkx * self._length
             ky = -k1
             sqrtky = np.sqrt(np.abs(ky))
-            psiy = sqrtky * self.length
+            psiy = sqrtky * self._length
             if kx < 0.: # defocusing dipole
                 coshx, sinhx = np.cosh(psix), np.sinh(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
                 disp = np.array([(1.-coshx)/(kx*rho), sinhx/(sqrtkx*rho), 0., 0.])
-                Mx1 = np.array([[-sinhx, -coshx/sqrtkx], [-sqrtkx*coshx, -sinhx]]) * 0.5 * self.length * sqrtkx
+                Mx1 = np.array([[-sinhx, -coshx/sqrtkx], [-sqrtkx*coshx, -sinhx]]) * 0.5 * self._length * sqrtkx
                 Mx2 = np.array([[0., sinhx/sqrtkx], [-sqrtkx*sinhx, 0.]]) * 0.5
                 disp[0:2] += np.dot(Mx1 + Mx2, cood0vec[0:2])
-                My1 = np.array([[siny, -cosy/sqrtky], [sqrtky*cosy, siny]]) * 0.5 * self.length * sqrtky
+                My1 = np.array([[siny, -cosy/sqrtky], [sqrtky*cosy, siny]]) * 0.5 * self._length * sqrtky
                 My2 = np.array([[0., siny/sqrtky], [sqrtky*siny, 0.]]) * 0.5
                 disp[2:4] += np.dot(My1 + My2, cood0vec[2:4])
             elif ky < 0.: # focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 coshy, sinhy = np.cosh(psiy), np.sinh(psiy)
                 disp = np.array([(1.-cosx)/(kx*rho), sinx/(sqrtkx*rho), 0., 0.])
-                Mx1 = np.array([[sinx, -cosx/sqrtkx], [sqrtkx*cosx, sinx]]) * 0.5 * self.length * sqrtkx
+                Mx1 = np.array([[sinx, -cosx/sqrtkx], [sqrtkx*cosx, sinx]]) * 0.5 * self._length * sqrtkx
                 Mx2 = np.array([[0., sinx/sqrtkx], [sqrtkx*sinx, 0.]]) * 0.5
                 disp[0:2] += np.dot(Mx1 + Mx2, cood0vec[0:2])
-                My1 = np.array([[-sinhy, -coshy/sqrtky], [-sqrtky*coshy, -sinhy]]) * 0.5 * self.length * sqrtky
+                My1 = np.array([[-sinhy, -coshy/sqrtky], [-sqrtky*coshy, -sinhy]]) * 0.5 * self._length * sqrtky
                 My2 = np.array([[0., sinhy/sqrtky], [-sqrtky*sinhy, 0.]]) * 0.5
                 disp[2:4] += np.dot(My1 + My2, cood0vec[2:4])
             else: # both focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
                 disp = np.array([(1.-cosx)/(kx*rho), sinx/(sqrtkx*rho), 0., 0.])
-                Mx1 = np.array([[sinx, -cosx/sqrtkx], [sqrtkx*cosx, sinx]]) * 0.5 * self.length * sqrtkx
+                Mx1 = np.array([[sinx, -cosx/sqrtkx], [sqrtkx*cosx, sinx]]) * 0.5 * self._length * sqrtkx
                 Mx2 = np.array([[0., sinx/sqrtkx], [sqrtkx*sinx, 0.]]) * 0.5
                 disp[0:2] += np.dot(Mx1 + Mx2, cood0vec[0:2])
-                My1 = np.array([[siny, -cosy/sqrtky], [sqrtky*cosy, siny]]) * 0.5 * self.length * sqrtky
+                My1 = np.array([[siny, -cosy/sqrtky], [sqrtky*cosy, siny]]) * 0.5 * self._length * sqrtky
                 My2 = np.array([[0., siny/sqrtky], [sqrtky*siny, 0.]]) * 0.5
                 disp[2:4] += np.dot(My1 + My2, cood0vec[2:4])
         return disp
@@ -246,10 +336,10 @@ class Dipole(Element):
             npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        rho = self.radius * (1. + cood0.delta)
+        rho = self._rho * (1. + cood0.delta)
         cood0vec = cood0.vector.copy()
-        s = np.linspace(0., self.length, int(self.length / ds) + int(endpoint) + 1, endpoint)
-        if self.k1 == 0.: # simple dipole
+        s = self.s_array(ds, endpoint)
+        if self._k1 == 0.: # simple dipole
             phi = s / rho
             cosphi, sinphi = np.cos(phi), np.sin(phi)
             disp = np.array([rho*(1.-cosphi), sinphi, np.zeros_like(s), np.zeros_like(s)])
@@ -257,7 +347,7 @@ class Dipole(Element):
             Mx2 = np.array([[np.zeros_like(s), rho*sinphi], [sinphi/rho, np.zeros_like(s)]]) * 0.5
             disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood0vec[0:2]).T
         else:
-            k1 = self.k1 / (1. + cood0.delta)
+            k1 = self._k1 / (1. + cood0.delta)
             kx = k1 + 1./rho**2
             sqrtkx = np.sqrt(np.abs(kx))
             psix = sqrtkx * s
@@ -313,23 +403,23 @@ class Dipole(Element):
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
         cood0err = cood0.copy()
-        cood0err.vector[0] -= self.dx
-        cood0err.vector[2] -= self.dy
-        cood0err.s -= self.ds
+        cood0err.x -= self._dx
+        cood0err.y -= self._dy
+        cood0err.s -= self._ds
         tmat = self.transfer_matrix(cood0err, ds)
         disp = self.dispersion(Coordinate(), ds)
         cood = np.dot(tmat, cood0err.vector) + disp * cood0.delta
-        cood[0] += self.dx
-        cood[2] += self.dy
-        cood1 = Coordinate(cood, cood0err.s + self.length + self.ds, cood0err.z, cood0err.delta)
+        cood[0] += self._dx
+        cood[2] += self._dy
+        cood1 = Coordinate(cood, cood0err.s + self._length + self._ds, cood0err.z, cood0err.delta)
         if evlp0 is not None:
             evlp1 = evlp0.copy()
-            evlp1.transfer(tmat, self.length)
+            evlp1.transfer(tmat, self._length)
         else:
             evlp1 = None
         if disp0 is not None:
             disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds)
-            disp1 = Dispersion(disp, disp0.s + self.length)
+            disp1 = Dispersion(disp, disp0.s + self._length)
         else:
             disp1 = None
         return cood1, evlp1, disp1
@@ -353,14 +443,14 @@ class Dipole(Element):
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
         cood0err = cood0.copy()
-        cood0err.vector[0] -= self.dx
-        cood0err.vector[2] -= self.dy
-        cood0err.s -= self.ds
+        cood0err.x -= self._dx
+        cood0err.y -= self._dy
+        cood0err.s -= self._ds
         tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint)
         disp, _ = self.dispersion_array(Coordinate(), ds, endpoint)
         cood = np.matmul(tmat.transpose(2,0,1), cood0err.vector).T + disp * cood0.delta
-        cood[0] += self.dx
-        cood[2] += self.dy
+        cood[0] += self._dx
+        cood[2] += self._dy
         cood1 = CoordinateArray(cood, s + cood0.s,
                                 np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
         if evlp0 is not None:
@@ -388,11 +478,11 @@ class Dipole(Element):
         Returns:
             Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
         '''
-        kappa = 1./self.radius
-        k = self.k1
+        kappa = 1./self._rho
+        k = self._k1
         _, evlp, disp = self.transfer_array(cood0, evlp0, disp0, ds, endpoint=True)
         dispuv = np.matvec(evlp.T_matrix().transpose(2, 0, 1), disp.vector.T).T
-        I2 = self.length * kappa**2
+        I2 = self._length * kappa**2
         I4 = scipy.integrate.simpson(disp['x'] * kappa * (kappa**2 + 2. * k), x=disp.s)
         I4u = scipy.integrate.simpson(evlp.tau * dispuv[0] * kappa * (kappa**2 + 2. * k), x=disp.s)
         I4v = I4 - I4u

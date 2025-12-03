@@ -22,6 +22,7 @@ from .coordinate import Coordinate
 from .envelope import Envelope
 from .dispersion import Dispersion
 
+from .basearray import BaseArray
 from .coordinatearray import CoordinateArray
 from .envelopearray import EnvelopeArray
 from .dispersionarray import DispersionArray

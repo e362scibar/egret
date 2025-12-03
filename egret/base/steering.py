@@ -91,3 +91,10 @@ class Steering(Element):
             kick_y float: Vertical kick angle [rad].
         '''
         pass
+
+    @abstractmethod
+    def copy(self) -> Steering:
+        '''
+        Return a copy of the steering element.
+        '''
+        pass

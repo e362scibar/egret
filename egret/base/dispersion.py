@@ -26,6 +26,7 @@ class Dispersion(ABC):
     '''
     Base class for energy dispersion.
     '''
+    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
     @property
     @abstractmethod

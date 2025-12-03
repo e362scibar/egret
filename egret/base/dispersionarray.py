@@ -29,12 +29,13 @@ class DispersionArray(BaseArray):
     '''
     Base class for energy dispersion array.
     '''
+    index = {'x': 0, 'xp': 1, 'y': 2, 'yp': 3}
 
     @property
     @abstractmethod
     def vector(self) -> npt.NDArray[np.floating]:
         '''
-        4xN array of 4D dispersion vectors [Dx, Dpx, Dy, Dpy].
+        4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
         '''
         pass
 
@@ -74,7 +75,7 @@ class DispersionArray(BaseArray):
     @abstractmethod
     def vector(self, vector: npt.NDArray[np.floating]):
         '''
-        Set the 4xN array of 4D dispersion vectors [Dx, Dpx, Dy, Dpy].
+        Set the 4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
 
         Args:
             vector npt.NDArray[np.floating]: 4xN array of dispersion vectors.

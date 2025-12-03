@@ -175,6 +175,16 @@ class EnvelopeArray(BaseArray):
         pass
 
     @abstractmethod
+    def calc_eigenmode(self, T: npt.NDArray[np.floating] = None) -> None:
+        '''
+        Calculate eigenmode.
+
+        Args:
+            T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices for eigenmode. (Optional)
+        '''
+        pass
+
+    @abstractmethod
     def copy(self) -> EnvelopeArray:
         '''
         Returns:
@@ -200,7 +210,7 @@ class EnvelopeArray(BaseArray):
 
         Args:
             evlp0 Envelope: Initial envelope.
-            tmat npt.NDArray[np.floating]: 4x4xN transfer matrices.
+            tmat npt.NDArray[np.floating]: Nx4x4 transfer matrices.
             s npt.NDArray[np.floating]: Longitudinal positions [m] from evlp0.s with shape (N,).
 
         Returns:
@@ -227,6 +237,6 @@ class EnvelopeArray(BaseArray):
         Get the coordinate transformation matrices for eigenmode.
 
         Returns:
-            npt.NDArray[np.floating]: 4x4xN coordinate transformation matrices for eigenmode.
+            npt.NDArray[np.floating]: Nx4x4 coordinate transformation matrices for eigenmode.
         '''
         pass

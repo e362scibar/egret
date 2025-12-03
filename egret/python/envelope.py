@@ -19,14 +19,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from unittest import case
-
+from ..base.envelope import Envelope as EnvelopeABC
 import numpy as np
 import numpy.typing as npt
 
-class Envelope:
+class Envelope(EnvelopeABC):
     '''
-    Beam envelope object.
+    Beam envelope class.
     '''
 
     def __init__(self, cov: npt.NDArray[np.floating] = np.eye(4), s: float = 0., T: npt.NDArray[np.floating] = None):
@@ -36,49 +35,153 @@ class Envelope:
             s float: Longitudinal position [m].
             T npt.NDArray[np.floating]: 2x2 coordinate transformation matrix for eigenmode. (Optional)
         '''
-        self.cov = cov.copy()
-        self.s = s
+        self._cov = cov.copy()
+        self._s = s
         self.calc_eigenmode(T)
 
-    def __getitem__(self, key):
+    @property
+    def cov(self) -> npt.NDArray[np.floating]:
         '''
-        Get beta function value by key.
-
-        Args:
-            key str: Key of the beta function. 'bx', 'ax', 'gx', 'by', 'ay', 'gy', 'bu', 'au', 'gu', 'bv', 'av', 'gv', or 's'.
-
         Returns:
-            float: Value of the beta function corresponding to the key.
+            npt.NDArray[np.floating]: 4x4 positive-definite covariance matrix with the determinant of unity.
         '''
-        match key:
-            case 'bx':
-                return self.cov[0, 0]
-            case 'ax':
-                return -0.5 * (self.cov[0, 1] + self.cov[1, 0])
-            case 'gx':
-                return self.cov[1, 1]
-            case 'by':
-                return self.cov[2, 2]
-            case 'ay':
-                return -0.5 * (self.cov[2, 3] + self.cov[3, 2])
-            case 'gy':
-                return self.cov[3, 3]
-            case 'bu':
-                return self.U[0, 0]
-            case 'au':
-                return -0.5 * (self.U[0, 1] + self.U[1, 0])
-            case 'gu':
-                return self.U[1, 1]
-            case 'bv':
-                return self.V[0, 0]
-            case 'av':
-                return -0.5 * (self.V[0, 1] + self.V[1, 0])
-            case 'gv':
-                return self.V[1, 1]
-            case 's':
-                return self.s
-            case _:
-                raise KeyError(f'Invalid key: {key}')
+        return self._cov
+
+    @property
+    def s(self) -> float:
+        '''
+        Returns:
+            float: Longitudinal position [m].
+        '''
+        return self._s
+
+    @property
+    def T(self) -> npt.NDArray[np.floating]:
+        '''
+        Returns:
+            npt.NDArray[np.floating]: 2x2 coordinate transformation matrix for eigenmode.
+        '''
+        return self._T
+
+    @property
+    def U(self) -> npt.NDArray[np.floating]:
+        '''
+        Returns:
+            npt.NDArray[np.floating]: 2x2 covariance matrix for eigenmode U.
+        '''
+        return self._U
+
+    @property
+    def V(self) -> npt.NDArray[np.floating]:
+        '''
+        Returns:
+            npt.NDArray[np.floating]: 2x2 covariance matrix for eigenmode V.
+        '''
+        return self._V
+
+    @property
+    def tau(self) -> float:
+        '''
+        Returns:
+            float: Tau parameter for eigenmode calculation.
+        '''
+        return self._tau
+
+    @property
+    def bx(self) -> float:
+        '''
+        Returns:
+            float: Horizontal beta function.
+        '''
+        return self._cov[0, 0]
+
+    @property
+    def ax(self) -> float:
+        '''
+        Returns:
+            float: Horizontal alpha function.
+        '''
+        return -0.5 * (self._cov[0, 1] + self._cov[1, 0])
+
+    @property
+    def gx(self) -> float:
+        '''
+        Returns:
+            float: Horizontal gamma function.
+        '''
+        return self._cov[1, 1]
+
+    @property
+    def by(self) -> float:
+        '''
+        Returns:
+            float: Vertical beta function.
+        '''
+        return self._cov[2, 2]
+
+    @property
+    def ay(self) -> float:
+        '''
+        Returns:
+            float: Vertical alpha function.
+        '''
+        return -0.5 * (self._cov[2, 3] + self._cov[3, 2])
+
+    @property
+    def gy(self) -> float:
+        '''
+        Returns:
+            float: Vertical gamma function.
+        '''
+        return self._cov[3, 3]
+
+    @property
+    def bu(self) -> float:
+        '''
+        Returns:
+            float: Beta function for eigenmode U.
+        '''
+        return self._U[0, 0]
+
+    @property
+    def au(self) -> float:
+        '''
+        Returns:
+            float: Alpha function for eigenmode U.
+        '''
+        return -0.5 * (self._U[0, 1] + self._U[1, 0])
+
+    @property
+    def gu(self) -> float:
+        '''
+        Returns:
+            float: Gamma function for eigenmode U.
+        '''
+        return self._U[1, 1]
+
+    @property
+    def bv(self) -> float:
+        '''
+        Returns:
+            float: Beta function for eigenmode V.
+        '''
+        return self._V[0, 0]
+
+    @property
+    def av(self) -> float:
+        '''
+        Returns:
+            float: Alpha function for eigenmode V.
+        '''
+        return -0.5 * (self._V[0, 1] + self._V[1, 0])
+
+    @property
+    def gv(self) -> float:
+        '''
+        Returns:
+            float: Gamma function for eigenmode V.
+        '''
+        return self._V[1, 1]
 
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None):
         '''
@@ -89,7 +192,7 @@ class Envelope:
         '''
         Sxx, Sxy, Syy = self.cov[0:2, 0:2], self.cov[0:2, 2:4], self.cov[2:4, 2:4]
         if T is not None:
-            self.T = T.copy()
+            self._T = T.copy()
         else:
             # Calculate T from the covariance matrix
             mat = np.array([[-Sxx[0,0], -Sxx[0,1]-Syy[0,1], 0., Syy[0,0]],
@@ -102,14 +205,14 @@ class Envelope:
             except np.linalg.LinAlgError:
                 res = np.zeros(4)
             T = res.reshape(2,2)
-            self.T = T
+            self._T = T
         T_ = np.array([[T[1,1], -T[0,1]], [-T[1,0], T[0,0]]])
         tau = np.sqrt(1. - np.linalg.det(T))
         chi = 1. / (2. * tau**2 - 1.)
         sqrtchi = np.sqrt(chi)
-        self.U = sqrtchi * (tau**2 * Sxx - T_ @ Syy @ T_.T)
-        self.V = sqrtchi * (tau**2 * Syy - T @ Sxx @ T.T)
-        self.tau = tau
+        self._U = sqrtchi * (tau**2 * Sxx - T_ @ Syy @ T_.T)
+        self._V = sqrtchi * (tau**2 * Syy - T @ Sxx @ T.T)
+        self._tau = tau
 
     def copy(self) -> Envelope:
         '''
@@ -118,7 +221,7 @@ class Envelope:
         Returns:
             Envelope: A copy of the envelope object.
         '''
-        return Envelope(self.cov, self.s, self.T)
+        return Envelope(self._cov, self._s, self._T)
 
     def transfer(self, tmat: npt.NDArray[np.floating], length: float) -> None:
         '''
@@ -128,22 +231,22 @@ class Envelope:
             tmat npt.NDArray[np.floating]: 4x4 transfer matrix.
             length float: Length of the element [m].
         '''
-        self.cov = tmat @ self.cov @ tmat.T
+        self._cov = tmat @ self._cov @ tmat.T
         Mxx, Mxy, Myx, Myy = tmat[0:2,0:2], tmat[0:2,2:4], tmat[2:4,0:2], tmat[2:4,2:4]
         Mxx_ = np.array([[Mxx[1,1], -Mxx[0,1]], [-Mxx[1,0], Mxx[0,0]]])
         Mxy_ = np.array([[Mxy[1,1], -Mxy[0,1]], [-Mxy[1,0], Mxy[0,0]]])
-        T0, tau0 = self.T, self.tau
+        T0, tau0 = self._T, self._tau
         T0_ = np.array([[T0[1,1], -T0[0,1]], [-T0[1,0], T0[0,0]]])
         tauMu, tauMv = tau0 * Mxx - Mxy @ T0, tau0 * Myy + Myx @ T0_
         tau = np.sqrt(0.5 * (np.linalg.det(tauMu) + np.linalg.det(tauMv)))
         Mu, Mv = tauMu / tau, tauMv / tau
         Mu_ = np.array([[Mu[1,1], -Mu[0,1]], [-Mu[1,0], Mu[0,0]]])
         Mv_T1, T1Mu = tau0 * Mxy_ + T0 @ Mxx_, -tau0 * Myx + Myy @ T0
-        self.T = 0.5 * (Mv @ Mv_T1 + T1Mu @ Mu_)
-        self.tau = tau
-        self.U = Mu @ self.U @ Mu.T
-        self.V = Mv @ self.V @ Mv.T
-        self.s += length
+        self._T = 0.5 * (Mv @ Mv_T1 + T1Mu @ Mu_)
+        self._tau = tau
+        self._U = Mu @ self._U @ Mu.T
+        self._V = Mv @ self.V @ Mv.T
+        self._s += length
 
     def T_matrix(self) -> npt.NDArray[np.floating]:
         '''
@@ -152,7 +255,7 @@ class Envelope:
         Returns:
             npt.NDArray[np.floating]: 4x4 transformation matrix.
         '''
-        mat = np.eye(4) * self.tau
-        mat[2:4,0:2] = self.T
-        mat[0:2,2:4] = -np.array([[self.T[1,1], -self.T[0,1]], [-self.T[1,0], self.T[0,0]]])
+        mat = np.eye(4) * self._tau
+        mat[2:4,0:2] = self._T
+        mat[0:2,2:4] = -np.array([[self._T[1,1], -self._T[0,1]], [-self._T[1,0], self._T[0,0]]])
         return mat
