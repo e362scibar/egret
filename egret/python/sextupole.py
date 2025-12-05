@@ -19,8 +19,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
-from .element import Element
+from ..base.sextupole import Sextupole as SextupoleABC
+from .nonlinearmultipole import NonlinearMultipole
 from .drift import Drift
 from .quadrupole import Quadrupole
 from .coordinate import Coordinate
@@ -29,35 +29,51 @@ from .envelope import Envelope
 from .envelopearray import EnvelopeArray
 from .dispersion import Dispersion
 from .dispersionarray import DispersionArray
-
 import numpy as np
 import numpy.typing as npt
 from typing import Tuple
 
-class Sextupole(Element):
+class Sextupole(SextupoleABC, NonlinearMultipole):
     '''
-    Sextupole magnet.
+    Sextupole magnet class.
     '''
 
     def __init__(self, name: str, length: float, k2: float,
+                 kick_x: float = 0., kick_y: float = 0.,
                  dx: float = 0., dy: float = 0., ds: float = 0.,
-                 tilt: float = 0., info: str = '', dxp: float = 0., dyp: float = 0.):
+                 tilt: float = 0., info: str = ''):
         '''
         Args:
             name str: Name of the element.
             length float: Length of the element [m].
             k2 float: Normalized sextupole strength [1/m^3].
+            kick_x float: Horizontal kick angle of the steering coil [rad].
+            kick_y float: Vertical kick angle of the steering coil [rad].
             dx float: Horizontal offset of the element [m].
             dy float: Vertical offset of the element [m].
             ds float: Longitudinal offset of the element [m].
             tilt float: Tilt angle of the element [rad].
             info str: Additional information.
-            dxp float: Horizontal kick angle of the steering coil [rad].
-            dyp float: Vertical kick angle of the steering coil [rad].
         '''
-        super().__init__(name, length, dx, dy, ds, tilt, info)
-        self.k2 = k2
-        self.set_steering(dxp, dyp)
+        super().__init__(name, length, kick_x, kick_y, dx, dy, ds, tilt, info)
+        self._k2 = k2
+
+    @property
+    def k2(self) -> float:
+        '''
+        Normalized sextupole strength [1/m^3].
+        '''
+        return self._k2
+
+    @k2.setter
+    def k2(self, k2: float) -> None:
+        '''
+        Set normalized sextupole strength [1/m^3].
+
+        Args:
+            k2 float: Normalized sextupole strength [1/m^3].
+        '''
+        self._k2 = k2
 
     def copy(self) -> Sextupole:
         '''
@@ -66,9 +82,8 @@ class Sextupole(Element):
         Returns:
             Sextupole: Copy of the sextupole.
         '''
-        return Sextupole(self.name, self.length, self.k2,
-                         self.dx, self.dy, self.ds,
-                         self.tilt, self.info)
+        return Sextupole(self._name, self._length, self._k2, self._kick_x, self._kick_y,
+                         self._dx, self._dy, self._ds, self._tilt, self._info)
 
     def transfer_matrix_by_midpoint_method(self, cood0: Coordinate, ds: float = 0.1,
                                            tmatflag: bool = True, dispflag: bool = False) \
@@ -87,9 +102,9 @@ class Sextupole(Element):
             Coordinate: Final coordinate after the step.
             npt.NDArray[np.floating]: Additive dispersion if dispflag is True, else None.
         '''
-        k2 = self.k2 / (1. + cood0.delta)
+        k2 = self._k2 / (1. + cood0.delta)
         k0x, k0y = self.k0x / (1. + cood0.delta), self.k0y / (1. + cood0.delta)
-        x0, y0, xp0, yp0 = cood0['x'], cood0['y'], cood0['xp'], cood0['yp']
+        x0, y0, xp0, yp0 = cood0.x, cood0.y, cood0.xp, cood0.yp
         # dipole strength at the entrance (x'+jy' = k0 L)
         k0a = k2 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0) + k0x + 1.j * k0y
         # quadrupole strength at the entrance
@@ -158,8 +173,8 @@ class Sextupole(Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
-        n_step = int(self.length / ds) + 1
-        s_step = self.length / n_step
+        n_step = int(self._length / ds) + 1
+        s_step = self._length / n_step
         cood = cood0.copy()
         tmat = np.eye(4)
         for _ in range(n_step):
@@ -181,9 +196,9 @@ class Sextupole(Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
             npt.NDArray[np.floating]: Longitudinal position array of shape (N,).
         '''
-        n_step = int(self.length / ds) + 1
-        s_step = self.length / n_step
-        s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
+        n_step = int(self._length / ds) + 1
+        s_step = self._length / n_step
+        s = self.s_array(ds, endpoint)
         cood = cood0.copy()
         tmat = np.eye(4)
         tmat_list = [tmat.copy()]
@@ -191,7 +206,7 @@ class Sextupole(Element):
             tmat_step, cood, _ = self.transfer_matrix_by_midpoint_method(cood, s_step)
             tmat = tmat_step @ tmat
             tmat_list.append(tmat.copy())
-        return np.dstack(tmat_list), s
+        return np.array(tmat_list), s
 
     def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
@@ -204,8 +219,8 @@ class Sextupole(Element):
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
         '''
-        n_step = int(self.length / ds) + 1
-        s_step = self.length / n_step
+        n_step = int(self._length / ds) + 1
+        s_step = self._length / n_step
         cood = cood0.copy()
         dispout = np.zeros(4)
         for _ in range(n_step):
@@ -227,9 +242,9 @@ class Sextupole(Element):
             npt.NDArray[np.floating]: 4xN Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
             npt.NDArray[np.floating]: Longitudinal position array [s].
         '''
-        n_step = int(self.length / ds) + 1
-        s_step = self.length / n_step
-        s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
+        n_step = int(self._length / ds) + 1
+        s_step = self._length / n_step
+        s = self.s_array(ds, endpoint)
         cood = cood0.copy()
         disp_list = [np.zeros(4)]
         for _ in range(n_step - int(not endpoint)):
@@ -254,11 +269,11 @@ class Sextupole(Element):
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
         cood = cood0.copy()
-        cood.vector[0] -= self.dx
-        cood.vector[2] -= self.dy
-        cood.s -= self.ds
-        n_step = int(self.length / ds) + 1
-        s_step = self.length / n_step
+        cood.x -= self._dx
+        cood.y -= self._dy
+        cood.s -= self._ds
+        n_step = int(self._length / ds) + 1
+        s_step = self._length / n_step
         tmat = np.eye(4) if evlp0 is not None else None
         dispvec = disp0.vector.copy() if disp0 is not None else None
         for _ in range(n_step):
@@ -268,16 +283,16 @@ class Sextupole(Element):
             if disp0 is not None:
                 dispvec = np.dot(tmat_step, dispvec) + disp
         cood1 = cood
-        cood1.vector[0] += self.dx
-        cood1.vector[2] += self.dy
-        cood1.s += self.ds
+        cood1.x += self._dx
+        cood1.y += self._dy
+        cood1.s += self._ds
         if evlp0 is not None:
             evlp1 = evlp0.copy()
-            evlp1.transfer(tmat, self.length)
+            evlp1.transfer(tmat, self._length)
         else:
             evlp1 = None
         if disp0 is not None:
-            disp1 = Dispersion(dispvec, disp0.s + self.length)
+            disp1 = Dispersion(dispvec, disp0.s + self._length)
         else:
             disp1 = None
         return cood1, evlp1, disp1
@@ -301,12 +316,12 @@ class Sextupole(Element):
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
         cood = cood0.copy()
-        cood.vector[0] -= self.dx
-        cood.vector[2] -= self.dy
-        cood.s -= self.ds
-        n_step = int(self.length / ds) + 1
-        s_step = self.length / n_step
-        s = np.linspace(0., self.length, n_step + int(endpoint), endpoint=endpoint)
+        cood.x -= self._dx
+        cood.y -= self._dy
+        cood.s -= self._ds
+        n_step = int(self._length / ds) + 1
+        s_step = self._length / n_step
+        s = self.s_array(ds, endpoint)
         cood_list = [cood.vector.copy()]
         tmat, tmat_list = np.eye(4), [np.eye(4)] if evlp0 is not None else None
         disp_list = [disp0.vector.copy()] if disp0 is not None else None
@@ -319,9 +334,9 @@ class Sextupole(Element):
             if disp0 is not None:
                 disp_list.append(np.dot(tmat_step, disp_list[-1]) + disp)
         cood_array = np.array(cood_list).T
-        cood_array[0] += self.dx
-        cood_array[2] += self.dy
-        cood1 = CoordinateArray(cood_array, s + cood0.s + self.ds,
+        cood_array[0] += self._dx
+        cood_array[2] += self._dy
+        cood1 = CoordinateArray(cood_array, s + cood0.s + self._ds,
                                 np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
         if evlp0 is not None:
             evlp1 = EnvelopeArray.transport(evlp0, np.dstack(tmat_list), s)
@@ -332,18 +347,3 @@ class Sextupole(Element):
         else:
             disp1 = None
         return cood1, evlp1, disp1
-
-    def set_steering(self, dxp: float = None, dyp: float = None) -> None:
-        '''
-        Set steering coil kick angles.
-
-        Args:
-            dxp float: Horizontal kick angle of the steering coil [rad].
-            dyp float: Vertical kick angle of the steering coil [rad].
-        '''
-        if dxp is not None:
-            self.dxp = dxp
-            self.k0x = - self.dxp / self.length
-        if dyp is not None:
-            self.dyp = dyp
-            self.k0y = - self.dyp / self.length

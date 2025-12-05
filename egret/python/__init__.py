@@ -32,6 +32,7 @@ from .element import Element
 from .drift import Drift
 from .dipole import Dipole
 from .quadrupole import Quadrupole
+from .nonlinearmultipole import NonlinearMultipole
 from .sextupole import Sextupole
 from .octupole import Octupole
 from .steering import Steering

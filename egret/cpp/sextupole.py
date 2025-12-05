@@ -69,4 +69,4 @@ class Sextupole(SextupoleABC, NonlinearMultipole):
         Args:
             k2 float: Normalized sextupole strength [1/m^3].
         '''
-        pass
+        self.instance.k2 = k2

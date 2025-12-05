@@ -34,3 +34,11 @@ class Sextupole(NonlinearMultipole):
         Normalized sextupole strength [1/m^3].
         '''
         pass
+
+    @k2.setter
+    @abstractmethod
+    def k2(self, value: float) -> None:
+        '''
+        Set normalized sextupole strength [1/m^3].
+        '''
+        pass
