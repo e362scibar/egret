@@ -359,3 +359,42 @@ class Element(Object):
             npt.NDArray[np.floating]: 4x4 transfer matrix from s to the end of the element.
         '''
         pass
+
+    @abstractmethod
+    def get_element(self, indices: int | Tuple[int, ...]) -> Element:
+        '''
+        Get element by index or tuple of indices.
+
+        Args:
+            indices int | Tuple[int, ...]: Index or tuple of indices.
+
+        Returns:
+            Element: Element at the specified index or indices.
+        '''
+        pass
+
+    @abstractmethod
+    def get_s(self, indices: int | Tuple[int, ...]) -> float:
+        '''
+        Get longitudinal position by index or tuple of indices.
+
+        Args:
+            indices int | Tuple[int, ...]: Index or tuple of indices.
+
+        Returns:
+            float: Longitudinal position [m].
+        '''
+        pass
+
+    @abstractmethod
+    def find_index(self, names: str | List[str]) -> List[Tuple[int, ...]]:
+        '''
+        Find indices of elements by their names.
+
+        Args:
+            names str | List[str]: Element name or list of element names.
+
+        Returns:
+            List[Tuple[int, ...]]: List of tuples of indices corresponding to the element names.
+        '''
+        pass
