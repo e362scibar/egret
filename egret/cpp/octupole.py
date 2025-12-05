@@ -22,6 +22,8 @@ from __future__ import annotations
 from ..base.octupole import Octupole as OctupoleABC
 from egret.cppegret import Octupole as OctupoleCPP
 from .nonlinearmultipole import NonlinearMultipole
+from .coordinate import Coordinate
+from typing import Tuple
 
 class Octupole(NonlinearMultipole):
     '''
@@ -107,6 +109,20 @@ class Octupole(NonlinearMultipole):
             tilt_quad float: Tilt angle [rad] (pi/4 for skew quad).
         '''
         self.instance.tilt_quad = tilt_quad
+
+    def get_k(self, cood: Coordinate) -> Tuple[complex, complex]:
+        '''
+        Calculate dipole and quadrupole strengths at given coordinate.
+        x' + j y' = - k0 L - k1 L (x - j y)
+
+        Args:
+            cood Coordinate: Particle coordinate.
+
+        Returns:
+            complex: Dipole strength [1/m].
+            complex: Quadrupole strength [1/m^2].
+        '''
+        return self.instance.get_k(cood.instance)
 
     def set_quadrupole(self, k1: float = None, tilt_quad: float = None) -> None:
         '''

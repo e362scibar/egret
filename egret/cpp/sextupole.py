@@ -22,6 +22,8 @@ from __future__ import annotations
 from ..base.sextupole import Sextupole as SextupoleABC
 from egret.cppegret import Sextupole as SextupoleCPP
 from .nonlinearmultipole import NonlinearMultipole
+from .coordinate import Coordinate
+from typing import Tuple
 
 class Sextupole(SextupoleABC, NonlinearMultipole):
     '''
@@ -70,3 +72,17 @@ class Sextupole(SextupoleABC, NonlinearMultipole):
             k2 float: Normalized sextupole strength [1/m^3].
         '''
         self.instance.k2 = k2
+
+    def get_k(self, cood: Coordinate) -> Tuple[complex, complex]:
+        '''
+        Calculate dipole and quadrupole strengths at the given coordinate.
+        x' + j y' = - k0 L - k1 L (x - j y)
+
+        Args:
+            cood Coordinate: Particle coordinate.
+
+        Returns:
+            complex: Dipole strength [1/m].
+            complex: Quadrupole strength [1/m^2].
+        '''
+        return self.instance.get_k(cood.instance)

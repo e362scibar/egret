@@ -22,6 +22,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from .element import Element
 from .coordinate import Coordinate
+from typing import Tuple
 
 class NonlinearMultipole(Element):
     '''
@@ -116,11 +117,16 @@ class NonlinearMultipole(Element):
         pass
 
     @abstractmethod
-    def get_k(self, cood: Coordinate) -> float:
+    def get_k(self, cood: Coordinate) -> Tuple[complex, complex]:
         '''
-        Get quadrupole strength at given coordinate.
+        Calculate dipole and quadrupole strengths at given coordinate.
+        x' + j y' = - k0 L - k1 L (x - j y)
 
         Args:
             cood Coordinate: Coordinate.
+
+        Returns:
+            complex: Dipole strength [1/m].
+            complex: Quadrupole strength [1/m^2].
         '''
         pass
