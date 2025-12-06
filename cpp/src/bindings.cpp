@@ -323,6 +323,8 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("bv_array", &egret::EnvelopeArray::bv_array)
         .def_property_readonly("av_array", &egret::EnvelopeArray::av_array)
         .def_property_readonly("gv_array", &egret::EnvelopeArray::gv_array)
+        .def("calc_eigenmode", &egret::EnvelopeArray::calc_eigenmode,
+            py::arg("T_array") = std::nullopt)
         .def("append", &egret::EnvelopeArray::append, py::arg("other"))
         .def("from_s", &egret::EnvelopeArray::from_s, py::arg("s"))
         .def("transport", &egret::EnvelopeArray::transport,

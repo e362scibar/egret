@@ -29,8 +29,8 @@ class Dispersion(DispersionABC):
     Class for energy dispersion.
     '''
 
-    def __init__(self, vector: npt.NDArray[np.floating],
-                 s: float, **kwargs):
+    def __init__(self, vector: npt.NDArray[np.floating] = np.zeros(4),
+                 s: float = 0., **kwargs):
         '''
         Initialize Dispersion object.
 

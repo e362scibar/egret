@@ -316,9 +316,9 @@ class Element(ElementABC, Object):
                                                         evlp0.instance if evlp0 is not None else None,
                                                         disp0.instance if disp0 is not None else None,
                                                         ds, endpoint)
-        return CoordinateArray(instance=cood), \
-            EnvelopeArray(instance=evlp) if evlp is not None else None, \
-            DispersionArray(instance=disp) if disp is not None else None
+        return CoordinateArray(None, None, instance=cood), \
+            EnvelopeArray(None, None, instance=evlp) if evlp is not None else None, \
+            DispersionArray(None, None, instance=disp) if disp is not None else None
 
     def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
         -> Tuple[float, float, float]:

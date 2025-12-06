@@ -158,7 +158,7 @@ Eigen::Vector4d egret::Quadrupole::dispersion(const Eigen::Vector4d &cood0_vec,
     mf2 << 0., sinpsi/sqrtk, sqrtk*sinpsi, 0.;
     mf2 *= 0.5;
     Eigen::Matrix2d md1;
-    md1 << sinhpsi, -coshpsi/sqrtk, -sqrtk*coshpsi, -sinhpsi;
+    md1 << -sinhpsi, -coshpsi/sqrtk, -sqrtk*coshpsi, -sinhpsi;
     md1 *= 0.5 * length * sqrtk;
     Eigen::Matrix2d md2;
     md2 << 0., sinhpsi/sqrtk, -sqrtk*sinhpsi, 0.;

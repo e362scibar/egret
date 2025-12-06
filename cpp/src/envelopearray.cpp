@@ -48,34 +48,7 @@ egret::EnvelopeArray::EnvelopeArray(
     if (cov_array_.size() != n) {
         throw std::invalid_argument("Size of s_array does not match the number of covariance matrices in cov_array");
     }
-    if (T_array && T_array->size() != n) {
-        throw std::invalid_argument("Size of s_array does not match the number of transformation matrices in T_array");
-    }
-    // If T_array is not provided, estimate T from covariances
-    if (!T_array) {
-        T_array_.reserve(n);
-        for (const auto &cov: cov_array) {
-            T_array_.push_back(Envelope::estimate_T(cov));
-        }
-    }
-    // calculate tau, U, V
-    U_array_.reserve(n);
-    V_array_.reserve(n);
-    for (const size_t i : std::views::iota(0u, size())) {
-        const auto &cov = cov_array_[i]; // Matrix4d
-        const auto &T = T_array_[i]; // Matrix2d
-        const auto T_s = Envelope::adjoint(T); // adjoint of T (Matrix2d)
-        const double tau = std::sqrt(1.0 - T.determinant());
-        const double chi = 1.0 / (2.0 * tau * tau - 1.0);
-        const double sqrtchi = std::sqrt(chi);
-        const auto Sxx = cov.block<2, 2>(0, 0); // Matrix2d
-        const auto Syy = cov.block<2, 2>(2, 2); // Matrix2d
-        const auto U = sqrtchi * (tau * tau * Sxx - T_s * Syy * T_s.transpose()); // Matrix2d
-        const auto V = sqrtchi * (tau * tau * Syy - T * Sxx * T.transpose()); // Matrix2d
-        tau_array_(i) = tau;
-        U_array_.push_back(U);
-        V_array_.push_back(V);
-    }
+    calc_eigenmode(T_array);
 }
 
 /**
@@ -220,6 +193,48 @@ Eigen::ArrayXd egret::EnvelopeArray::gv_array() const noexcept(false) {
         gv_array(i) = V_array_[i](1, 1);
     }
     return gv_array;
+}
+
+/**
+ * @brief Calculate eigenmode parameters for all envelopes.
+ * @param T_array Optional array of transformation matrices. If not provided, they will be estimated from covariances.
+ */
+void egret::EnvelopeArray::calc_eigenmode(const std::optional<std::vector<Eigen::Matrix2d>> &T_array) noexcept(false) {
+    const size_t n = size();
+    // If T_array is provided, update T_array_
+    if (T_array) {
+        if (T_array->size() != n) {
+            throw std::invalid_argument("Size of T_array does not match the size of s_array.");
+        }
+        T_array_ = *T_array;
+    } else {
+        // If T_array is not provided, estimate T from covariances
+        T_array_.clear();
+        T_array_.reserve(n);
+        for (const auto &cov: cov_array_) {
+            T_array_.push_back(Envelope::estimate_T(cov));
+        }
+    }
+    // calculate tau, U, V
+    U_array_.clear();
+    V_array_.clear();
+    U_array_.reserve(n);
+    V_array_.reserve(n);
+    for (const size_t i : std::views::iota(0u, size())) {
+        const auto &cov = cov_array_[i]; // Matrix4d
+        const auto &T = T_array_[i]; // Matrix2d
+        const auto T_s = Envelope::adjoint(T); // adjoint of T (Matrix2d)
+        const double tau = std::sqrt(1.0 - T.determinant());
+        const double chi = 1.0 / (2.0 * tau * tau - 1.0);
+        const double sqrtchi = std::sqrt(chi);
+        const auto Sxx = cov.block<2, 2>(0, 0); // Matrix2d
+        const auto Syy = cov.block<2, 2>(2, 2); // Matrix2d
+        const auto U = sqrtchi * (tau * tau * Sxx - T_s * Syy * T_s.transpose()); // Matrix2d
+        const auto V = sqrtchi * (tau * tau * Syy - T * Sxx * T.transpose()); // Matrix2d
+        tau_array_(i) = tau;
+        U_array_.push_back(U);
+        V_array_.push_back(V);
+    }
 }
 
 /**

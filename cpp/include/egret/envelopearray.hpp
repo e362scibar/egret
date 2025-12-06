@@ -312,6 +312,9 @@ public:
     //! Get the array of gamma functions in the eigenmode V.
     Eigen::ArrayXd gv_array() const noexcept(false);
 
+    // Calculate eigenmode parameters for all envelopes
+    void calc_eigenmode(const std::optional<std::vector<Eigen::Matrix2d>> &T_array = std::nullopt) noexcept(false);
+
     // Efficient append (reserve + copy)
     void append(const EnvelopeArray &other);
 
@@ -322,5 +325,7 @@ public:
     Eigen::Matrix4d T_matrix(size_t index) const noexcept(false);
 
     // Transport an initial envelope through a series of transfer matrices
-    static EnvelopeArray transport(const Envelope &evlp0, const std::vector<Eigen::Matrix4d> &M_array, const Eigen::ArrayXd &s_array) noexcept(false);
+    static EnvelopeArray transport(const Envelope &evlp0,
+        const std::vector<Eigen::Matrix4d> &M_array,
+        const Eigen::ArrayXd &s_array) noexcept(false);
 };

@@ -19,20 +19,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
+from logging import config
 
 from modules_for_beta_func import chi, tau
 from ..base.ring import Ring as RingABC
 from .element import Element
 from .lattice import Lattice
+from .drift import Drift
+from .dipole import Dipole
+from .quadrupole import Quadrupole
+from .sextupole import Sextupole
+from .octupole import Octupole
 from .coordinate import Coordinate
 from .envelope import Envelope
 from .dispersion import Dispersion
-
 import copy
 import numpy as np
 import numpy.typing as npt
 import scipy
-from typing import Tuple, List
+from typing import Dict, Tuple, List, Any
+import latticejson
+from pathlib import Path
 
 class Ring(RingABC, Element):
     '''
@@ -233,3 +240,72 @@ class Ring(RingABC, Element):
         if result.nit == maxiter:
             raise RuntimeError('Failed to find closed orbit: Maximum number of iterations reached.')
         return cood
+
+    @classmethod
+    def read_json(cls, path: str | Path) -> Ring:
+        '''
+        Read a ring configuration from a Lattice JSON file and return a Ring object.
+
+        Args:
+            path (str or Path): Path to the Lattice JSON file.
+
+        Returns:
+            Ring: The constructed Ring object.
+        '''
+        config = latticejson.load(path)
+        rootname = config['root']
+        elements = cls._make_elements(config)
+        lattices = [cls._make_lattice(config, name, elements) for name in config['lattices'][rootname]]
+        return Ring(rootname, lattices, config['energy']*1.e9, config['info'])
+
+    @classmethod
+    def _make_lattice(cls, config: Dict[str, Any], name: str, elems: List[Lattice | Element]) \
+        -> Lattice | Element:
+        '''
+        Recursively construct a Lattice or Element based on the lattice configuration.
+
+        Args:
+            config (dict): The lattice configuration dictionary.
+            name (str): The name of the lattice or element to construct.
+            elems (dict): A dictionary of Element objects.
+
+        Returns:
+            Lattice or Element: The constructed Lattice if 'name' is in lattices, otherwise the Element.
+        '''
+        if name in config['lattices']:
+            lattices = [cls._make_lattice(config, k, elems) for k in config['lattices'][name]]
+            return Lattice(name, lattices)
+        return elems[name]
+
+    @classmethod
+    def _make_elements(cls, config: Dict[str, Any]) -> Dict[str, Element]:
+        '''
+        Create a dictionary of Element objects from the lattice configuration.
+
+        Args:
+            config (dict): The lattice configuration dictionary.
+
+        Returns:
+            dict: A dictionary mapping element names to Element objects.
+
+        Raises:
+            KeyError: If an unknown element type is encountered.
+        '''
+        elements = {}
+        for name,val in config['elements'].items():
+            key = val[0]
+            dat = val[1]
+            match key:
+                case 'Drift':
+                    elements[name] = Drift(name, dat['length'])
+                case 'Dipole':
+                    elements[name] = Dipole(name, dat['length'], dat['angle'], dat['k1'])
+                case 'Quadrupole':
+                    elements[name] = Quadrupole(name, dat['length'], dat['k1'])
+                case 'Sextupole':
+                    elements[name] = Sextupole(name, dat['length'], dat['k2'])
+                case 'Octupole':
+                    elements[name] = Octupole(name, dat['length'], dat['k3'])
+                case _:
+                    raise KeyError(key)
+        return elements

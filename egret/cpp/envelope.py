@@ -29,16 +29,17 @@ class Envelope(EnvelopeABC):
     Class for beam envelope object.
     '''
 
-    def __init__(self, cov: npt.NDArray[np.floating], s: float, **kwargs):
+    def __init__(self, cov: npt.NDArray[np.floating] = np.eye(4), s: float = 0., T: npt.NDArray[np.floating] = None, **kwargs):
         '''
         Args:
             cov npt.NDArray[np.floating]: 4x4 covariance matrix.
             s float: Longitudinal position.
+            T npt.NDArray[np.floating]: 2x2 eigenmode transformation matrix. (Optional)
         '''
         if 'instance' in kwargs:
             self.instance = kwargs['instance']
         else:
-            self.instance = EnvelopeCPP(cov, s)
+            self.instance = EnvelopeCPP(cov, s, T)
 
     @property
     def cov(self) -> npt.NDArray[np.floating]:

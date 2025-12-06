@@ -72,14 +72,6 @@ class EnvelopeArray(BaseArray):
 
     @property
     @abstractmethod
-    def s(self) -> npt.NDArray[np.floating]:
-        '''
-        Array of longitudinal positions [m] with shape (N,).
-        '''
-        pass
-
-    @property
-    @abstractmethod
     def bx(self) -> npt.NDArray[np.floating]:
         '''
         Horizontal beta function array [m] with shape (N,).

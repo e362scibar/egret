@@ -166,6 +166,16 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         '''
         return self.instance.gv_array
 
+    def calc_eigenmode(self, T: npt.NDArray[np.floating] = None) -> None:
+        '''
+        Calculate eigenmode parameters for all envelopes.
+
+        Args:
+            T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices for eigenmode. (Optional)
+        '''
+        T_list = [T[i, :, :] for i in range(T.shape[0])] if T is not None else None
+        self.instance.calc_eigenmode(T_list)
+
     def copy(self) -> EnvelopeArray:
         '''
         Returns:

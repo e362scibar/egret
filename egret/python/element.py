@@ -206,7 +206,7 @@ class Element(ElementABC, Object):
             indices Tuple[int, ...] | None: Index tuple representing the position of the element in the lattice.
         '''
         self.indices = indices
-        if hasattr(self, '_elements'):
+        if self._elements is not None:
             for i, elem in enumerate(self._elements):
                 next_indices = indices + (i,) if indices is not None else (i,)
                 elem.set_indices(next_indices)
@@ -367,7 +367,7 @@ class Element(ElementABC, Object):
         cood0err.x -= self._dx
         cood0err.y -= self._dy
         cood0err.s -= self._ds
-        if hasattr(self, '_elements'):
+        if self._elements is not None:
             cood = cood0err
             evlp = evlp0.copy() if evlp0 is not None else None
             disp = disp0.copy() if disp0 is not None else None
@@ -415,7 +415,7 @@ class Element(ElementABC, Object):
         cood0err.x -= self._dx
         cood0err.y -= self._dy
         cood0err.s -= self._ds
-        if hasattr(self, '_elements'):
+        if self._elements is not None:
             cood = cood0err
             evlp = evlp0.copy() if evlp0 is not None else None
             disp = disp0.copy() if disp0 is not None else None
@@ -511,7 +511,7 @@ class Element(ElementABC, Object):
         '''
         if s < 0. or s >= self._length:
             raise ValueError('Longitudinal position out of range.')
-        if hasattr(self, '_elements'):
+        if self._elements is not None:
             s0 = 0.
             for elem in self._elements:
                 if s < s0 + elem._length:
@@ -536,7 +536,7 @@ class Element(ElementABC, Object):
         '''
         if s < 0. or s > self._length:
             raise ValueError('Longitudinal position out of range.')
-        if hasattr(self, '_elements'):
+        if self._elements is not None:
             s0 = 0.
             cood = cood0.copy()
             for elem in self._elements:
@@ -570,7 +570,7 @@ class Element(ElementABC, Object):
         elif isinstance(key, tuple):
             if not isinstance(key[0], int):
                 raise TypeError('Index must be int or tuple of int.')
-            if len(key) > 1 and hasattr(self._elements[key[0]], '_elements'):
+            if len(key) > 1 and self._elements[key[0]]._elements is not None:
                 return self._elements[key[0]].get_element(key[1:])
             else:
                 return self._elements[key[0]]
@@ -602,7 +602,7 @@ class Element(ElementABC, Object):
             s = 0.
             for i in range(key[0]):
                 s += self._elements[i].length
-            if len(key) > 1 and hasattr(self._elements[key[0]], '_elements'):
+            if len(key) > 1 and self._elements[key[0]]._elements is not None:
                 s += self._elements[key[0]].get_s(key[1:])
             elif len(key) > 1:
                 raise IndexError('Dimension of index is out of range.')
@@ -622,7 +622,7 @@ class Element(ElementABC, Object):
         '''
         index_list = []
         for i,elem in enumerate(self._elements):
-            if hasattr(elem, '_elements'):
+            if elem._elements is not None:
                 try:
                     sub_index_list = elem.find_index(name)
                     index_list += [((i,) + idx) for idx in sub_index_list]

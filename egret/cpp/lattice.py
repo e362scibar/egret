@@ -50,7 +50,7 @@ class Lattice(LatticeABC, Element):
             cpp_elements = [elem.instance for elem in elements]
             self.instance = LatticeCPP(name, cpp_elements,
                                        dx, dy, ds, tilt, info)
-        super().__init__(instance=self.instance)
+        super().__init__(None, None, None, instance=self.instance)
 
     @classmethod
     def length_of(cls, elements: List[Element]) -> float:

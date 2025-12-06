@@ -36,3 +36,5 @@ from .quadrupole import Quadrupole
 from .nonlinearmultipole import NonlinearMultipole
 from .sextupole import Sextupole
 from .octupole import Octupole
+from .lattice import Lattice
+from .ring import Ring

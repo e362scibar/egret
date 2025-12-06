@@ -25,7 +25,7 @@ from .element import Element
 from .coordinate import Coordinate
 from typing import Tuple
 
-class NonlinearMultipole(Element):
+class NonlinearMultipole(NonlinearMultipoleABC, Element):
     '''
     Base class for nonlinear multipole magnets.
     '''

@@ -51,7 +51,7 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         '''
         4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
         '''
-        return self.instance.vector
+        return self.instance.vector_array
 
     @property
     def x(self) -> npt.NDArray[np.floating]:

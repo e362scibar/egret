@@ -30,13 +30,11 @@ from .dispersionarray import DispersionArray
 from .object import Object
 from .element import Element
 from .drift import Drift
+from .steering import Steering
 from .dipole import Dipole
 from .quadrupole import Quadrupole
 from .nonlinearmultipole import NonlinearMultipole
 from .sextupole import Sextupole
 from .octupole import Octupole
-from .steering import Steering
 from .lattice import Lattice
 from .ring import Ring
-
-from .readring import read_ring

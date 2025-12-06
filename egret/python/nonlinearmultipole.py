@@ -57,7 +57,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             tilt float: Tilt angle around the beam axis [rad].
             info str: Additional information.
         '''
-        super().__init__(self, name, length, 0.0, dx, dy, ds, tilt, info)
+        super().__init__(name, length, 0.0, dx, dy, ds, tilt, info)
         self._kick_x = kick_x
         self._kick_y = kick_y
 
