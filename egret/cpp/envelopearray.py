@@ -227,6 +227,6 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         Get the coordinate transformation matrices for eigenmode.
 
         Returns:
-            npt.NDArray[np.floating]: 4x4xN coordinate transformation matrices for eigenmode.
+            npt.NDArray[np.floating]: Nx4x4 coordinate transformation matrices for eigenmode.
         '''
-        return np.array(self.instance.T_matrix())
+        return np.array(self.instance.T_matrix_array)

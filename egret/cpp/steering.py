@@ -116,3 +116,15 @@ class Steering(SteeringABC, Element):
             kick_y float: Vertical kick angle [rad] or None to leave unchanged.
         '''
         self.instance.set_steering(kick_x, kick_y)
+
+    def copy(self) -> Steering:
+        '''
+        Create a copy of this steering magnet.
+
+        Returns:
+            Steering: A copy of this steering magnet.
+        '''
+        return Steering(self.instance.name, self.instance.length,
+                        self.instance.kick_x, self.instance.kick_y,
+                        self.instance.dx, self.instance.dy, self.instance.ds,
+                        self.instance.tilt, self.instance.info)

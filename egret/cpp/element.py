@@ -59,6 +59,48 @@ class Element(ElementABC, Object):
             self.instance = ElementCPP(name, length, angle, dx, dy, ds, tilt, info)
         super().__init__(None, instance=self.instance)
 
+    @classmethod
+    def actual_element(cls, instance) -> Element:
+        '''
+        Create an Element subclass instance from a C++ Element instance.
+
+        Args:
+            instance: C++ Element instance.
+
+        Returns:
+            Element: Corresponding Element subclass instance.
+        '''
+        from .drift import Drift
+        from .steering import Steering
+        from .dipole import Dipole
+        from .quadrupole import Quadrupole
+        from .sextupole import Sextupole
+        from .octupole import Octupole
+        from .lattice import Lattice
+        from egret.cppegret import Drift as DriftCPP
+        from egret.cppegret import Steering as SteeringCPP
+        from egret.cppegret import Quadrupole as QuadrupoleCPP
+        from egret.cppegret import Dipole as DipoleCPP
+        from egret.cppegret import Sextupole as SextupoleCPP
+        from egret.cppegret import Octupole as OctupoleCPP
+        from egret.cppegret import Lattice as LatticeCPP
+        if isinstance(instance, DriftCPP):
+            return Drift(None, None, instance=instance)
+        elif isinstance(instance, SteeringCPP):
+            return Steering(None, None, instance=instance)
+        elif isinstance(instance, QuadrupoleCPP):
+            return Quadrupole(None, None, None, instance=instance)
+        elif isinstance(instance, DipoleCPP):
+            return Dipole(None, None, None, instance=instance)
+        elif isinstance(instance, SextupoleCPP):
+            return Sextupole(None, None, instance=instance)
+        elif isinstance(instance, OctupoleCPP):
+            return Octupole(None, None, instance=instance)
+        elif isinstance(instance, LatticeCPP):
+            return Lattice(None, None, instance=instance)
+        else:
+            return Element(instance=instance)
+
     @property
     def length(self) -> float:
         '''
@@ -116,7 +158,7 @@ class Element(ElementABC, Object):
         if self.instance.elements is None:
             return None
         else:
-            return [Element(instance=elem) for elem in self.instance.elements]
+            return [self.actual_element(elem) for elem in self.instance.elements]
 
     @length.setter
     def length(self, length: float) -> None:
@@ -348,7 +390,7 @@ class Element(ElementABC, Object):
             float: Local longitudinal position in the element [m].
         '''
         elem_cpp, s_local = self.instance.get_element_from_s(s)
-        return Element(instance=elem_cpp), s_local
+        return self.actual_element(elem_cpp), s_local
 
     def transfer_matrix_from_s(self, s: float, cood0: Coordinate, ds: float = 0.1) \
         -> npt.NDArray[np.floating]:
@@ -376,7 +418,7 @@ class Element(ElementABC, Object):
             Element: Element at the specified index or indices.
         '''
         elem_cpp = self.instance.get_element(indices)
-        return Element(instance=elem_cpp)
+        return self.actual_element(elem_cpp)
 
     def get_s(self, indices: int | Tuple[int, ...]) -> float:
         '''

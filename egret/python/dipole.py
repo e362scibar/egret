@@ -226,18 +226,18 @@ class Dipole(DipoleABC, Element):
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         delta = 0. if cood0 is None else cood0.delta
         rho = self._rho * (1. + delta)
         s = self.s_array(ds, endpoint)
-        tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
+        tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
         if self._k1 == 0.: # simple dipole
             phi = s / rho
             cosphi, sinphi = np.cos(phi), np.sin(phi)
-            tmat[0:2,0:2] = np.array([[cosphi, rho*sinphi], [-sinphi/rho, cosphi]])
-            tmat[2,3] = s
+            tmat[:,0:2,0:2] = np.array([[cosphi, rho*sinphi], [-sinphi/rho, cosphi]]).transpose(2,0,1)
+            tmat[:,2,3] = s
         else: # combined-function dipole
             k1 = self._k1 / (1. + delta)
             kx = k1 + 1./rho**2
@@ -249,18 +249,18 @@ class Dipole(DipoleABC, Element):
             if kx < 0.: # defocusing dipole
                 coshx, sinhx = np.cosh(psix), np.sinh(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
-                tmat[0:2,0:2] = np.array([[coshx, sinhx/sqrtkx], [sqrtkx*sinhx, coshx]])
-                tmat[2:4,2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]])
+                tmat[:,0:2,0:2] = np.array([[coshx, sinhx/sqrtkx], [sqrtkx*sinhx, coshx]]).transpose(2,0,1)
+                tmat[:,2:4,2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]]).transpose(2,0,1)
             elif ky < 0.: # focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 coshy, sinhy = np.cosh(psiy), np.sinh(psiy)
-                tmat[0:2,0:2] = np.array([[cosx, sinx/sqrtkx], [-sqrtkx*sinx, cosx]])
-                tmat[2:4,2:4] = np.array([[coshy, sinhy/sqrtky], [sqrtky*sinhy, coshy]])
+                tmat[:,0:2,0:2] = np.array([[cosx, sinx/sqrtkx], [-sqrtkx*sinx, cosx]]).transpose(2,0,1)
+                tmat[:,2:4,2:4] = np.array([[coshy, sinhy/sqrtky], [sqrtky*sinhy, coshy]]).transpose(2,0,1)
             else: # both focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
-                tmat[0:2, 0:2] = np.array([[cosx, sinx/sqrtkx], [-sqrtkx*sinx, cosx]])
-                tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]])
+                tmat[:,0:2, 0:2] = np.array([[cosx, sinx/sqrtkx], [-sqrtkx*sinx, cosx]]).transpose(2,0,1)
+                tmat[:,2:4, 2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]]).transpose(2,0,1)
         return tmat, s
 
     def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
@@ -448,7 +448,7 @@ class Dipole(DipoleABC, Element):
         cood0err.s -= self._ds
         tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint)
         disp, _ = self.dispersion_array(Coordinate(), ds, endpoint)
-        cood = np.matmul(tmat.transpose(2,0,1), cood0err.vector).T + disp * cood0.delta
+        cood = np.matmul(tmat, cood0err.vector).T + disp * cood0.delta
         cood[0] += self._dx
         cood[2] += self._dy
         cood1 = CoordinateArray(cood, s + cood0.s,
@@ -459,7 +459,7 @@ class Dipole(DipoleABC, Element):
             evlp1 = None
         if disp0 is not None:
             disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
-            disp = np.matmul(tmat.transpose(2,0,1), disp0.vector).T + disp_add
+            disp = np.matmul(tmat, disp0.vector).T + disp_add
             disp1 = DispersionArray(disp, s + disp0.s)
         else:
             disp1 = None
@@ -481,11 +481,11 @@ class Dipole(DipoleABC, Element):
         kappa = 1./self._rho
         k = self._k1
         _, evlp, disp = self.transfer_array(cood0, evlp0, disp0, ds, endpoint=True)
-        dispuv = np.matvec(evlp.T_matrix().transpose(2, 0, 1), disp.vector.T).T
+        dispuv = np.matvec(evlp.T_matrix(), disp.vector.T).T
         I2 = self._length * kappa**2
-        I4 = scipy.integrate.simpson(disp['x'] * kappa * (kappa**2 + 2. * k), x=disp.s)
+        I4 = scipy.integrate.simpson(disp.x * kappa * (kappa**2 + 2. * k), x=disp.s)
         I4u = scipy.integrate.simpson(evlp.tau * dispuv[0] * kappa * (kappa**2 + 2. * k), x=disp.s)
         I4v = I4 - I4u
-        I5u = scipy.integrate.simpson(kappa**3 * (evlp['bu'] * dispuv[1]**2 + 2. * evlp['au'] * dispuv[0] * dispuv[1] + evlp['gu'] * dispuv[0]**2), x=disp.s)
-        I5v = scipy.integrate.simpson(kappa**3 * (evlp['bv'] * dispuv[3]**2 + 2. * evlp['av'] * dispuv[2] * dispuv[3] + evlp['gv'] * dispuv[2]**2), x=disp.s)
+        I5u = scipy.integrate.simpson(kappa**3 * (evlp.bu * dispuv[1]**2 + 2. * evlp.au * dispuv[0] * dispuv[1] + evlp.gu * dispuv[0]**2), x=disp.s)
+        I5v = scipy.integrate.simpson(kappa**3 * (evlp.bv * dispuv[3]**2 + 2. * evlp.av * dispuv[2] * dispuv[3] + evlp.gv * dispuv[2]**2), x=disp.s)
         return I2, I4, I5u, I5v, I4u, I4v

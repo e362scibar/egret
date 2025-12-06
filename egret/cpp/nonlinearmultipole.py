@@ -146,3 +146,15 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             complex: Quadrupole strength [1/m^2].
         '''
         return self.instance.get_k(cood.instance)
+
+    def copy(self) -> NonlinearMultipole:
+        '''
+        Create a copy of this element.
+
+        Returns:
+            NonlinearMultipole: Copied element.
+        '''
+        return NonlinearMultipole(self.instance.name, self.instance.length,
+            self.instance.kick_x, self.instance.kick_y,
+            self.instance.dx, self.instance.dy, self.instance.ds,
+            self.instance.tilt, self.instance.info)

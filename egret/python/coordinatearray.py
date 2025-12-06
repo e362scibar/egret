@@ -183,7 +183,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             cood CoordinateArray: Coordinate array to append.
         '''
-        super().append(cood)
+        BaseArray.append(self, cood)
         self._vector = np.hstack((self._vector, cood._vector))
         self._z = np.hstack((self._z, cood._z))
         self._delta = np.hstack((self._delta, cood._delta))

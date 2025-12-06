@@ -133,3 +133,16 @@ class Octupole(NonlinearMultipole):
             tilt_quad float: Tilt angle of the additional quadrupole [rad] (pi/4 for skew quad).
         '''
         self.instance.set_quadrupole(k1, tilt_quad)
+
+    def copy(self) -> Octupole:
+        '''
+        Create a copy of this octupole.
+
+        Returns:
+            Octupole: Copied octupole instance.
+        '''
+        return Octupole(self.instance.name, self.instance.length,
+            self.instance.k3, self.instance.k1, self.instance.tilt_quad,
+            self.instance.kick_x, self.instance.kick_y,
+            self.instance.dx, self.instance.dy, self.instance.ds,
+            self.instance.tilt, self.instance.info)

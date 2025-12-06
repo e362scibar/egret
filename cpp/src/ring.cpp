@@ -33,7 +33,7 @@
 //! Tolerance for finding initial coordinates of the closed orbit
 double egret::Ring::tol_cod = 1.0e-7;
 //! Maximum iterations for finding closed orbit
-size_t egret::Ring::max_iter_cod = 100;
+size_t egret::Ring::max_iter_cod = 1000;
 
 /**
  * @brief Construct a new egret::Ring object.
@@ -145,26 +145,20 @@ void egret::Ring::update(double delta) noexcept(false) {
     if (tune_y_ < 0.0) {
         tune_y_ += 1.0;
     }
-    const auto rad_int = radiation_integrals(cood0_, evlp0_, disp0_);
-    const double I2 = std::get<0>(rad_int);
-    const double I4 = std::get<1>(rad_int);
-    const double I5u = std::get<2>(rad_int);
-    const double I5v = std::get<3>(rad_int);
-    const double I4u = std::get<4>(rad_int);
-    const double I4v = std::get<5>(rad_int);
+    std::tie(I2_, I4_, I5u_, I5v_, I4u_, I4v_) = radiation_integrals( cood0_, evlp0_, disp0_);
     const double lgamma = energy_ / m_e_eV;
-    emittance_x_ = C_q * lgamma * lgamma * I5u / (I2 - I4u);
-    emittance_y_ = C_q * lgamma * lgamma * I5v / (I2 - I4v);
-    Jx_ = 1.0 - I4u / I2;
-    Jy_ = 1.0 - I4v / I2;
-    Jz_ = 2.0 + I4 / I2;
+    emittance_x_ = C_q * lgamma * lgamma * I5u_ / (I2_ - I4u_);
+    emittance_y_ = C_q * lgamma * lgamma * I5v_ / (I2_ - I4v_);
+    Jx_ = 1.0 - I4u_ / I2_;
+    Jy_ = 1.0 - I4v_ / I2_;
+    Jz_ = 2.0 + I4_ / I2_;
 }
 
 namespace {
     // Dimension of transverse phase space
     constexpr size_t DIM = 4;
     // Initial step size for GSL minimizer
-    constexpr double INITIAL_STEP_SIZE = 1.0e-3;
+    constexpr double INITIAL_STEP_SIZE = 1.0e-4;
     // Objective function for GSL minimizer to find closed orbit
     double eval_func_cod(const gsl_vector *v, void *params) {
         Eigen::Vector4d x;
@@ -177,7 +171,8 @@ namespace {
         const double delta = std::get<1>(*eval_params);
         const egret::Coordinate cood0(x, 0.0, 0.0, delta);
         const auto cood1 = std::get<0>(ring->transfer(cood0)); // Coordinate after one turn
-        return (cood1.vector() - x).norm();
+        const double norm = (cood1.vector() - x).norm();
+        return norm;
     }
 }
 

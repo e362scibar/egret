@@ -23,7 +23,6 @@ from ..base.quadrupole import Quadrupole as QuadruopoleABC
 from .element import Element
 from .coordinate import Coordinate
 from .drift import Drift
-
 import numpy as np
 import numpy.typing as npt
 from typing import Tuple
@@ -146,7 +145,7 @@ class Quadrupole(QuadruopoleABC, Element):
         delta = 0. if cood0 is None else cood0.delta
         k = self._k1 / (1. + delta)
         s = self.s_array(ds, endpoint)
-        tmat = np.repeat(np.eye(4)[:,:,np.newaxis], len(s), axis=2)
+        tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
         if k == 0.: # drift
             tmat[:,0,1] = s
             tmat[:,2,3] = s

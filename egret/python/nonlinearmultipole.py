@@ -19,8 +19,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-
-from anyio import value
 from ..base.nonlinearmultipole import NonlinearMultipole as NonlinearMultipoleABC
 from .element import Element
 from .drift import Drift

@@ -81,3 +81,14 @@ class Drift(DriftABC, Element):
         '''
         tmat, s = DriftCPP.transfer_matrix_array_from_length(length, ds, endpoint)
         return np.array(tmat), s
+
+    def copy(self) -> Drift:
+        '''
+        Create a copy of the drift space element.
+
+        Returns:
+            Drift: A copy of the drift space element.
+        '''
+        return Drift(self.instance.name, self.instance.length,
+                     self.instance.dx, self.instance.dy, self.instance.ds,
+                     self.instance.tilt, self.instance.info)

@@ -207,12 +207,12 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         Args:
             evlp EnvelopeArray: Another envelope array to append.
         '''
-        super().append(evlp)
-        self._cov = np.dstack((self._cov, evlp._cov))
-        self._T = np.dstack((self._T, evlp._T))
+        BaseArray.append(self, evlp)
+        self._cov = np.concatenate((self._cov, evlp._cov))
+        self._T = np.concatenate((self._T, evlp._T))
         self._tau = np.hstack((self._tau, evlp._tau))
-        self._U = np.dstack((self._U, evlp._U))
-        self._V = np.dstack((self._V, evlp._V))
+        self._U = np.concatenate((self._U, evlp._U))
+        self._V = np.concatenate((self._V, evlp._V))
 
     @classmethod
     def transport(cls, evlp0: Envelope, tmat: npt.NDArray[np.floating], s: npt.NDArray[np.floating]) -> EnvelopeArray:

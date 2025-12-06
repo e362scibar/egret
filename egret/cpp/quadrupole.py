@@ -66,3 +66,14 @@ class Quadrupole(QuadrupoleABC, Element):
             k1 (float): Normalized gradient [1/m^2].
         '''
         self.instance.k1 = k1
+
+    def copy(self) -> Quadrupole:
+        '''
+        Create a copy of this quadrupole magnet.
+
+        Returns:
+            Quadrupole: A copy of this quadrupole magnet.
+        '''
+        return Quadrupole(self.instance.name, self.instance.length, self.instance.k1,
+                          self.instance.dx, self.instance.dy, self.instance.ds,
+                          self.instance.tilt, self.instance.info)

@@ -522,7 +522,7 @@ egret::Dipole::transfer(
     cood.vector(M * cood.vector() + disp_add * cood.delta());
     cood.x(cood.x() + dx_);
     cood.y(cood.y() + dy_);
-    cood.s(cood.s() + ds_);
+    cood.s(cood.s() + ds_ + length_);
     return std::make_tuple(cood, evlp, disp);
 }
 
@@ -554,7 +554,7 @@ egret::Dipole::transfer_array(const Coordinate &cood0,
         (M_combined * cood0.vector()).reshaped(4, n) + disp_array_mat * cood0.delta();
     vector_array.row(0).array() += dx_;
     vector_array.row(2).array() += dy_;
-    const CoordinateArray cood_array(vector_array, cood0.s() + s_array,
+    const CoordinateArray cood_array(vector_array, cood0.s() + ds_ + s_array,
         Eigen::ArrayXd::Constant(n, cood0.delta()),
         Eigen::ArrayXd::Constant(n, cood0.z()));
     std::optional<EnvelopeArray> evlp_array = std::nullopt;
@@ -595,10 +595,10 @@ egret::Dipole::radiation_integrals(const Coordinate &cood0, const Envelope &evlp
     const double kappa3 = kappa2 * kappa;
     const auto tau_array = evlp_array->tau_array(); // ArrayXd
     const auto eta_x_array = disp_array->x_array(); // ArrayXd
-    const auto eta_u_array = dispuv.row(0).array(); // ArrayXd
-    const auto etap_u_array = dispuv.row(1).array(); // ArrayXd
-    const auto eta_v_array = dispuv.row(2).array(); // ArrayXd
-    const auto etap_v_array = dispuv.row(3).array(); // ArrayXd
+    const Eigen::ArrayXd eta_u_array = dispuv.row(0);
+    const Eigen::ArrayXd etap_u_array = dispuv.row(1);
+    const Eigen::ArrayXd eta_v_array = dispuv.row(2);
+    const Eigen::ArrayXd etap_v_array = dispuv.row(3);
     const auto bu_array = evlp_array->bu_array(); // ArrayXd
     const auto au_array = evlp_array->au_array(); // ArrayXd
     const auto gu_array = evlp_array->gu_array(); // ArrayXd
@@ -613,11 +613,11 @@ egret::Dipole::radiation_integrals(const Coordinate &cood0, const Envelope &evlp
     const double I4v = I4 - I4u;
     const double I5u = simpson_integration(kappa3 *
         ( bu_array * etap_u_array * etap_u_array
-        + au_array * eta_u_array * etap_u_array
+        + 2.0 * au_array * eta_u_array * etap_u_array
         + gu_array * eta_u_array * eta_u_array), dz);
     const double I5v = simpson_integration(kappa3 *
         ( bv_array * etap_v_array * etap_v_array
-        + av_array * eta_v_array * etap_v_array
+        + 2.0 * av_array * eta_v_array * etap_v_array
         + gv_array * eta_v_array * eta_v_array), dz);
     return std::make_tuple(I2, I4, I5u, I5v, I4u, I4v);
 }

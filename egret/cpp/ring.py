@@ -61,7 +61,7 @@ class Ring(RingABC, Element):
             cpp_elements = [elem.instance for elem in elements]
             from egret.cppegret import Ring as RingCPP
             self.instance = RingCPP(name, cpp_elements, energy, info)
-        super().__init__(instance=self.instance)
+        super().__init__(None, None, None, instance=self.instance)
 
     @property
     def energy(self) -> float:
@@ -139,6 +139,48 @@ class Ring(RingABC, Element):
         Longitudinal damping partition number.
         '''
         return self.instance.Jz
+
+    @property
+    def I2(self) -> float:
+        '''
+        Radiation integral I2.
+        '''
+        return self.instance.I2
+
+    @property
+    def I4(self) -> float:
+        '''
+        Radiation integral I4.
+        '''
+        return self.instance.I4
+
+    @property
+    def I4u(self) -> float:
+        '''
+        Radiation integral I4u.
+        '''
+        return self.instance.I4u
+
+    @property
+    def I4v(self) -> float:
+        '''
+        Radiation integral I4v.
+        '''
+        return self.instance.I4v
+
+    @property
+    def I5u(self) -> float:
+        '''
+        Radiation integral I5u.
+        '''
+        return self.instance.I5u
+
+    @property
+    def I5v(self) -> float:
+        '''
+        Radiation integral I5v.
+        '''
+        return self.instance.I5v
 
     def update(self, delta: float = 0.):
         '''
@@ -226,3 +268,14 @@ class Ring(RingABC, Element):
                 case _:
                     raise KeyError(key)
         return elements
+
+    def copy(self) -> Ring:
+        '''
+        Create a copy of the ring.
+
+        Returns:
+            Ring: A copy of the ring.
+        '''
+        elements = [elem.copy() for elem in self.elements]
+        return Ring(self.instance.name, elements,
+                    self.instance.energy, self.instance.info)

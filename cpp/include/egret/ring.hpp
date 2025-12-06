@@ -57,6 +57,8 @@ protected:
     double emittance_x_, emittance_y_;
     //! Damping partition numbers
     double Jx_, Jy_, Jz_;
+    //! Radiation integrals
+    double I2_, I4_, I5u_, I5v_, I4u_, I4v_;
 
 public:
     // Construct a new Ring object
@@ -122,6 +124,36 @@ public:
      * @return double Longitudinal damping partition number
      */
     double Jz() const { return Jz_; }
+    /**
+     * @brief Get the second radiation integral I2.
+     * @return double Radiation integral I2
+     */
+    double I2() const { return I2_; }
+    /**
+     * @brief Get the fourth radiation integral I4.
+     * @return double Radiation integral I4
+     */
+    double I4() const { return I4_; }
+    /**
+     * @brief Get the fifth radiation integral I5 for eigenmode U.
+     * @return double Radiation integral I5 for eigenmode U
+     */
+    double I5u() const { return I5u_; }
+    /**
+     * @brief Get the fifth radiation integral I5 for eigenmode V.
+     * @return double Radiation integral I5 for eigenmode V
+     */
+    double I5v() const { return I5v_; }
+    /**
+     * @brief Get the fourth radiation integral I4 for eigenmode U.
+     * @return double Radiation integral I4 for eigenmode U
+     */
+    double I4u() const { return I4u_; }
+    /**
+     * @brief Get the fourth radiation integral I4 for eigenmode V.
+     * @return double Radiation integral I4 for eigenmode V
+     */
+    double I4v() const { return I4v_; }
 
     // Update the ring parameters (tunes, etc.)
     void update(double delta=0.0) noexcept(false);

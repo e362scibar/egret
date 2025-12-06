@@ -86,3 +86,15 @@ class Sextupole(SextupoleABC, NonlinearMultipole):
             complex: Quadrupole strength [1/m^2].
         '''
         return self.instance.get_k(cood.instance)
+
+    def copy(self) -> Sextupole:
+        '''
+        Create a copy of this sextupole.
+
+        Returns:
+            Sextupole: Copied sextupole instance.
+        '''
+        return Sextupole(self.instance.name, self.instance.length,
+            self.instance.k2, self.instance.kick_x, self.instance.kick_y,
+            self.instance.dx, self.instance.dy, self.instance.ds,
+            self.instance.tilt, self.instance.info)

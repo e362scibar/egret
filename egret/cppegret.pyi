@@ -436,6 +436,9 @@ class EnvelopeArray(BaseArray):
     def T_array(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]"]]:
         ...
     @property
+    def T_matrix_array(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]]:
+        ...
+    @property
     def U_array(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]"]]:
         ...
     @property
@@ -571,13 +574,31 @@ class Quadrupole(Element, Object):
 class Ring(Element, Object):
     C_q: typing.ClassVar[float] = 3.83193864e-13
     m_e_eV: typing.ClassVar[float] = 510998.95
-    max_iter_cod: typing.ClassVar[int] = 100
+    max_iter_cod: typing.ClassVar[int] = 1000
     tol_cod: typing.ClassVar[float] = 1e-07
     def __init__(self, name: str, elements: collections.abc.Sequence[Element], energy: typing.SupportsFloat, info: str = '') -> None:
         ...
     def find_initial_coordinate_of_closed_orbit(self, cood_guess: Coordinate = None) -> Coordinate:
         ...
     def update(self, delta: typing.SupportsFloat = 0.0) -> None:
+        ...
+    @property
+    def I2(self) -> float:
+        ...
+    @property
+    def I4(self) -> float:
+        ...
+    @property
+    def I4u(self) -> float:
+        ...
+    @property
+    def I4v(self) -> float:
+        ...
+    @property
+    def I5u(self) -> float:
+        ...
+    @property
+    def I5v(self) -> float:
         ...
     @property
     def Jx(self) -> float:

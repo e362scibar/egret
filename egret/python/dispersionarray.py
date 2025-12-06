@@ -138,7 +138,7 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         Args:
             disp DispersionArray: Another dispersion array to append.
         '''
-        super().append(disp)
+        BaseArray.append(self, disp)
         self._vector = np.hstack((self._vector, disp._vector))
 
     def from_s(self, s: float) -> Dispersion:

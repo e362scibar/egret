@@ -77,3 +77,15 @@ class Lattice(LatticeABC, Element):
             float: Total bending angle of the lattice [rad].
         '''
         return LatticeCPP.angle_of([elem.instance for elem in elements])
+
+    def copy(self) -> Lattice:
+        '''
+        Create a copy of the lattice element.
+
+        Returns:
+            Lattice: A copy of the lattice element.
+        '''
+        elements = [elem.copy() for elem in self.elements]
+        return Lattice(self.instance.name, elements,
+                       self.instance.dx, self.instance.dy, self.instance.ds,
+                       self.instance.tilt, self.instance.info)

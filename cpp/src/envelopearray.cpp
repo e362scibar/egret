@@ -290,6 +290,19 @@ Eigen::Matrix4d egret::EnvelopeArray::T_matrix(const size_t index) const noexcep
 }
 
 /**
+ * @brief Get the array of coordinate transformation matrices for eigenmode.
+ * @return std::vector<Eigen::Matrix4d> Array of 4 x 4 coordinate transformation matrices for eigenmode.
+ */
+std::vector<Eigen::Matrix4d> egret::EnvelopeArray::T_matrix_array() const noexcept(false) {
+    std::vector<Eigen::Matrix4d> T_matrices;
+    T_matrices.reserve(size());
+    for (const size_t i : std::views::iota(0u, size())) {
+        T_matrices.push_back(T_matrix(i));
+    }
+    return T_matrices;
+}
+
+/**
  * @brief Transport an EnvelopeArray using a series of transfer matrices.
  * @param evlp0 Initial Envelope.
  * @param M_array Array of transfer matrices.

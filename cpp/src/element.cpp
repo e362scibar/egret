@@ -28,6 +28,7 @@
 #include <vector>
 #include <cmath>
 #include <ranges>
+#include <format>
 
 /**
  * @brief Generate an array of s values based on length and step size.
@@ -288,6 +289,22 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
             } else {
                 cood_array = CoordinateArray(cood.vector(), s_array, z_array, delta_array);
             }
+            if (evlp) {
+                const auto evlp_end = std::vector<Eigen::Matrix4d>{evlp->cov()};
+                if (evlp_array) {
+                    evlp_array->append(EnvelopeArray(evlp_end, s_array));
+                } else {
+                    evlp_array = EnvelopeArray(evlp_end, s_array);
+                }
+            }
+            if (disp) {
+                const auto disp_end = Eigen::Matrix<double, 4, Eigen::Dynamic>(disp->vector());
+                if (disp_array) {
+                    disp_array->append(DispersionArray(disp_end, s_array));
+                } else {
+                    disp_array = DispersionArray(disp_end, s_array);
+                }
+            }
         }
         cood_array->x_array(cood_array->x_array() + dx_);
         cood_array->y_array(cood_array->y_array() + dy_);
@@ -305,7 +322,7 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
     }
     cood_vector_array.row(0).array() += dx_;
     cood_vector_array.row(2).array() += dy_;
-    CoordinateArray cood_array(cood_vector_array, s_array + ds_,
+    CoordinateArray cood_array(cood_vector_array, s_array + cood0.s(),
         Eigen::ArrayXd::Constant(n, cood0.z()),
         Eigen::ArrayXd::Constant(n, cood0.delta()));
     std::optional<EnvelopeArray> evlp_array = std::nullopt;
@@ -442,7 +459,7 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
  */
 double egret::Element::simpson_integration(const Eigen::ArrayXd &y_array, const double dx) noexcept(false) {
     const size_t n = y_array.size();
-    if (n < 2) throw std::runtime_error("Need at least 2 points");
+    if (n < 2) throw std::runtime_error(std::format("Need at least 2 points (n={})", n));
     // n == 2 --> trapezoidal rule
     if (n == 2) {
         return dx * 0.5 * (y_array[0] + y_array[1]);
@@ -485,10 +502,11 @@ std::shared_ptr<egret::Element> egret::Element::get_element(const std::vector<si
         throw std::invalid_argument("Indices vector is empty in Element::get_element.");
     }
     const size_t index = indices[0];
+    const auto &elem = elements_->at(index);
     if (indices.size() == 1) {
-        return elements_->at(index);
+        return elem;
     }
-    return get_element(std::vector<size_t>(indices.begin() + 1, indices.end()));
+    return elem->get_element(std::vector<size_t>(indices.begin() + 1, indices.end()));
 }
 
 /**

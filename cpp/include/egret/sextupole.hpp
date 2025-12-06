@@ -85,4 +85,23 @@ public:
      * @return std::shared_ptr<Element> Shared pointer to the cloned Sextupole object
      */
     std::shared_ptr<Element> clone() const noexcept override { return std::make_shared<Sextupole>(*this); }
+
+    /**
+     * @brief Calculate radiation integrals contribution through the sextupole element.
+     * @param cood0 Initial coordinate
+     * @param evlp0 Initial envelope
+     * @param disp0 Initial dispersion
+     * @param ds Step size for integration
+     * @return std::tuple<double, double, double, double, double, double>
+     *         Radiation integrals (I1, I2, I3, I4, I5, I6)
+     */
+    std::tuple<double, double, double, double, double, double>
+    radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
+        double ds=0.1) const override{
+        (void)cood0; // unused parameter
+        (void)evlp0; // unused parameter
+        (void)disp0; // unused parameter
+        (void)ds; // unused parameter
+        return std::make_tuple(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    }
 };

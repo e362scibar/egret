@@ -323,6 +323,7 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("bv_array", &egret::EnvelopeArray::bv_array)
         .def_property_readonly("av_array", &egret::EnvelopeArray::av_array)
         .def_property_readonly("gv_array", &egret::EnvelopeArray::gv_array)
+        .def_property_readonly("T_matrix_array", &egret::EnvelopeArray::T_matrix_array)
         .def("calc_eigenmode", &egret::EnvelopeArray::calc_eigenmode,
             py::arg("T_array") = std::nullopt)
         .def("append", &egret::EnvelopeArray::append, py::arg("other"))
@@ -601,6 +602,12 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("Jx", &egret::Ring::Jx)
         .def_property_readonly("Jy", &egret::Ring::Jy)
         .def_property_readonly("Jz", &egret::Ring::Jz)
+        .def_property_readonly("I2", &egret::Ring::I2)
+        .def_property_readonly("I4", &egret::Ring::I4)
+        .def_property_readonly("I5u", &egret::Ring::I5u)
+        .def_property_readonly("I5v", &egret::Ring::I5v)
+        .def_property_readonly("I4u", &egret::Ring::I4u)
+        .def_property_readonly("I4v", &egret::Ring::I4v)
         .def("update", &egret::Ring::update, py::arg("delta") = 0.0)
         .def("find_initial_coordinate_of_closed_orbit",
             &egret::Ring::find_initial_coordinate_of_closed_orbit,

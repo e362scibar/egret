@@ -89,7 +89,7 @@ class Sextupole(SextupoleABC, NonlinearMultipole):
         '''
         k2 = self._k2 / (1. + cood.delta)
         k0x, k0y = self.k0x / (1. + cood.delta), self.k0y / (1. + cood.delta)
-        x0, y0 = cood.x, cood.y, cood.xp, cood.yp
+        x0, y0 = cood.x, cood.y
         # dipole strength
         k0 = k2 * (0.5 * (x0**2 - y0**2) - 1.j * x0 * y0) + k0x + 1.j * k0y
         # quadrupole strength

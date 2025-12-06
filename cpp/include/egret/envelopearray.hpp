@@ -311,6 +311,8 @@ public:
     Eigen::ArrayXd av_array() const noexcept(false);
     //! Get the array of gamma functions in the eigenmode V.
     Eigen::ArrayXd gv_array() const noexcept(false);
+    //! Get the array of coordinate transformation matrices for eigenmode.
+    std::vector<Eigen::Matrix4d> T_matrix_array() const noexcept(false);
 
     // Calculate eigenmode parameters for all envelopes
     void calc_eigenmode(const std::optional<std::vector<Eigen::Matrix2d>> &T_array = std::nullopt) noexcept(false);

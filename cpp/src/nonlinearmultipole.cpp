@@ -251,6 +251,7 @@ egret::NonlinearMultipole::transfer_array(const Coordinate &cood0,
         disp_array = Eigen::Matrix<double, 4, Eigen::Dynamic>(4, s_array.size());
         disp_array->col(0) = disp0->vector();
     }
+    double ds_sum = 0.0;
     for (const size_t i : std::views::iota(0u, n_step)) {
         const double ds_step = s_array[i+1] - s_array[i];
         const auto results = transfer_by_midpoint_method(cood, ds_step,
@@ -266,16 +267,17 @@ egret::NonlinearMultipole::transfer_array(const Coordinate &cood0,
             disp_array->col(i+1) = (*tmat_step) * disp_array->col(i) + *disp_step;
         }
         cood_array.col(i+1) = cood.vector();
+        ds_sum += ds_step;
     }
     cood.x(cood.x() + dx_);
     cood.y(cood.y() + dy_);
-    cood.s(cood.s() + ds_);
+    cood.s(cood.s() + ds_ - ds_sum);
     CoordinateArray cood1_array(cood_array, cood.s() + s_array,
         Eigen::ArrayXd::Constant(s_array.size(), cood0.z()),
         Eigen::ArrayXd::Constant(s_array.size(), cood0.delta()));
     std::optional<EnvelopeArray> evlp1_array = std::nullopt;
     if (tmat_array) {
-        evlp1_array = EnvelopeArray::transport( *evlp0, *tmat_array, s_array + evlp0->s());
+        evlp1_array = EnvelopeArray::transport(*evlp0, *tmat_array, s_array);
     }
     std::optional<DispersionArray> disp1_array = std::nullopt;
     if (disp_array) {
