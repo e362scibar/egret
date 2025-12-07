@@ -283,6 +283,8 @@ class Element(ElementABC, Object):
         s0 = 0.0
         for i, elem in enumerate(self._elements):
             tmat_elem, s_elem = elem.transfer_matrix_array(cood0, ds, False)
+            if tmat_elem.shape[0] != s_elem.shape[0]:
+                raise ValueError(f'transfer_matrix_array: shape mismatch name={elem.name}, len(tmat)={tmat_elem.shape[0]}, len(s)={s_elem.shape[0]}')
             tmat_arrays.append(np.matmul(tmat_elem, tmat))
             s_arrays.append(s_elem + s0)
             s0 += elem.length
@@ -426,16 +428,22 @@ class Element(ElementABC, Object):
                     cood1 = coodarray
                 else:
                     cood1.append(coodarray)
+                    if cood1.vector.shape[1] != cood1.s.shape[0]:
+                        raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(cood)={cood1.vector.shape[1]}, len(s)={cood1.s.shape[0]}')
                 if evlp0 is not None:
                     if evlp1 is None:
                         evlp1 = evlparray
                     else:
                         evlp1.append(evlparray)
+                        if evlp1.cov.shape[0] != evlp1.s.shape[0]:
+                            raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(evlp)={evlp1.cov.shape[0]}, len(s)={evlp1.s.shape[0]}')
                 if disp0 is not None:
                     if disp1 is None:
                         disp1 = disparray
                     else:
                         disp1.append(disparray)
+                        if disp1.vector.shape[1] != disp1.s.shape[0]:
+                            raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(disp)={disp1.vector.shape[1]}, len(s)={disp1.s.shape[0]}')
                 cood, evlp, disp = elem.transfer(cood, evlp, disp)
             if endpoint:
                 cood1.append(CoordinateArray(cood.vector[:, np.newaxis], np.array([cood.s])))

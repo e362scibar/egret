@@ -227,6 +227,21 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
                 disp = quad2.dispersion(cood)
         return tmat, cood2, disp
 
+    def get_step(self, ds):
+        '''
+        Calculate the number of steps and step size for integration.
+        
+        Args:
+            ds float: Maximum step size [m] for integration.
+            
+        Returns:
+            int: Number of steps.
+            float: Step size [m].
+        '''
+        n_step = int(np.ceil(self._length / ds))
+        s_step = self._length / n_step
+        return n_step, s_step
+
     def transfer_matrix(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the multipole magnet calculated by midpoint method.
@@ -238,8 +253,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
-        n_step = int(self._length / ds) + 1
-        s_step = self._length / n_step
+        n_step, s_step = self.get_step(ds)
         cood = cood0.copy()
         tmat = np.eye(4)
         for _ in range(n_step):
@@ -261,8 +275,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal position array of shape (N,).
         '''
-        n_step = int(self._length / ds) + 1
-        s_step = self._length / n_step
+        n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
         cood = cood0.copy()
         tmat = np.eye(4)
@@ -284,8 +297,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
         '''
-        n_step = int(self._length / ds) + 1
-        s_step = self._length / n_step
+        n_step, s_step = self.get_step(ds)
         cood = cood0.copy()
         dispout = np.zeros(4)
         for _ in range(n_step):
@@ -307,8 +319,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             npt.NDArray[np.floating]: 4xN Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
             npt.NDArray[np.floating]: Longitudinal position array [s].
         '''
-        n_step = int(self._length / ds) + 1
-        s_step = self._length / n_step
+        n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
         cood = cood0.copy()
         disp_list = [np.zeros(4)]
@@ -337,8 +348,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         cood.x -= self._dx
         cood.y -= self._dy
         cood.s -= self._ds
-        n_step = int(self._length / ds) + 1
-        s_step = self._length / n_step
+        n_step, s_step = self.get_step(ds)
         tmat = np.eye(4) if evlp0 is not None else None
         dispvec = disp0.vector.copy() if disp0 is not None else None
         for _ in range(n_step):
@@ -384,8 +394,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         cood.x -= self._dx
         cood.y -= self._dy
         cood.s -= self._ds
-        n_step = int(self._length / ds) + 1
-        s_step = self._length / n_step
+        n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
         cood_list = [cood.vector.copy()]
         tmat, tmat_list = np.eye(4), [np.eye(4)] if evlp0 is not None else None

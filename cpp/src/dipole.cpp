@@ -143,11 +143,11 @@ std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> egret::Dipole::transfer
     const double sqrtkx = std::sqrt(std::abs(kx));
     const double ky = -k1;
     const double sqrtky = std::sqrt(std::abs(ky));
+    const auto psix_array = sqrtkx * s_array; // ArrayXd
+    const auto psiy_array = sqrtky * s_array; // ArrayXd
     if (kx < 0.0) { // defocusing dipole
-        const auto psix_array = sqrtkx * s_array; // ArrayXd
         const auto coshx_array = psix_array.cosh(); // ArrayXd
         const auto sinhx_array = psix_array.sinh(); // ArrayXd
-        const auto psiy_array = sqrtky * s_array; // ArrayXd
         const auto cosy_array = psiy_array.cos(); // ArrayXd
         const auto siny_array = psiy_array.sin(); // ArrayXd
         const auto M00_array = coshx_array; // ArrayXd
@@ -169,10 +169,8 @@ std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> egret::Dipole::transfer
             M_array[i](3,3) = M33_array(i);
         }
     } else if (ky < 0.0) { // focusing dipole
-        const auto psix_array = sqrtkx * s_array; // ArrayXd
         const auto cosx_array = psix_array.cos(); // ArrayXd
         const auto sinx_array = psix_array.sin(); // ArrayXd
-        const auto psiy_array = sqrtky * s_array; // ArrayXd
         const auto coshy_array = psiy_array.cosh(); // ArrayXd
         const auto sinhy_array = psiy_array.sinh(); // ArrayXd
         const auto M00_array = cosx_array; // ArrayXd
@@ -194,10 +192,8 @@ std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> egret::Dipole::transfer
             M_array[i](3,3) = M33_array(i);
         }
     } else { // both focusing dipole
-        const auto psix_array = sqrtkx * s_array; // ArrayXd
         const auto cosx_array = psix_array.cos(); // ArrayXd
         const auto sinx_array = psix_array.sin(); // ArrayXd
-        const auto psiy_array = sqrtky * s_array; // ArrayXd
         const auto cosy_array = psiy_array.cos(); // ArrayXd
         const auto siny_array = psiy_array.sin(); // ArrayXd
         const auto M00_array = cosx_array; // ArrayXd
@@ -509,7 +505,7 @@ egret::Dipole::transfer(
     cood.y(cood.y() - dy_);
     cood.s(cood.s() - ds_);
     const auto M = transfer_matrix(cood, ds); // Matrix4d
-    const auto disp_add = dispersion(cood, ds); // Vector4d
+    const auto disp_add = dispersion(Coordinate(), ds); // Vector4d
     std::optional<Envelope> evlp = evlp0;
     if (evlp) {
         evlp->transfer(M, length_);
@@ -549,7 +545,7 @@ egret::Dipole::transfer_array(const Coordinate &cood0,
     for (const auto i : std::views::iota(0u, n)) {
         M_combined.block(i*4, 0, 4, 4) = M_array[i];
     }
-    const auto [disp_array_mat, _] = dispersion_array(cood, ds, endpoint); // Matrix, ArrayXd
+    const auto [disp_array_mat, _] = dispersion_array(Coordinate(), ds, endpoint); // Matrix, ArrayXd
     Eigen::Matrix<double, 4, Eigen::Dynamic> vector_array =
         (M_combined * cood0.vector()).reshaped(4, n) + disp_array_mat * cood0.delta();
     vector_array.row(0).array() += dx_;
