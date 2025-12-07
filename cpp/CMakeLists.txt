@@ -4,6 +4,15 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Prefer g++-12 or newer if available, otherwise fall back to system default
+if(NOT CMAKE_CXX_COMPILER)
+  find_program(GXX_12_OR_NEWER NAMES g++-14 g++-13 g++-12)
+  if(GXX_12_OR_NEWER)
+    set(CMAKE_CXX_COMPILER ${GXX_12_OR_NEWER})
+    message(STATUS "Using C++ compiler: ${CMAKE_CXX_COMPILER}")
+  endif()
+endif()
+
 # Configure common warning flags but do NOT force -Werror globally. For
 # packaging builds (PEP 517) global -Werror can cause LTO / compiler-time
 # warnings (e.g. Eigen false-positives) to turn into fatal link errors.

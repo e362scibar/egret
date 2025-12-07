@@ -223,7 +223,7 @@ class Element(ElementABC, Object):
         '''
         if length == 0.0:
             return np.array([0.])
-        n = int(length / ds) + int(endpoint) + 1
+        n = int(np.ceil(length / ds)) + int(endpoint)
         return np.linspace(0., length, n, endpoint)
 
     def s_array(self, ds: float = 0.1, endpoint: bool = True) -> npt.NDArray[np.floating]:

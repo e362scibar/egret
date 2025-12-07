@@ -198,10 +198,15 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Returns:
             Coordinate: Coordinate at the specified position.
         '''
+        if len(self._s) < 2:
+            raise ValueError("Coordinate array must have at least two elements for interpolation.")
         idx = self.index_from_s(s)
         s0, s1 = self._s[idx], self._s[idx+1]
         ds = s1 - s0
-        a = np.array([(s1-s)/ds, (s-s0)/ds]) if ds != 0. else np.array([0.5, 0.5])
+        if ds == 0.0:
+            a = np.array([0.5, 0.5])
+        else:
+            a = np.array([(s1-s)/ds, (s-s0)/ds])
         vec = np.sum(self._vector[:,idx:idx+2] * a[np.newaxis, :], axis=1)
         z = np.sum(self._z[idx:idx+2] * a)
         delta = np.sum(self._delta[idx:idx+2] * a)

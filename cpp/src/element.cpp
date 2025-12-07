@@ -28,7 +28,6 @@
 #include <vector>
 #include <cmath>
 #include <ranges>
-#include <format>
 
 /**
  * @brief Generate an array of s values based on length and step size.
@@ -459,7 +458,7 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
  */
 double egret::Element::simpson_integration(const Eigen::ArrayXd &y_array, const double dx) noexcept(false) {
     const size_t n = y_array.size();
-    if (n < 2) throw std::runtime_error(std::format("Need at least 2 points (n={})", n));
+    if (n < 2) throw std::runtime_error("Need at least 2 points.");
     // n == 2 --> trapezoidal rule
     if (n == 2) {
         return dx * 0.5 * (y_array[0] + y_array[1]);
