@@ -504,21 +504,23 @@ egret::Dipole::transfer(
     cood.x(cood.x() - dx_);
     cood.y(cood.y() - dy_);
     cood.s(cood.s() - ds_);
-    const auto M = transfer_matrix(cood, ds); // Matrix4d
+    const Coordinate cood0err = cood;
+    const auto M = transfer_matrix(cood0err, ds); // Matrix4d
     const auto disp_add = dispersion(Coordinate(), ds); // Vector4d
+    cood.vector(M * cood0err.vector() + disp_add * cood.delta());
+    cood.x(cood.x() + dx_);
+    cood.y(cood.y() + dy_);
+    cood.s(cood.s() + ds_ + length_);
     std::optional<Envelope> evlp = evlp0;
     if (evlp) {
         evlp->transfer(M, length_);
     }
     std::optional<Dispersion> disp = disp0;
     if (disp) {
-        const auto disp_vec = M * disp->vector() + disp_add; // Vector4d
+        const auto disp_add2 = dispersion(cood0err, ds); // Vector4d
+        const auto disp_vec = M * disp->vector() + disp_add2; // Vector4d
         disp = Dispersion(disp_vec, disp->s() + length_);
     }
-    cood.vector(M * cood.vector() + disp_add * cood.delta());
-    cood.x(cood.x() + dx_);
-    cood.y(cood.y() + dy_);
-    cood.s(cood.s() + ds_ + length_);
     return std::make_tuple(cood, evlp, disp);
 }
 
@@ -539,7 +541,8 @@ egret::Dipole::transfer_array(const Coordinate &cood0,
     cood.x(cood.x() - dx_);
     cood.y(cood.y() - dy_);
     cood.s(cood.s() - ds_);
-    const auto [M_array, s_array] = transfer_matrix_array(cood, ds, endpoint); // vector<Matrix4d>, ArrayXd
+    const Coordinate cood0err = cood;
+    const auto [M_array, s_array] = transfer_matrix_array(cood0err, ds, endpoint); // vector<Matrix4d>, ArrayXd
     const size_t n = M_array.size();
     Eigen::Matrix<double, Eigen::Dynamic, 4> M_combined(n*4, 4);
     for (const auto i : std::views::iota(0u, n)) {
@@ -547,19 +550,19 @@ egret::Dipole::transfer_array(const Coordinate &cood0,
     }
     const auto [disp_array_mat, _] = dispersion_array(Coordinate(), ds, endpoint); // Matrix, ArrayXd
     Eigen::Matrix<double, 4, Eigen::Dynamic> vector_array =
-        (M_combined * cood0.vector()).reshaped(4, n) + disp_array_mat * cood0.delta();
+        (M_combined * cood0err.vector()).reshaped(4, n) + disp_array_mat * cood0err.delta();
     vector_array.row(0).array() += dx_;
     vector_array.row(2).array() += dy_;
-    const CoordinateArray cood_array(vector_array, cood0.s() + ds_ + s_array,
-        Eigen::ArrayXd::Constant(n, cood0.delta()),
-        Eigen::ArrayXd::Constant(n, cood0.z()));
+    const CoordinateArray cood_array(vector_array, cood0err.s() + ds_ + s_array,
+        Eigen::ArrayXd::Constant(n, cood0err.delta()),
+        Eigen::ArrayXd::Constant(n, cood0err.z()));
     std::optional<EnvelopeArray> evlp_array = std::nullopt;
     if (evlp0) {
         evlp_array = EnvelopeArray::transport(*evlp0, M_array, s_array);
     }
     std::optional<DispersionArray> disp_array = std::nullopt;
     if (disp0) {
-        const auto [disp_add, _] = dispersion_array(cood, ds, endpoint); // Matrix, ArrayXd
+        const auto [disp_add, _] = dispersion_array(cood0err, ds, endpoint); // Matrix, ArrayXd
         const auto disp_vector_array = (M_combined * disp0->vector()).reshaped(4, n)
             + disp_add; // Matrix 4 x n
         disp_array = DispersionArray(disp_vector_array, disp0->s() + s_array);

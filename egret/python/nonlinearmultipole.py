@@ -191,6 +191,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             cood1, _, _ = quad1.transfer(Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.))
             cood1.x += x0
             cood1.y += y0
+            cood1.delta = cood0.delta
         # dipole and quadrupole strengths after the first quad
         k0b, k1b = self.get_k(cood1)
         # get average dipole and quadrupole strengths
@@ -224,6 +225,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             if tmatflag:
                 tmat = quad2.transfer_matrix()
             if dispflag:
+                cood = Coordinate(np.array([-offset.real, xp0, -offset.imag, yp0]), cood0.s, cood0.z, delta=0.)
                 disp = quad2.dispersion(cood)
         return tmat, cood2, disp
 
@@ -373,7 +375,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.1, endpoint: bool = False) \
+                       ds: float = 0.1, endpoint: bool = True) \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate, envelope, and dispersion arrays along the multipole magnet.
