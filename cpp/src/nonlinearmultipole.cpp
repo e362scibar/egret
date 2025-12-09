@@ -237,8 +237,10 @@ egret::NonlinearMultipole::transfer_array(const Coordinate &cood0,
     cood.y(cood0.y() - dy_);
     cood.s(cood0.s() - ds_);
     const size_t n_step = static_cast<size_t>(s_array.size() - 1);
-    Eigen::Matrix<double, 4, Eigen::Dynamic> cood_array(4, s_array.size());
-    cood_array.col(0) = cood.vector();
+    Eigen::Matrix<double, 4, Eigen::Dynamic> cood_array_out(4, s_array.size());
+    Eigen::ArrayXd s_array_out(s_array.size());
+    cood_array_out.col(0) = cood0.vector();
+    s_array_out(0) = cood0.s();
     Eigen::Matrix4d tmat = Eigen::Matrix4d::Identity();
     std::optional<std::vector<Eigen::Matrix4d>> tmat_array = std::nullopt;
     std::optional<Eigen::Matrix<double, 4, Eigen::Dynamic>> disp_array = std::nullopt;
@@ -251,7 +253,6 @@ egret::NonlinearMultipole::transfer_array(const Coordinate &cood0,
         disp_array = Eigen::Matrix<double, 4, Eigen::Dynamic>(4, s_array.size());
         disp_array->col(0) = disp0->vector();
     }
-    double ds_sum = 0.0;
     for (const size_t i : std::views::iota(0u, n_step)) {
         const double ds_step = s_array[i+1] - s_array[i];
         const auto results = transfer_by_midpoint_method(cood, ds_step,
@@ -266,13 +267,13 @@ egret::NonlinearMultipole::transfer_array(const Coordinate &cood0,
         if (disp_array) {
             disp_array->col(i+1) = (*tmat_step) * disp_array->col(i) + *disp_step;
         }
-        cood_array.col(i+1) = cood.vector();
-        ds_sum += ds_step;
+        auto cood_vec_out = cood.vector();
+        cood_vec_out(0) += dx_;
+        cood_vec_out(2) += dy_;
+        cood_array_out.col(i+1) = cood_vec_out;
+        s_array_out(i+1) = cood.s() + ds_;
     }
-    cood.x(cood.x() + dx_);
-    cood.y(cood.y() + dy_);
-    cood.s(cood.s() + ds_ - ds_sum);
-    CoordinateArray cood1_array(cood_array, cood.s() + s_array,
+    CoordinateArray cood1_array(cood_array_out, s_array_out,
         Eigen::ArrayXd::Constant(s_array.size(), cood0.z()),
         Eigen::ArrayXd::Constant(s_array.size(), cood0.delta()));
     std::optional<EnvelopeArray> evlp1_array = std::nullopt;

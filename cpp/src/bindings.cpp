@@ -409,6 +409,7 @@ PYBIND11_MODULE(cppegret, m) {
             static_cast<const std::string&(egret::Element::*)() const>(&egret::Element::info),
             static_cast<void(egret::Element::*)(const std::string&)>(&egret::Element::info))
         .def_property_readonly("elements", &egret::Element::elements)
+        .def_property_readonly("indices", &egret::Element::get_indices)
         .def("s_array",
             static_cast<Eigen::ArrayXd(egret::Element::*)(double, bool) const>(&egret::Element::s_array),
             py::arg("ds") = 0.1, py::arg("endpoint") = true)
@@ -433,6 +434,8 @@ PYBIND11_MODULE(cppegret, m) {
         .def("transfer_matrix_from_s", &egret::Element::transfer_matrix_from_s,
             py::arg("s0"), py::arg("cood0"), py::arg("ds") = 0.1)
         .def("get_element", &egret::Element::get_element, py::arg("indices"))
+        .def("set_element", &egret::Element::set_element,
+            py::arg("indices"), py::arg("element"))
         .def("get_s", &egret::Element::get_s, py::arg("indices"))
         .def("find_index", &egret::Element::find_index, py::arg("names"))
         .def("set_indices", &egret::Element::set_indices,

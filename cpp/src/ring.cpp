@@ -31,7 +31,7 @@
 #include <gsl/gsl_multimin.h>
 
 //! Tolerance for finding initial coordinates of the closed orbit
-double egret::Ring::tol_cod = 1.0e-7;
+double egret::Ring::tol_cod = 1.0e-12;
 //! Maximum iterations for finding closed orbit
 size_t egret::Ring::max_iter_cod = 1000;
 

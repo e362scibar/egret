@@ -224,6 +224,10 @@ public:
     // Get element at given indices if elements_ is set
     std::shared_ptr<Element> get_element(const std::vector<size_t> &indices) noexcept(false);
 
+    // Set element at given indices if elements_ is set
+    void set_element(const std::vector<size_t> &indices,
+        std::shared_ptr<Element> &element) noexcept(false);
+
     // Get longitudinal position at given indices if elements_ is set
     double get_s(const std::vector<size_t> &indices) const noexcept(false);
 
@@ -232,6 +236,14 @@ public:
 
     // Set indices for all child elements
     void set_indices(const std::vector<size_t> &indices={}) noexcept;
+
+    /**
+     * @brief Get the indices of this element.
+     * @return const std::vector<size_t>& Indices of this element.
+     */
+    const std::vector<size_t>& get_indices() const noexcept {
+        return indices_;
+    }
 
     /**
      * @brief Clone the Element object.

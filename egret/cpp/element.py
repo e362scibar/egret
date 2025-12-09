@@ -160,6 +160,16 @@ class Element(ElementABC, Object):
         else:
             return [self.actual_element(elem) for elem in self.instance.elements]
 
+    @property
+    def indices(self) -> Tuple[int, ...]:
+        '''
+        Indices of this element in the lattice.
+
+        Returns:
+            Tuple[int, ...]: Indices of this element.
+        '''
+        return tuple(self.instance.get_indices())
+
     @length.setter
     def length(self, length: float) -> None:
         '''
@@ -419,6 +429,16 @@ class Element(ElementABC, Object):
         '''
         elem_cpp = self.instance.get_element(indices)
         return self.actual_element(elem_cpp)
+
+    def set_element(self, indices: int | Tuple[int, ...], element: Element) -> None:
+        '''
+        Set element by index or tuple of indices.
+
+        Args:
+            indices int | Tuple[int, ...]: Index or tuple of indices.
+            element Element: Element to set.
+        '''
+        self.instance.set_element(indices, element.instance)
 
     def get_s(self, indices: int | Tuple[int, ...]) -> float:
         '''

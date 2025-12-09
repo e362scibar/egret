@@ -575,7 +575,7 @@ class Ring(Element, Object):
     C_q: typing.ClassVar[float] = 3.83193864e-13
     m_e_eV: typing.ClassVar[float] = 510998.95
     max_iter_cod: typing.ClassVar[int] = 1000
-    tol_cod: typing.ClassVar[float] = 1e-07
+    tol_cod: typing.ClassVar[float] = 1e-12
     def __init__(self, name: str, elements: collections.abc.Sequence[Element], energy: typing.SupportsFloat, info: str = '') -> None:
         ...
     def find_initial_coordinate_of_closed_orbit(self, cood_guess: Coordinate = None) -> Coordinate:

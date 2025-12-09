@@ -509,6 +509,34 @@ std::shared_ptr<egret::Element> egret::Element::get_element(const std::vector<si
 }
 
 /**
+ * @brief Set element at given indices if elements_ is set
+ * @param indices Indices of the element 
+ * @param new_element New element to set
+ * @throws std::runtime_error if this element does not have child elements
+ * @throws std::invalid_argument if indices are invalid
+ * @throws std::out_of_range if indices are out of range
+ */
+void egret::Element::set_element(const std::vector<size_t> &indices,
+    std::shared_ptr<egret::Element> &new_element) noexcept(false) {
+    if (!elements_) {
+        throw std::runtime_error("This element does not have child elements.");
+    }
+    if (indices.empty()) {
+        throw std::invalid_argument("Indices vector is empty in Element::set_element.");
+    }
+    if (indices.size() >= new_element.get_indices().size()) {
+        new_element->set_indices(indices);
+    }
+    const size_t index = indices[0];
+    if (indices.size() == 1) {
+        elements_->at(index) = new_element;
+        return;
+    }
+    auto &elem = elements_->at(index);
+    elem->set_element(std::vector<size_t>(indices.begin() + 1, indices.end()), new_element);
+}
+
+/**
  * @brief Get the longitudinal position at given indices
  * @param indices Indices of the element
  * @return double Longitudinal position at the given indices

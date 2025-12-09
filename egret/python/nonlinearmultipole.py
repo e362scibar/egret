@@ -64,14 +64,14 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         '''
         Horizontal steering strength [1/m].
         '''
-        return self._kick_x / self._length
+        return -self._kick_x / self._length
 
     @property
     def k0y(self) -> float:
         '''
         Vertical steering strength [1/m].
         '''
-        return self._kick_y / self._length
+        return -self._kick_y / self._length
 
     @property
     def kick_x(self) -> float:
@@ -95,7 +95,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         Args:
             k0x float: Horizontal steering strength [1/m].
         '''
-        self._kick_x = k0x * self._length
+        self._kick_x = -k0x * self._length
 
     @k0y.setter
     def k0y(self, k0y: float) -> None:
@@ -105,7 +105,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         Args:
             k0y float: Vertical steering strength [1/m].
         '''
-        self._kick_y = k0y * self._length
+        self._kick_y = -k0y * self._length
 
     @kick_x.setter
     def kick_x(self, kick_x: float) -> None:
