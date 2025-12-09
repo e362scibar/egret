@@ -524,7 +524,7 @@ void egret::Element::set_element(const std::vector<size_t> &indices,
     if (indices.empty()) {
         throw std::invalid_argument("Indices vector is empty in Element::set_element.");
     }
-    if (indices.size() >= new_element.get_indices().size()) {
+    if (indices.size() >= new_element->get_indices().size()) {
         new_element->set_indices(indices);
     }
     const size_t index = indices[0];

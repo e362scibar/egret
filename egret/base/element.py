@@ -374,6 +374,17 @@ class Element(Object):
         pass
 
     @abstractmethod
+    def set_element(self, indices: int | Tuple[int, ...], element: Element) -> None:
+        '''
+        Set element by index or tuple of indices.
+
+        Args:
+            indices int | Tuple[int, ...]: Index or tuple of indices.
+            element Element: Element to set.
+        '''
+        pass
+
+    @abstractmethod
     def get_s(self, indices: int | Tuple[int, ...]) -> float:
         '''
         Get longitudinal position by index or tuple of indices.

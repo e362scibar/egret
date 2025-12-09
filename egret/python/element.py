@@ -563,56 +563,76 @@ class Element(ElementABC, Object):
             elem._length -= s
             return elem.transfer_matrix(cood0, ds)
 
-    def get_element(self, key: int | Tuple[int, ...]) -> Element:
+    def get_element(self, indices: int | Tuple[int, ...]) -> Element:
         '''
         Get element by index or tuple of indices.
 
         Args:
-            key int or tuple of int: Index or tuple of indices.
+            indices int or tuple of int: Index or tuple of indices.
 
         Returns:
             Element: Element at the specified index.
         '''
-        if isinstance(key, int):
-            return self._elements[key]
-        elif isinstance(key, tuple):
-            if not isinstance(key[0], int):
+        if isinstance(indices, int):
+            return self._elements[indices]
+        elif isinstance(indices, tuple):
+            if not isinstance(indices[0], int):
                 raise TypeError('Index must be int or tuple of int.')
-            if len(key) > 1 and self._elements[key[0]]._elements is not None:
-                return self._elements[key[0]].get_element(key[1:])
+            if len(indices) > 1 and self._elements[indices[0]]._elements is not None:
+                return self._elements[indices[0]].get_element(indices[1:])
             else:
-                return self._elements[key[0]]
+                return self._elements[indices[0]]
         else:
             raise TypeError('Index must be int or tuple of int.')
 
-    def get_s(self, key: int | Tuple[int, ...]) -> float:
+    def set_element(self, indices: int | Tuple[int, ...], element: Element) -> None:
+        '''
+        Set element by index or tuple of indices.
+
+        Args:
+            indices int or tuple of int: Index or tuple of indices.
+            element Element: Element to set.
+        '''
+        if isinstance(indices, int):
+            self._elements[indices] = element
+        elif isinstance(indices, tuple):
+            if not isinstance(indices[0], int):
+                raise TypeError('Index must be int or tuple of int.')
+            if len(indices) > 1 and self._elements[indices[0]]._elements is not None:
+                self._elements[indices[0]].set_element(indices[1:], element)
+            else:
+                self._elements[indices[0]] = element
+        else:
+            raise TypeError('Index must be int or tuple of int.')
+
+    def get_s(self, indices: int | Tuple[int, ...]) -> float:
         '''
         Get longitudinal position by index or tuple of indices.
 
         Args:
-            key int or tuple of int: Index or tuple of indices.
+            indices int or tuple of int: Index or tuple of indices.
 
         Returns:
             float: Longitudinal position [m].
         '''
-        if isinstance(key, int):
-            if key < 0 or key >= len(self._elements):
+        if isinstance(indices, int):
+            if indices < 0 or indices >= len(self._elements):
                 raise IndexError('Index out of range.')
             s = 0.
-            for i in range(key):
+            for i in range(indices):
                 s += self._elements[i].length
             return s
-        elif isinstance(key, tuple):
-            if not isinstance(key[0], int):
+        elif isinstance(indices, tuple):
+            if not isinstance(indices[0], int):
                 raise TypeError('Index must be int or tuple of int.')
-            if key[0] < 0 or key[0] >= len(self._elements):
+            if indices[0] < 0 or indices[0] >= len(self._elements):
                 raise IndexError('Index out of range.')
             s = 0.
-            for i in range(key[0]):
+            for i in range(indices[0]):
                 s += self._elements[i].length
-            if len(key) > 1 and self._elements[key[0]]._elements is not None:
-                s += self._elements[key[0]].get_s(key[1:])
-            elif len(key) > 1:
+            if len(indices) > 1 and self._elements[indices[0]]._elements is not None:
+                s += self._elements[indices[0]].get_s(indices[1:])
+            elif len(indices) > 1:
                 raise IndexError('Dimension of index is out of range.')
             return s
         else:
