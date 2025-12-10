@@ -464,4 +464,4 @@ class Element(ElementABC, Object):
         '''
         if isinstance(names, str):
             names = [names]
-        return self.instance.find_index(names)
+        return [tuple(idx) for idx in self.instance.find_index(names)]
