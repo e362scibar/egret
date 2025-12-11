@@ -60,6 +60,7 @@ class Element(ElementABC, Object):
         self._ds = ds
         self._tilt = tilt
         self._info = info
+        self._indices = None
         self._elements = None
 
     @property
@@ -110,6 +111,14 @@ class Element(ElementABC, Object):
         Additional information.
         '''
         return self._info
+
+    @property
+    def indices(self) -> Tuple[int, ...] | None:
+        '''
+        Index tuple representing the position of the element in the lattice.
+        None for the top element.
+        '''
+        return self._indices
 
     @property
     def elements(self) -> List[Element] | None:
@@ -205,7 +214,7 @@ class Element(ElementABC, Object):
         Args:
             indices Tuple[int, ...] | None: Index tuple representing the position of the element in the lattice.
         '''
-        self.indices = indices
+        self._indices = indices
         if self._elements is not None:
             for i, elem in enumerate(self._elements):
                 next_indices = indices + (i,) if indices is not None else (i,)
@@ -594,10 +603,14 @@ class Element(ElementABC, Object):
             element Element: Element to set.
         '''
         if isinstance(indices, int):
+            if element.indices is None or len(element.indices) <= 1:
+                element.set_indices((indices,))
             self._elements[indices] = element
         elif isinstance(indices, tuple):
             if not isinstance(indices[0], int):
                 raise TypeError('Index must be int or tuple of int.')
+            if element.indices is None or len(element.indices) <= len(indices):
+                element.set_indices(indices)
             if len(indices) > 1 and self._elements[indices[0]]._elements is not None:
                 self._elements[indices[0]].set_element(indices[1:], element)
             else:
@@ -605,24 +618,28 @@ class Element(ElementABC, Object):
         else:
             raise TypeError('Index must be int or tuple of int.')
 
-    def get_s(self, indices: int | Tuple[int, ...]) -> float:
+    def get_s(self, element: Element | int | Tuple[int, ...]) -> float:
         '''
-        Get longitudinal position by index or tuple of indices.
+        Get longitudinal position by Element, index or tuple of indices.
 
         Args:
-            indices int or tuple of int: Index or tuple of indices.
+            element Element, int or tuple of int: Element, index or tuple of indices.
 
         Returns:
             float: Longitudinal position [m].
         '''
-        if isinstance(indices, int):
+        if isinstance(element, Element):
+            return self.get_s(element.indices)
+        elif isinstance(element, int):
+            indices = element
             if indices < 0 or indices >= len(self._elements):
                 raise IndexError('Index out of range.')
             s = 0.
             for i in range(indices):
                 s += self._elements[i].length
             return s
-        elif isinstance(indices, tuple):
+        elif isinstance(element, tuple):
+            indices = element
             if not isinstance(indices[0], int):
                 raise TypeError('Index must be int or tuple of int.')
             if indices[0] < 0 or indices[0] >= len(self._elements):
@@ -636,7 +653,7 @@ class Element(ElementABC, Object):
                 raise IndexError('Dimension of index is out of range.')
             return s
         else:
-            raise TypeError('Index must be int or tuple of int.')
+            raise TypeError('Argument must be Element, int or tuple of int.')
 
     def find_index(self, name: str | Tuple[str, ...]) -> List[Tuple[int, ...]]:
         '''

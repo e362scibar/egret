@@ -94,6 +94,15 @@ class Element(Object):
 
     @property
     @abstractmethod
+    def indices(self) -> Tuple[int, ...] | None:
+        '''
+        Tuple of indices representing the position of the element in the lattice.
+        None for the top element.
+        '''
+        pass
+
+    @property
+    @abstractmethod
     def elements(self) -> List[Element] | None:
         '''
         List of elements (None for single element).
@@ -385,12 +394,12 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def get_s(self, indices: int | Tuple[int, ...]) -> float:
+    def get_s(self, element: Element | int | Tuple[int, ...]) -> float:
         '''
-        Get longitudinal position by index or tuple of indices.
+        Get longitudinal position by Element, index or tuple of indices.
 
         Args:
-            indices int | Tuple[int, ...]: Index or tuple of indices.
+            element Element | int | Tuple[int, ...]: Element, index or tuple of indices.
 
         Returns:
             float: Longitudinal position [m].

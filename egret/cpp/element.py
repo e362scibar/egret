@@ -168,7 +168,7 @@ class Element(ElementABC, Object):
         Returns:
             Tuple[int, ...]: Indices of this element.
         '''
-        return tuple(self.instance.get_indices())
+        return tuple(self.instance.indices)
 
     @length.setter
     def length(self, length: float) -> None:
@@ -402,7 +402,7 @@ class Element(ElementABC, Object):
         elem_cpp, s_local = self.instance.get_element_from_s(s)
         return self.actual_element(elem_cpp), s_local
 
-    def transfer_matrix_from_s(self, s: float, cood0: Coordinate, ds: float = 0.1) \
+    def transfer_matrix_from_s(self, s: float, cood0: Coordinate = Coordinate(), ds: float = 0.1) \
         -> npt.NDArray[np.floating]:
         '''
         Transfer matrices from the given longitudinal position to the end of the element.
@@ -440,16 +440,20 @@ class Element(ElementABC, Object):
         '''
         self.instance.set_element(indices, element.instance)
 
-    def get_s(self, indices: int | Tuple[int, ...]) -> float:
+    def get_s(self, element: Element | int | Tuple[int, ...]) -> float:
         '''
-        Get longitudinal position by index or tuple of indices.
+        Get longitudinal position by Element, index or tuple of indices.
 
         Args:
-            indices int | Tuple[int, ...]: Index or tuple of indices.
+            element Element | int | Tuple[int, ...]: Element, index or tuple of indices.
 
         Returns:
             float: Longitudinal position [m].
         '''
+        if isinstance(element, Element):
+            indices = element.indices
+        else:
+            indices = element
         return self.instance.get_s(indices)
 
     def find_index(self, names: str | List[str]) -> List[Tuple[int, ...]]:

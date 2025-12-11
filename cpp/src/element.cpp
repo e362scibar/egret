@@ -443,9 +443,9 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
         }
         return M_total;
     } else {
-        Element elem = *this;
-        elem.length(elem.length() - s);
-        return elem.transfer_matrix(cood0, ds);
+        auto elem = clone(); // std::shared_ptr<egret::Element>
+        elem->length(elem->length() - s);
+        return elem->transfer_matrix(cood0, ds);
     }
 }
 
@@ -510,7 +510,7 @@ std::shared_ptr<egret::Element> egret::Element::get_element(const std::vector<si
 
 /**
  * @brief Set element at given indices if elements_ is set
- * @param indices Indices of the element 
+ * @param indices Indices of the element
  * @param new_element New element to set
  * @throws std::runtime_error if this element does not have child elements
  * @throws std::invalid_argument if indices are invalid
