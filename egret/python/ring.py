@@ -114,14 +114,14 @@ class Ring(RingABC, Element):
         return self._disp0
 
     @property
-    def emittance_x(self) -> npt.NDArray[np.floating]:
+    def emittance_x(self) -> float:
         '''
         Horizontal equilibrium emittance [m.rad].
         '''
         return self._emittance_x
 
     @property
-    def emittance_y(self) -> npt.NDArray[np.floating]:
+    def emittance_y(self) -> float:
         '''
         Vertical equilibrium emittance [m.rad].
         '''
