@@ -166,6 +166,22 @@ class EnvelopeArray(BaseArray):
         '''
         pass
 
+    @property
+    @abstractmethod
+    def psix(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal batatron phase array [rad] with shape (N,). (Eigenmode U)
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def psiy(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical betatron phase array [rad] with shape (N,). (Eigenmode V)
+        '''
+        pass
+
     @abstractmethod
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None) -> None:
         '''

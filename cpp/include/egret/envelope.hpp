@@ -44,14 +44,19 @@ protected:
     Eigen::Matrix2d U_{Eigen::Matrix2d::Identity()};
     //! Covariance matrix for the envelope of the eigenmode V
     Eigen::Matrix2d V_{Eigen::Matrix2d::Identity()};
-
+    //! Horizontal betatron phase (Eigenmode U)
+    double psix_{0.0};
+    //! Vertical betatron phase (Eigenmode V)
+    double psiy_{0.0};
 
 public:
     // Constructor
     Envelope(
         const Eigen::Matrix4d &cov = Eigen::Matrix4d::Identity(),
         double s = 0.,
-        const std::optional<const Eigen::Matrix2d> &T = std::nullopt)
+        const std::optional<const Eigen::Matrix2d> &T = std::nullopt,
+        const std::optional<double> &psix = std::nullopt,
+        const std::optional<double> &psiy = std::nullopt)
         noexcept(false);
     /**
      * @brief Destroy the Envelope object.
@@ -149,6 +154,14 @@ public:
      * @return double gamma_v
      */
     double gv() const { return V_(1,1); }
+    /**
+     * @brief Get the horizontal betatron phase. (Eigenmode U)
+     */
+    double psix() const { return psix_; }
+    /**
+     * @brief Get the vertical betatron phase. (Eigenmode V)
+     */
+    double psiy() const { return psiy_; }
 
     // Helper to get the adjoint
     static Eigen::Matrix2d adjoint(const Eigen::Matrix2d& M) noexcept;

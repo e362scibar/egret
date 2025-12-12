@@ -24,21 +24,27 @@ from .basearray import BaseArray
 from .envelope import Envelope
 import numpy as np
 import numpy.typing as npt
+import scipy
 
 class EnvelopeArray(EnvelopeArrayABC, BaseArray):
     '''
     Beam envelope array class.
     '''
 
-    def __init__(self, cov: npt.NDArray[np.floating], s: npt.NDArray[np.floating], T: npt.NDArray[np.floating] = None):
+    def __init__(self, cov: npt.NDArray[np.floating], s: npt.NDArray[np.floating], T: npt.NDArray[np.floating] = None,
+                 psix: npt.NDArray[np.floating] = None, psiy: npt.NDArray[np.floating] = None) -> None:
         '''
         Args:
             cov npt.NDArray[np.floating]: Nx4x4 positive-definite covariance matrices with the determinant of unity.
             s npt.NDArray[np.floating]: Longitudinal positions [m] with shape (N,).
             T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices for eigenmode. (Optional)
+            psix npt.NDArray[np.floating]: Horizontal phase advance array [rad] with shape (N,). (Optional)
+            psiy npt.NDArray[np.floating]: Vertical phase advance array [rad] with shape (N,). (Optional)
         '''
         super().__init__(s)
         self._cov = cov.copy()
+        self._psix = psix
+        self._psiy = psiy
         self.calc_eigenmode(T)
 
     @property
@@ -160,6 +166,20 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         '''
         return self._V[:, 1, 1]
 
+    @property
+    def psix(self) -> npt.NDArray[np.floating]:
+        '''
+        Horizontal phase advance array [rad] with shape (N,).
+        '''
+        return self._psix
+
+    @property
+    def psiy(self) -> npt.NDArray[np.floating]:
+        '''
+        Vertical phase advance array [rad] with shape (N,).
+        '''
+        return self._psiy
+
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None) -> None:
         '''
         Calculate eigenmode.
@@ -192,13 +212,25 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         sqrtchi = 1. / np.sqrt(2. * tau**2 - 1.)
         self._U = sqrtchi * (tau**2 * Sxx - np.einsum('nij,njk,nlk->nil', T_, Syy, T_))
         self._V = sqrtchi * (tau**2 * Syy - np.einsum('nij,njk,nlk->nil', T, Sxx, T))
+        if self._psix is None:
+            beta = self._U[:,0,0]
+            betap = self._U[:,0,1] + self._U[1,0] # beta' = -2 alpha
+            f = scipy.interpolate.CubicHermiteSpline(self._s, 1./beta, -betap/beta**2)
+            seg = np.array([f.integrate(self._s[i], self._s[i+1]) for i in range(len(self._s)-1)])
+            self._psix = np.concatenate(([0.], np.cumsum(seg)))
+        if self._psiy is None:
+            beta = self._V[:,0,0]
+            betap = self._V[:,0,1] + self._V[1,0] # beta' = -2 alpha
+            f = scipy.interpolate.CubicHermiteSpline(self._s, 1./beta, -betap/beta**2)
+            seg = np.array([f.integrate(self._s[i], self._s[i+1]) for i in range(len(self._s)-1)])
+            self._psiy = np.concatenate(([0.], np.cumsum(seg)))
 
     def copy(self) -> EnvelopeArray:
         '''
         Returns:
             EnvelopeArray: A copy of the envelope array object.
         '''
-        return EnvelopeArray(self._cov, self._s, self._T)
+        return EnvelopeArray(self._cov, self._s, self._T, self._psix, self._psiy)
 
     def append(self, evlp: EnvelopeArray) -> None:
         '''
@@ -213,6 +245,8 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         self._tau = np.hstack((self._tau, evlp._tau))
         self._U = np.concatenate((self._U, evlp._U))
         self._V = np.concatenate((self._V, evlp._V))
+        self._psix = np.hstack((self._psix, evlp._psix))
+        self._psiy = np.hstack((self._psiy, evlp._psiy))
 
     @classmethod
     def transport(cls, evlp0: Envelope, tmat: npt.NDArray[np.floating], s: npt.NDArray[np.floating]) -> EnvelopeArray:
@@ -242,7 +276,26 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         Mv_T1 = tau0 * Mxy_ + np.matmul(T0, Mxx_)
         T1Mu = -tau0 * Myx + np.matmul(Myy, T0)
         T = 0.5 * (np.matmul(Mv, Mv_T1) + np.matmul(T1Mu, Mu_))
-        return cls(cov, evlp0.s + s, T)
+        psix0, psiy0 = evlp0.psix, evlp0.psiy
+        bu0, bv0 = evlp0.bu, evlp0.bv
+        au0, av0 = evlp0.au, evlp0.av
+        U = np.einsum('nij,njk,nlk->nil', Mu, evlp0.U, Mu)
+        V = np.einsum('nij,njk,nlk->nil', Mv, evlp0.V, Mv)
+        bu1, bv1 = U[:,0,0], V[:,0,0]
+        au1, av1 = -0.5 * (U[:,0,1] + U[:,1,0]), -0.5 * (V[:,0,1] + V[:,1,0])
+        Au = np.array([[np.sqrt(bu1/bu0), au0*np.sqrt(bu1/bu0)],
+                       [np.zeros_like(s), np.sqrt(bu0*bu1)],
+                       [(au0-au1)/np.sqrt(bu0*bu1), -(1.+au0*au1)/np.sqrt(bu0*bu1)],
+                       [np.sqrt(bu0/bu1), -au1*np.sqrt(bu0/bu1)]]).transpose(2,0,1)
+        Av = np.array([[np.sqrt(bv1/bv0), av0*np.sqrt(bv1/bv0)],
+                       [np.zeros_like(s), np.sqrt(bv0*bv1)],
+                       [(av0-av1)/np.sqrt(bv0*bv1), -(1.+av0*av1)/np.sqrt(bv0*bv1)],
+                       [np.sqrt(bv0/bv1), -av1*np.sqrt(bv0/bv1)]]).transpose(2,0,1)
+        CSu = np.matvec(np.linalg.pinv(Au), Mu.reshape(-1,4)).T
+        CSv = np.matvec(np.linalg.pinv(Av), Mv.reshape(-1,4)).T
+        psix = psix0 + np.unwrap(np.arctan2(CSu[1,:], CSu[0,:]))
+        psiy = psiy0 + np.unwrap(np.arctan2(CSv[1,:], CSv[0,:]))
+        return cls(cov, evlp0.s + s, T, psix, psiy)
 
     def from_s(self, s: float) -> Envelope:
         '''
@@ -265,7 +318,9 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
             a = np.array([(s1-s)/ds, (s-s0)/ds])
         cov = np.sum(self._cov[idx:idx+2, :, :] * a[:, np.newaxis, np.newaxis], axis=0)
         T = np.sum(self._T[idx:idx+2, :, :] * a[:, np.newaxis, np.newaxis], axis=0)
-        return Envelope(cov, s, T)
+        psix = np.sum(self._psix[idx:idx+2] * a)
+        psiy = np.sum(self._psiy[idx:idx+2] * a)
+        return Envelope(cov, s, T, psix, psiy)
 
     def T_matrix(self) -> npt.NDArray[np.floating]:
         '''

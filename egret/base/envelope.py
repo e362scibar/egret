@@ -189,6 +189,28 @@ class Envelope(ABC):
         '''
         pass
 
+    @property
+    @abstractmethod
+    def psix(self) -> float:
+        '''
+        Get the horizontal betatron phase. (Eigenmode U)
+
+        Returns:
+            float: Betatron phase [rad].
+        '''
+        pass
+
+    @property
+    @abstractmethod
+    def psiy(self) -> float:
+        '''
+        Get the vertical betatron phase. (Eigenmode V)
+
+        Returns:
+            float: Betatron phase [rad].
+        '''
+        pass
+
     @abstractmethod
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None):
         '''

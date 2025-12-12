@@ -40,8 +40,11 @@
 egret::Envelope::Envelope(
     const Eigen::Matrix4d& cov,
     const double s,
-    const std::optional<const Eigen::Matrix2d> &T) noexcept(false) :
-    cov_(cov), s_(s), T_(T.value_or(Eigen::Matrix2d::Zero())) {
+    const std::optional<const Eigen::Matrix2d> &T,
+    const std::optional<double> &psix,
+    const std::optional<double> &psiy) noexcept(false) :
+    cov_(cov), s_(s), T_(T.value_or(Eigen::Matrix2d::Zero())),
+    psix_(psix.value_or(0.0)), psiy_(psiy.value_or(0.0)) {
     calc_eigenmode(T);
 }
 
@@ -79,6 +82,7 @@ void egret::Envelope::calc_eigenmode(
     const auto Syy = cov_.block<2, 2>(2, 2); // Matrix2d
     U_ = sqrtchi * (tau_ * tau_ * Sxx - T_s * Syy * T_s.transpose());
     V_ = sqrtchi * (tau_ * tau_ * Syy - T_ * Sxx * T_.transpose());
+    const double bu0 = U_(0,0); // Todo
 }
 
 /**

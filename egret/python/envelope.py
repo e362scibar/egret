@@ -28,20 +28,27 @@ class Envelope(EnvelopeABC):
     Beam envelope class.
     '''
 
-    def __init__(self, cov: npt.NDArray[np.floating] = np.eye(4), s: float = 0., T: npt.NDArray[np.floating] = None):
+    def __init__(self, cov: npt.NDArray[np.floating] = np.eye(4), s: float = 0.,
+                 T: npt.NDArray[np.floating] = None, psix: float = 0., psiy: float = 0.):
         '''
         Args:
             cov npt.NDArray[np.floating]: 4x4 positive-definite covariance matrix with the determinant of unity.
             s float: Longitudinal position [m].
             T npt.NDArray[np.floating]: 2x2 coordinate transformation matrix for eigenmode. (Optional)
+            psix float: Betatron phase in horizontal plane [rad]. (Optional)
+            psiy float: Betatron phase in vertical plane [rad]. (Optional)
         '''
         self._cov = cov.copy()
         self._s = s
+        self._psix = psix
+        self._psiy = psiy
         self.calc_eigenmode(T)
 
     @property
     def cov(self) -> npt.NDArray[np.floating]:
         '''
+        Get the 4x4 covariance matrix.
+
         Returns:
             npt.NDArray[np.floating]: 4x4 positive-definite covariance matrix with the determinant of unity.
         '''
@@ -50,6 +57,8 @@ class Envelope(EnvelopeABC):
     @property
     def s(self) -> float:
         '''
+        Get the longitudinal position.
+
         Returns:
             float: Longitudinal position [m].
         '''
@@ -58,6 +67,8 @@ class Envelope(EnvelopeABC):
     @property
     def T(self) -> npt.NDArray[np.floating]:
         '''
+        Get the 2x2 eigenmode transformation matrix.
+
         Returns:
             npt.NDArray[np.floating]: 2x2 coordinate transformation matrix for eigenmode.
         '''
@@ -66,22 +77,28 @@ class Envelope(EnvelopeABC):
     @property
     def U(self) -> npt.NDArray[np.floating]:
         '''
+        Get the 2x2 eigenmode covariance matrix U.
+
         Returns:
-            npt.NDArray[np.floating]: 2x2 covariance matrix for eigenmode U.
+            npt.NDArray[np.floating]: 2x2 eigenmode covariance matrix U.
         '''
         return self._U
 
     @property
     def V(self) -> npt.NDArray[np.floating]:
         '''
+        Get the 2x2 eigenmode covariance matrix V.
+
         Returns:
-            npt.NDArray[np.floating]: 2x2 covariance matrix for eigenmode V.
+            npt.NDArray[np.floating]: 2x2 eigenmode covariance matrix V.
         '''
         return self._V
 
     @property
     def tau(self) -> float:
         '''
+        Get the tau parameter for eigenmode calculation.
+
         Returns:
             float: Tau parameter for eigenmode calculation.
         '''
@@ -90,6 +107,8 @@ class Envelope(EnvelopeABC):
     @property
     def bx(self) -> float:
         '''
+        Get the horizontal beta function.
+
         Returns:
             float: Horizontal beta function.
         '''
@@ -98,6 +117,8 @@ class Envelope(EnvelopeABC):
     @property
     def ax(self) -> float:
         '''
+        Get the horizontal alpha function.
+
         Returns:
             float: Horizontal alpha function.
         '''
@@ -106,6 +127,8 @@ class Envelope(EnvelopeABC):
     @property
     def gx(self) -> float:
         '''
+        Get the horizontal gamma function.
+
         Returns:
             float: Horizontal gamma function.
         '''
@@ -114,6 +137,8 @@ class Envelope(EnvelopeABC):
     @property
     def by(self) -> float:
         '''
+        Get the vertical beta function.
+
         Returns:
             float: Vertical beta function.
         '''
@@ -122,6 +147,8 @@ class Envelope(EnvelopeABC):
     @property
     def ay(self) -> float:
         '''
+        Get the vertical alpha function.
+
         Returns:
             float: Vertical alpha function.
         '''
@@ -130,6 +157,8 @@ class Envelope(EnvelopeABC):
     @property
     def gy(self) -> float:
         '''
+        Get the vertical gamma function.
+
         Returns:
             float: Vertical gamma function.
         '''
@@ -138,6 +167,8 @@ class Envelope(EnvelopeABC):
     @property
     def bu(self) -> float:
         '''
+        Get the beta function for eigenmode U.
+
         Returns:
             float: Beta function for eigenmode U.
         '''
@@ -146,6 +177,8 @@ class Envelope(EnvelopeABC):
     @property
     def au(self) -> float:
         '''
+        Get the alpha function for eigenmode U.
+
         Returns:
             float: Alpha function for eigenmode U.
         '''
@@ -154,6 +187,8 @@ class Envelope(EnvelopeABC):
     @property
     def gu(self) -> float:
         '''
+        Get the gamma function for eigenmode U.
+
         Returns:
             float: Gamma function for eigenmode U.
         '''
@@ -162,6 +197,8 @@ class Envelope(EnvelopeABC):
     @property
     def bv(self) -> float:
         '''
+        Get the beta function for eigenmode V.
+
         Returns:
             float: Beta function for eigenmode V.
         '''
@@ -170,6 +207,8 @@ class Envelope(EnvelopeABC):
     @property
     def av(self) -> float:
         '''
+        Get the alpha function for eigenmode V.
+
         Returns:
             float: Alpha function for eigenmode V.
         '''
@@ -178,10 +217,32 @@ class Envelope(EnvelopeABC):
     @property
     def gv(self) -> float:
         '''
+        Get the gamma function for eigenmode V.
+
         Returns:
             float: Gamma function for eigenmode V.
         '''
         return self._V[1, 1]
+
+    @property
+    def psix(self) -> float:
+        '''
+        Get the horizontal betatron phase. (Eigenmode U)
+
+        Returns:
+            float: Horizontal betatron phase [rad].
+        '''
+        return self._psix
+
+    @property
+    def psiy(self) -> float:
+        '''
+        Get the vertical betatron phase. (Eigenmode V)
+
+        Returns:
+            float: Vertical betatron phase [rad].
+        '''
+        return self._psiy
 
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None):
         '''
@@ -221,7 +282,7 @@ class Envelope(EnvelopeABC):
         Returns:
             Envelope: A copy of the envelope object.
         '''
-        return Envelope(self._cov, self._s, self._T)
+        return Envelope(self._cov, self._s, self._T, self._psix, self._psiy)
 
     def transfer(self, tmat: npt.NDArray[np.floating], length: float) -> None:
         '''
@@ -244,8 +305,29 @@ class Envelope(EnvelopeABC):
         Mv_T1, T1Mu = tau0 * Mxy_ + T0 @ Mxx_, -tau0 * Myx + Myy @ T0
         self._T = 0.5 * (Mv @ Mv_T1 + T1Mu @ Mu_)
         self._tau = tau
+        bu0, bv0 = self.bu, self.bv
+        au0, av0 = self.au, self.av
         self._U = Mu @ self._U @ Mu.T
-        self._V = Mv @ self.V @ Mv.T
+        self._V = Mv @ self._V @ Mv.T
+        bu1, bv1 = self.bu, self.bv
+        au1, av1 = self.au, self.av
+        Au = np.array([[np.sqrt(bu1/bu0), au0*np.sqrt(bu1/bu0)],
+                       [0., np.sqrt(bu0*bu1)],
+                       [(au0-au1)/np.sqrt(bu0*bu1), -(1.+au0*au1)/np.sqrt(bu0*bu1)],
+                       [np.sqrt(bu0/bu1), -au1*np.sqrt(bu0/bu1)]]),
+        Av = np.array([[np.sqrt(bv1/bv0), av0*np.sqrt(bv1/bv0)],
+                       [0., np.sqrt(bv0*bv1)],
+                       [(av0-av1)/np.sqrt(bv0*bv1), -(1.+av0*av1)/np.sqrt(bv0*bv1)],
+                       [np.sqrt(bv0/bv1), -av1*np.sqrt(bv0/bv1)]]),
+        CSu = np.linalg.pinv(Au) @ Mu.flatten().reshape(4,1)
+        CSv = np.linalg.pinv(Av) @ Mv.flatten().reshape(4,1)
+        dpsix, dpsiy = np.arctan2(CSu[1], CSu[0]), np.arctan2(CSv[1], CSv[0])
+        if dpsix < 0.:
+            dpsix += 2. * np.pi
+        if dpsiy < 0.:
+            dpsiy += 2. * np.pi
+        self._psix += dpsix
+        self._psiy += dpsiy
         self._s += length
 
     def T_matrix(self) -> npt.NDArray[np.floating]:
