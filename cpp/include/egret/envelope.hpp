@@ -55,9 +55,7 @@ public:
         const Eigen::Matrix4d &cov = Eigen::Matrix4d::Identity(),
         double s = 0.,
         const std::optional<const Eigen::Matrix2d> &T = std::nullopt,
-        const std::optional<double> &psix = std::nullopt,
-        const std::optional<double> &psiy = std::nullopt)
-        noexcept(false);
+        double psix = 0., double psiy = 0.) noexcept(false);
     /**
      * @brief Destroy the Envelope object.
      */

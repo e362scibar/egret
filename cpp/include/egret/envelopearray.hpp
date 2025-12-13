@@ -50,14 +50,19 @@ protected:
     std::vector<Eigen::Matrix2d> U_array_;
     //! std::vector of covariance matrices for the envelope of the eigenmode V
     std::vector<Eigen::Matrix2d> V_array_;
+    //! Horizontal betatron phase array
+    Eigen::ArrayXd psix_array_;
+    //! Vertical betatron phase array
+    Eigen::ArrayXd psiy_array_;
 
 public:
     // Constructor
     EnvelopeArray(
         const std::vector<Eigen::Matrix4d>& cov_array,
         const Eigen::ArrayXd& s_array,
-        const std::optional<std::vector<Eigen::Matrix2d>>& T_array = std::nullopt)
-        noexcept(false);
+        const std::optional<std::vector<Eigen::Matrix2d>>& T_array = std::nullopt,
+        const std::optional<Eigen::ArrayXd>& psix_array = std::nullopt,
+        const std::optional<Eigen::ArrayXd>& psiy_array = std::nullopt) noexcept(false);
     /**
     * @brief Destroy the EnvelopeArray object.
     */
@@ -262,6 +267,28 @@ public:
     }
 
     /**
+     * @brief Get the horizontal betatron phase at the specified index.
+     * @param index Array index.
+     * @return double Horizontal betatron phase at the given index.
+     * @throws std::out_of_range if the index is out of range.
+     */
+    double psix(const size_t index) const noexcept(false) {
+        check_index(index);
+        return psix_array_(index);
+    }
+
+    /**
+     * @brief Get the vertical betatron phase at the specified index.
+     * @param index Array index.
+     * @return double Vertical betatron phase at the given index.
+     * @throws std::out_of_range if the index is out of range.
+     */
+    double psiy(const size_t index) const noexcept(false) {
+        check_index(index);
+        return psiy_array_(index);
+    }
+
+    /**
      * @brief Get the array of covariance matrices.
      * @return const std::vector<Eigen::Matrix4d>& Array of covariance matrices.
      */
@@ -286,6 +313,16 @@ public:
      * @return const std::vector<Eigen::Matrix2d>& Array of V matrices.
      */
     const std::vector<Eigen::Matrix2d>& V_array() const { return V_array_; }
+    /**
+     * @brief Get the horizontal betatron phase array.
+     * @return const Eigen::ArrayXd& Horizontal betatron phase array.
+     */
+    const Eigen::ArrayXd& psix_array() const { return psix_array_; }
+    /**
+     * @brief Get the vertical betatron phase array.
+     * @return const Eigen::ArrayXd& Vertical betatron phase array.
+     */
+    const Eigen::ArrayXd& psiy_array() const { return psiy_array_; }
 
     //! Get the array of beta functions in the x direction.
     Eigen::ArrayXd bx_array() const noexcept(false);

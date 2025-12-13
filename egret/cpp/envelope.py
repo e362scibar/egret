@@ -29,17 +29,21 @@ class Envelope(EnvelopeABC):
     Class for beam envelope object.
     '''
 
-    def __init__(self, cov: npt.NDArray[np.floating] = np.eye(4), s: float = 0., T: npt.NDArray[np.floating] = None, **kwargs):
+    def __init__(self, cov: npt.NDArray[np.floating] = np.eye(4), s: float = 0.,
+                 T: npt.NDArray[np.floating] = None,
+                 psix: float = 0., psiy: float = 0., **kwargs):
         '''
         Args:
             cov npt.NDArray[np.floating]: 4x4 covariance matrix.
             s float: Longitudinal position.
             T npt.NDArray[np.floating]: 2x2 eigenmode transformation matrix. (Optional)
+            psix float: Betatron phase in horizontal plane [rad]. (Optional)
+            psiy float: Betatron phase in vertical plane [rad]. (Optional)
         '''
         if 'instance' in kwargs:
             self.instance = kwargs['instance']
         else:
-            self.instance = EnvelopeCPP(cov, s, T)
+            self.instance = EnvelopeCPP(cov, s, T, psix, psiy)
 
     @property
     def cov(self) -> npt.NDArray[np.floating]:
@@ -167,6 +171,20 @@ class Envelope(EnvelopeABC):
         '''
         return self.instance.gv
 
+    @property
+    def psix(self) -> float:
+        '''
+        Betatron phase in horizontal plane [rad]. (Eigenmode U)
+        '''
+        return self.instance.psix
+
+    @property
+    def psiy(self) -> float:
+        '''
+        Betatron phase in vertical plane [rad]. (Eigenmode V)
+        '''
+        return self.instance.psiy
+
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None):
         '''
         Calculate eigenmode transformation matrix.
@@ -180,7 +198,8 @@ class Envelope(EnvelopeABC):
         '''
         Create a copy of the envelope.
         '''
-        return Envelope(cov=self.instance.cov, s=self.instance.s)
+        return Envelope(cov=self.instance.cov, s=self.instance.s, T=self.instance.T,
+                        psix=self.instance.psix, psiy=self.instance.psiy)
 
     def transfer(self, tmat: npt.NDArray[np.floating], length: float) -> None:
         '''

@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <optional>
 #include <utility>
+#include <numbers>
 
 /**
  * @brief Construct a new egret::Envelope object.
@@ -41,10 +42,9 @@ egret::Envelope::Envelope(
     const Eigen::Matrix4d& cov,
     const double s,
     const std::optional<const Eigen::Matrix2d> &T,
-    const std::optional<double> &psix,
-    const std::optional<double> &psiy) noexcept(false) :
+    const double psix, const double psiy) noexcept(false) :
     cov_(cov), s_(s), T_(T.value_or(Eigen::Matrix2d::Zero())),
-    psix_(psix.value_or(0.0)), psiy_(psiy.value_or(0.0)) {
+    psix_(psix), psiy_(psiy) {
     calc_eigenmode(T);
 }
 
@@ -82,7 +82,6 @@ void egret::Envelope::calc_eigenmode(
     const auto Syy = cov_.block<2, 2>(2, 2); // Matrix2d
     U_ = sqrtchi * (tau_ * tau_ * Sxx - T_s * Syy * T_s.transpose());
     V_ = sqrtchi * (tau_ * tau_ * Syy - T_ * Sxx * T_.transpose());
-    const double bu0 = U_(0,0); // Todo
 }
 
 /**
@@ -107,7 +106,7 @@ void egret::Envelope::transfer(const Eigen::Matrix4d &M, const double length) no
     cov_ = M * cov_ * M.transpose();
     // Update longitudinal position
     s_ += length;
-    // Update T_, tau_, U_, V_
+    // Update T_, tau_, U_, V_, psix_, psiy_
     const auto Mxx = M.block<2,2>(0,0); // Matrix2d
     const auto Mxy = M.block<2,2>(0,2); // Matrix2d
     const auto Myx = M.block<2,2>(2,0); // Matrix2d
@@ -125,6 +124,18 @@ void egret::Envelope::transfer(const Eigen::Matrix4d &M, const double length) no
     const auto T1Mu = -tau_ * Myx + Myy * T_; // Matrix2d
     T_ = 0.5 * (Mv * Mv_T1 + T1Mu * Mu_s);
     tau_ = tau;
+    const double dpsix = std::atan2(Mu(0,1), bu()*Mu(0,0)-au()*Mu(0,1));
+    const double dpsiy = std::atan2(Mv(0,1), bv()*Mv(0,0)-av()*Mv(0,1));
+    if (dpsix < 0.) {
+        psix_ += dpsix + 2. * std::numbers::pi;
+    } else {
+        psix_ += dpsix;
+    }
+    if (dpsiy < 0.) {
+        psiy_ += dpsiy + 2. * std::numbers::pi;
+    } else {
+        psiy_ += dpsiy;
+    }
     U_ = Mu * U_ * Mu.transpose();
     V_ = Mv * V_ * Mv.transpose();
 }

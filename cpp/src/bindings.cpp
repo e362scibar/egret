@@ -258,15 +258,18 @@ PYBIND11_MODULE(cppegret, m) {
         .def("from_s", &egret::CoordinateArray::from_s, py::arg("s"));
 
     py::class_<egret::Envelope>(m, "Envelope")
-        .def(py::init<const Eigen::Matrix4d&, double, const std::optional<const Eigen::Matrix2d>&>(),
+        .def(py::init<const Eigen::Matrix4d&, double, const std::optional<const Eigen::Matrix2d>&, double, double>(),
             py::arg("cov") = Eigen::Matrix4d::Identity(),
-            py::arg("s") = 0.0, py::arg("T") = std::nullopt)
+            py::arg("s") = 0.0, py::arg("T") = std::nullopt,
+            py::arg("psix") = 0.0, py::arg("psiy") = 0.0)
         .def_property_readonly("cov", &egret::Envelope::cov)
         .def_property_readonly("s", &egret::Envelope::s)
         .def_property_readonly("T", &egret::Envelope::T)
         .def_property_readonly("tau", &egret::Envelope::tau)
         .def_property_readonly("U", &egret::Envelope::U)
         .def_property_readonly("V", &egret::Envelope::V)
+        .def_property_readonly("psix", &egret::Envelope::psix)
+        .def_property_readonly("psiy", &egret::Envelope::psiy)
         .def_property_readonly("bx", &egret::Envelope::bx)
         .def_property_readonly("ax", &egret::Envelope::ax)
         .def_property_readonly("gx", &egret::Envelope::gx)
@@ -286,13 +289,18 @@ PYBIND11_MODULE(cppegret, m) {
 
     py::class_<egret::EnvelopeArray, egret::BaseArray, py::smart_holder>(m, "EnvelopeArray")
         .def(py::init<const std::vector<Eigen::Matrix4d>&, const Eigen::ArrayXd&,
-            const std::optional<std::vector<Eigen::Matrix2d>>&>(),
-            py::arg("cov_array"), py::arg("s_array"), py::arg("T_array") = std::nullopt)
+            const std::optional<std::vector<Eigen::Matrix2d>>&,
+            const std::optional<Eigen::ArrayXd>&,
+            const std::optional<Eigen::ArrayXd>&>(),
+            py::arg("cov_array"), py::arg("s_array"), py::arg("T_array") = std::nullopt,
+            py::arg("psix_array") = std::nullopt, py::arg("psiy_array") = std::nullopt)
         .def("cov", &egret::EnvelopeArray::cov, py::arg("index"))
         .def("T", &egret::EnvelopeArray::T, py::arg("index"))
         .def("tau", &egret::EnvelopeArray::tau, py::arg("index"))
         .def("U", &egret::EnvelopeArray::U, py::arg("index"))
         .def("V", &egret::EnvelopeArray::V, py::arg("index"))
+        .def("psix", &egret::EnvelopeArray::psix, py::arg("index"))
+        .def("psiy", &egret::EnvelopeArray::psiy, py::arg("index"))
         .def("bx", &egret::EnvelopeArray::bx, py::arg("index"))
         .def("ax", &egret::EnvelopeArray::ax, py::arg("index"))
         .def("gx", &egret::EnvelopeArray::gx, py::arg("index"))
@@ -311,6 +319,8 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("tau_array", &egret::EnvelopeArray::tau_array)
         .def_property_readonly("U_array", &egret::EnvelopeArray::U_array)
         .def_property_readonly("V_array", &egret::EnvelopeArray::V_array)
+        .def_property_readonly("psix_array", &egret::EnvelopeArray::psix_array)
+        .def_property_readonly("psiy_array", &egret::EnvelopeArray::psiy_array)
         .def_property_readonly("bx_array", &egret::EnvelopeArray::bx_array)
         .def_property_readonly("ax_array", &egret::EnvelopeArray::ax_array)
         .def_property_readonly("gx_array", &egret::EnvelopeArray::gx_array)

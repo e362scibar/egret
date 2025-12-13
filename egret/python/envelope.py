@@ -305,29 +305,16 @@ class Envelope(EnvelopeABC):
         Mv_T1, T1Mu = tau0 * Mxy_ + T0 @ Mxx_, -tau0 * Myx + Myy @ T0
         self._T = 0.5 * (Mv @ Mv_T1 + T1Mu @ Mu_)
         self._tau = tau
-        bu0, bv0 = self.bu, self.bv
-        au0, av0 = self.au, self.av
-        self._U = Mu @ self._U @ Mu.T
-        self._V = Mv @ self._V @ Mv.T
-        bu1, bv1 = self.bu, self.bv
-        au1, av1 = self.au, self.av
-        Au = np.array([[np.sqrt(bu1/bu0), au0*np.sqrt(bu1/bu0)],
-                       [0., np.sqrt(bu0*bu1)],
-                       [(au0-au1)/np.sqrt(bu0*bu1), -(1.+au0*au1)/np.sqrt(bu0*bu1)],
-                       [np.sqrt(bu0/bu1), -au1*np.sqrt(bu0/bu1)]]),
-        Av = np.array([[np.sqrt(bv1/bv0), av0*np.sqrt(bv1/bv0)],
-                       [0., np.sqrt(bv0*bv1)],
-                       [(av0-av1)/np.sqrt(bv0*bv1), -(1.+av0*av1)/np.sqrt(bv0*bv1)],
-                       [np.sqrt(bv0/bv1), -av1*np.sqrt(bv0/bv1)]]),
-        CSu = np.linalg.pinv(Au) @ Mu.flatten().reshape(4,1)
-        CSv = np.linalg.pinv(Av) @ Mv.flatten().reshape(4,1)
-        dpsix, dpsiy = np.arctan2(CSu[1], CSu[0]), np.arctan2(CSv[1], CSv[0])
+        dpsix = np.arctan2(Mu[0,1], self.bu*Mu[0,0]-self.au*Mu[0,1])
+        dpsiy = np.arctan2(Mv[0,1], self.bv*Mv[0,0]-self.av*Mv[0,1])
         if dpsix < 0.:
             dpsix += 2. * np.pi
         if dpsiy < 0.:
             dpsiy += 2. * np.pi
         self._psix += dpsix
         self._psiy += dpsiy
+        self._U = Mu @ self._U @ Mu.T
+        self._V = Mv @ self._V @ Mv.T
         self._s += length
 
     def T_matrix(self) -> npt.NDArray[np.floating]:

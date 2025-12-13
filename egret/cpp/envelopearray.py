@@ -32,19 +32,22 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
     '''
 
     def __init__(self, cov: npt.NDArray[np.floating], s: npt.NDArray[np.floating],
-                 T: npt.NDArray[np.floating] = None, **kwargs):
+                 T: npt.NDArray[np.floating] = None,
+                 psix: npt.NDArray[np.floating] = None, psiy: npt.NDArray[np.floating] = None, **kwargs):
         '''
         Args:
             cov npt.NDArray[np.floating]: Nx4x4 positive-definite covariance matrices with the determinant of unity.
             s npt.NDArray[np.floating]: Longitudinal positions [m] with shape (N,).
             T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices for eigenmode. (Optional)
+            psix npt.NDArray[np.floating]: Betatron phases in horizontal plane [rad] with shape (N,). (Optional)
+            psiy npt.NDArray[np.floating]: Betatron phases in vertical plane [rad] with shape (N,). (Optional)
         '''
         if 'instance' in kwargs:
             self.instance = kwargs['instance']
         else:
             cov_list = [cov[i, :, :] for i in range(cov.shape[0])]
             T_list = [T[i, :, :] for i in range(T.shape[0])] if T is not None else None
-            self.instance = EnvelopeArrayCPP(cov_list, s, T_list)
+            self.instance = EnvelopeArrayCPP(cov_list, s, T_list, psix, psiy)
         super().__init__(None, instance=self.instance)
 
     @property
@@ -166,6 +169,20 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         '''
         return self.instance.gv_array
 
+    @property
+    def psix(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of betatron phases in horizontal plane [rad]. (Eigenmode U)
+        '''
+        return self.instance.psix_array
+
+    @property
+    def psiy(self) -> npt.NDArray[np.floating]:
+        '''
+        Array of betatron phases in vertical plane [rad]. (Eigenmode V)
+        '''
+        return self.instance.psiy_array
+
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None) -> None:
         '''
         Calculate eigenmode parameters for all envelopes.
@@ -181,7 +198,8 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         Returns:
             EnvelopeArray: A copy of the envelope array object.
         '''
-        return EnvelopeArray(cov=self.instance.cov_array, s=self.instance.s_array, T=self.instance.T_array)
+        return EnvelopeArray(cov=self.instance.cov_array, s=self.instance.s_array, T=self.instance.T_array,
+                             psix=self.instance.psix_array, psiy=self.instance.psiy_array)
 
     def append(self, evlp: EnvelopeArray) -> None:
         '''

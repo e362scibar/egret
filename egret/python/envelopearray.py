@@ -276,25 +276,12 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         Mv_T1 = tau0 * Mxy_ + np.matmul(T0, Mxx_)
         T1Mu = -tau0 * Myx + np.matmul(Myy, T0)
         T = 0.5 * (np.matmul(Mv, Mv_T1) + np.matmul(T1Mu, Mu_))
-        psix0, psiy0 = evlp0.psix, evlp0.psiy
-        bu0, bv0 = evlp0.bu, evlp0.bv
-        au0, av0 = evlp0.au, evlp0.av
-        U = np.einsum('nij,njk,nlk->nil', Mu, evlp0.U, Mu)
-        V = np.einsum('nij,njk,nlk->nil', Mv, evlp0.V, Mv)
-        bu1, bv1 = U[:,0,0], V[:,0,0]
-        au1, av1 = -0.5 * (U[:,0,1] + U[:,1,0]), -0.5 * (V[:,0,1] + V[:,1,0])
-        Au = np.array([[np.sqrt(bu1/bu0), au0*np.sqrt(bu1/bu0)],
-                       [np.zeros_like(s), np.sqrt(bu0*bu1)],
-                       [(au0-au1)/np.sqrt(bu0*bu1), -(1.+au0*au1)/np.sqrt(bu0*bu1)],
-                       [np.sqrt(bu0/bu1), -au1*np.sqrt(bu0/bu1)]]).transpose(2,0,1)
-        Av = np.array([[np.sqrt(bv1/bv0), av0*np.sqrt(bv1/bv0)],
-                       [np.zeros_like(s), np.sqrt(bv0*bv1)],
-                       [(av0-av1)/np.sqrt(bv0*bv1), -(1.+av0*av1)/np.sqrt(bv0*bv1)],
-                       [np.sqrt(bv0/bv1), -av1*np.sqrt(bv0/bv1)]]).transpose(2,0,1)
-        CSu = np.matvec(np.linalg.pinv(Au), Mu.reshape(-1,4)).T
-        CSv = np.matvec(np.linalg.pinv(Av), Mv.reshape(-1,4)).T
-        psix = psix0 + np.unwrap(np.arctan2(CSu[1,:], CSu[0,:]))
-        psiy = psiy0 + np.unwrap(np.arctan2(CSv[1,:], CSv[0,:]))
+        dpsix = np.arctan2(Mu[:,0,1], evlp0.bu*Mu[:,0,0]-evlp0.au*Mu[:,0,1])
+        dpsiy = np.arctan2(Mv[:,0,1], evlp0.bv*Mv[:,0,0]-evlp0.av*Mv[:,0,1])
+        psix = evlp0.psix + np.unwrap(np.where(dpsix < 0., dpsix + 2. * np.pi, dpsix))
+        psiy = evlp0.psiy + np.unwrap(np.where(dpsiy < 0., dpsiy + 2. * np.pi, dpsiy))
+        U = np.einsum('nij,jk,nlk->nil', Mu, evlp0.U, Mu)
+        V = np.einsum('nij,jk,nlk->nil', Mv, evlp0.V, Mv)
         return cls(cov, evlp0.s + s, T, psix, psiy)
 
     def from_s(self, s: float) -> Envelope:
