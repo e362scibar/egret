@@ -213,14 +213,20 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         self._U = sqrtchi * (tau**2 * Sxx - np.einsum('nij,njk,nlk->nil', T_, Syy, T_))
         self._V = sqrtchi * (tau**2 * Syy - np.einsum('nij,njk,nlk->nil', T, Sxx, T))
         if self._psix is None:
+            if len(self._s) < 2:
+                self._psix = np.zeros_like(self._s)
+                return
             beta = self._U[:,0,0]
-            betap = self._U[:,0,1] + self._U[1,0] # beta' = -2 alpha
+            betap = self._U[:,0,1] + self._U[:,1,0] # beta' = -2 alpha
             f = scipy.interpolate.CubicHermiteSpline(self._s, 1./beta, -betap/beta**2)
             seg = np.array([f.integrate(self._s[i], self._s[i+1]) for i in range(len(self._s)-1)])
             self._psix = np.concatenate(([0.], np.cumsum(seg)))
         if self._psiy is None:
+            if len(self._s) < 2:
+                self._psiy = np.zeros_like(self._s)
+                return
             beta = self._V[:,0,0]
-            betap = self._V[:,0,1] + self._V[1,0] # beta' = -2 alpha
+            betap = self._V[:,0,1] + self._V[:,1,0] # beta' = -2 alpha
             f = scipy.interpolate.CubicHermiteSpline(self._s, 1./beta, -betap/beta**2)
             seg = np.array([f.integrate(self._s[i], self._s[i+1]) for i in range(len(self._s)-1)])
             self._psiy = np.concatenate(([0.], np.cumsum(seg)))
