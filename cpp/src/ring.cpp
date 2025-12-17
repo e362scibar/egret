@@ -159,6 +159,8 @@ namespace {
     constexpr size_t DIM = 4;
     // Initial step size for GSL minimizer
     constexpr double INITIAL_STEP_SIZE = 1.0e-4;
+    // flag to indicate whether the function evaluation failed
+    bool func_eval_failed = false;
     // Objective function for GSL minimizer to find closed orbit
     double eval_func_cod(const gsl_vector *v, void *params) {
         Eigen::Vector4d x;
@@ -172,6 +174,10 @@ namespace {
         const egret::Coordinate cood0(x, 0.0, 0.0, delta);
         const auto cood1 = std::get<0>(ring->transfer(cood0)); // Coordinate after one turn
         const double norm = (cood1.vector() - x).norm();
+        if (std::isnan(norm) || std::isinf(norm)) {
+            func_eval_failed = true;
+            return 1.0e20; // large value to indicate failure
+        }
         return norm;
     }
 }
@@ -190,6 +196,7 @@ egret::Coordinate egret::Ring::find_initial_coordinate_of_closed_orbit(
     f.n = ::DIM;
     f.f = &eval_func_cod;
     f.params = &params;
+    func_eval_failed = false;
     // Initial guess
     gsl_vector *x = gsl_vector_alloc(::DIM);
     for (size_t i = 0; i < ::DIM; ++i) {
@@ -210,6 +217,12 @@ egret::Coordinate egret::Ring::find_initial_coordinate_of_closed_orbit(
         status = gsl_multimin_fminimizer_iterate(s);
         if (status) {
             break;
+        }
+        if (func_eval_failed) {
+            gsl_multimin_fminimizer_free(s);
+            gsl_vector_free(x);
+            gsl_vector_free(step_size);
+            throw std::runtime_error("Function evaluation failed during GSL minimization.");
         }
         double size = gsl_multimin_fminimizer_size(s);
         status = gsl_multimin_test_size(size, tol_cod);
