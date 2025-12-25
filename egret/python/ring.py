@@ -157,12 +157,13 @@ class Ring(RingABC, Element):
         '''
         return Ring(self._name, self._elements, self._energy, self._info)
 
-    def update(self, delta: float = 0.):
+    def update(self, delta: float = 0., method: str = 'midpoint') -> None:
         '''
         Update transfer matrix, dispersion, and emittance.
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
+            method str: Integration method ('midpoint' or 'rk4').
         '''
         # initial coordinate of closed orbit
         try:
@@ -219,7 +220,7 @@ class Ring(RingABC, Element):
         self._Jz = 2. + self.I4 / self.I2
 
     def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = Coordinate(),
-        tol: float = None, maxiter: int = 500) -> Coordinate:
+        tol: float = None, maxiter: int = 500, method: str = 'midpoint') -> Coordinate:
         '''
         Find initial coordinate of the closed orbit using Newton-Raphson method.
 
@@ -227,12 +228,13 @@ class Ring(RingABC, Element):
             guess Coordinate: Initial guess of the coordinate.
             tol float: Tolerance for convergence.
             maxiter int: Maximum number of iterations.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             Coordinate: Initial coordinate of the closed orbit.
         '''
         cood = guess.copy()
-        eval_func = lambda x: np.linalg.norm(self.transfer(Coordinate(x, delta=guess.delta))[0].vector - x)
+        eval_func = lambda x: np.linalg.norm(self.transfer(Coordinate(x, delta=guess.delta), method=method)[0].vector - x)
         result = scipy.optimize.minimize(eval_func, cood.vector, method='Nelder-Mead', tol=tol, options={'maxiter': maxiter})
         if not result.success:
             raise RuntimeError('Failed to find closed orbit: ' + result.message)

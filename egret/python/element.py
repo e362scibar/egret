@@ -248,13 +248,14 @@ class Element(ElementABC, Object):
         '''
         return self.s_array_from_length(self._length, ds, endpoint)
 
-    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m] for integration (not used in the base class).
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
@@ -263,13 +264,13 @@ class Element(ElementABC, Object):
             raise NotImplementedError('transfer_matrix method not implemented in the base class.')
         tmat = np.eye(4)
         for elem in self._elements:
-            tmat_elem = elem.transfer_matrix(cood0, ds)
+            tmat_elem = elem.transfer_matrix(cood0, ds, method)
             tmat = np.dot(tmat_elem, tmat)
             if cood0 is not None:
                 cood0, _, _ = elem.transfer(cood0)
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = True) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = True, method: str = 'midpoint') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
@@ -278,6 +279,7 @@ class Element(ElementABC, Object):
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
@@ -291,7 +293,7 @@ class Element(ElementABC, Object):
         s_arrays = []
         s0 = 0.0
         for i, elem in enumerate(self._elements):
-            tmat_elem, s_elem = elem.transfer_matrix_array(cood0, ds, False)
+            tmat_elem, s_elem = elem.transfer_matrix_array(cood0, ds, False, method)
             if tmat_elem.shape[0] != s_elem.shape[0]:
                 raise ValueError(f'transfer_matrix_array: shape mismatch name={elem.name}, len(tmat)={tmat_elem.shape[0]}, len(s)={s_elem.shape[0]}')
             tmat_arrays.append(np.matmul(tmat_elem, tmat))
@@ -305,13 +307,14 @@ class Element(ElementABC, Object):
             s_arrays.append(np.array([s0]))
         return np.array(tmat_arrays), np.hstack(s_arrays)
 
-    def dispersion(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m] for integration (not used in the base class).
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
@@ -321,10 +324,10 @@ class Element(ElementABC, Object):
         cood = cood0.copy() if cood0 is not None else Coordinate()
         disp = Dispersion()
         for elem in self._elements:
-            cood, _, disp = elem.transfer(cood, None, disp)
+            cood, _, disp = elem.transfer(cood, None, disp, ds, method)
         return disp.vector
 
-    def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the element.
@@ -333,6 +336,7 @@ class Element(ElementABC, Object):
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             npt.NDArray[np.floating]: Dispersion array of shape (4, N).
@@ -347,18 +351,18 @@ class Element(ElementABC, Object):
         disparray = []
         sarray = []
         for elem in self._elements:
-            disp_elem, s_elem = elem.dispersion_array(cood, ds, False)
-            tmat, _ = elem.transfer_matrix_array(cood, ds, False)
+            disp_elem, s_elem = elem.dispersion_array(cood, ds, False, method)
+            tmat, _ = elem.transfer_matrix_array(cood, ds, False, method)
             disparray.append(disp_elem + np.matmul(tmat, disp.vector).T)
             sarray.append(s_elem + s0)
             s0 += elem.length
-            cood, _, disp = elem.transfer(cood, None, disp)
+            cood, _, disp = elem.transfer(cood, None, disp, ds, method)
         if endpoint:
             disparray.append(disp.vector[:, np.newaxis])
             sarray.append(np.array([s0]))
         return np.hstack(disparray), np.hstack(sarray)
 
-    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method: str = 'midpoint') \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
         Calculate the coordinate, envelope, and dispersion after the element.
@@ -368,6 +372,7 @@ class Element(ElementABC, Object):
             evlp0 Envelope: Initial beam envelope (optional).
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m] for integration (not used in the base class).
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             Coordinate: Coordinate after the element.
@@ -383,10 +388,10 @@ class Element(ElementABC, Object):
             evlp = evlp0.copy() if evlp0 is not None else None
             disp = disp0.copy() if disp0 is not None else None
             for elem in self._elements:
-                cood, evlp, disp = elem.transfer(cood, evlp, disp)
+                cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
             cood1, evlp1, disp1 = cood, evlp, disp
         else:
-            tmat = self.transfer_matrix(cood0err, ds)
+            tmat = self.transfer_matrix(cood0err, ds, method)
             cood = np.dot(tmat, cood0err.vector)
             cood1 = Coordinate(cood, cood0err.s + self._length, cood0err.z, cood0err.delta)
             if evlp0 is not None:
@@ -395,7 +400,7 @@ class Element(ElementABC, Object):
             else:
                 evlp1 = None
             if disp0 is not None:
-                disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds)
+                disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds, method)
                 disp1 = Dispersion(disp, disp0.s + self._length)
             else:
                 disp1 = None
@@ -405,7 +410,7 @@ class Element(ElementABC, Object):
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.1, endpoint: bool = True) \
+                       ds: float = 0.1, endpoint: bool = True, method: str = 'midpoint') \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate array along the element.
@@ -416,6 +421,7 @@ class Element(ElementABC, Object):
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             CoordinateArray: Coordinate array along the element.
@@ -432,7 +438,7 @@ class Element(ElementABC, Object):
             disp = disp0.copy() if disp0 is not None else None
             cood1, evlp1, disp1 = None, None, None
             for elem in self._elements:
-                coodarray, evlparray, disparray = elem.transfer_array(cood, evlp, disp, ds, False)
+                coodarray, evlparray, disparray = elem.transfer_array(cood, evlp, disp, ds, False, method)
                 if cood1 is None:
                     cood1 = coodarray
                 else:
@@ -453,7 +459,7 @@ class Element(ElementABC, Object):
                         disp1.append(disparray)
                         if disp1.vector.shape[1] != disp1.s.shape[0]:
                             raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(disp)={disp1.vector.shape[1]}, len(s)={disp1.s.shape[0]}')
-                cood, evlp, disp = elem.transfer(cood, evlp, disp)
+                cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
             if endpoint:
                 cood1.append(CoordinateArray(cood.vector[:, np.newaxis], np.array([cood.s])))
                 if evlp0 is not None:
@@ -464,7 +470,7 @@ class Element(ElementABC, Object):
             cood1.y += self._dy
             cood1.s += self._ds
         else:
-            tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint)
+            tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint, method)
             cood = np.matmul(tmat, cood0err.vector).T
             cood[0] += self._dx
             cood[2] += self._dy
@@ -475,14 +481,14 @@ class Element(ElementABC, Object):
             else:
                 evlp1 = None
             if disp0 is not None:
-                disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
+                disp_add, _ = self.dispersion_array(cood0err, ds, endpoint, method)
                 disp = np.matmul(tmat, disp0.vector).T + disp_add
                 disp1 = DispersionArray(disp, s + disp0.s)
             else:
                 disp1 = None
         return cood1, evlp1, disp1
 
-    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
+    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1, method: str = 'midpoint') \
         -> Tuple[float, float, float]:
         '''
         Calculate radiation integrals.
@@ -492,6 +498,7 @@ class Element(ElementABC, Object):
             evlp0 Envelope: Initial envelope.
             disp0 Dispersion: Initial dispersion.
             ds float: Maximum step size [m].
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
@@ -505,14 +512,14 @@ class Element(ElementABC, Object):
         for elem in self._elements:
             if elem.length == 0.:
                 continue
-            i2, i4, i5u, i5v, i4u, i4v = elem.radiation_integrals(cood, evlp, disp, ds)
+            i2, i4, i5u, i5v, i4u, i4v = elem.radiation_integrals(cood, evlp, disp, ds, method)
             I2 += i2
             I4 += i4
             I5u += i5u
             I5v += i5v
             I4u += i4u
             I4v += i4v
-            cood, evlp, disp = elem.transfer(cood, evlp, disp)
+            cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
         return I2, I4, I5u, I5v, I4u, I4v
 
     def get_element_from_s(self, s: float) -> Tuple[Element, float]:
@@ -538,7 +545,7 @@ class Element(ElementABC, Object):
         else:
             return self, s
 
-    def transfer_matrix_from_s(self, s: float, cood0: Coordinate = Coordinate(), ds: float = 0.1) \
+    def transfer_matrix_from_s(self, s: float, cood0: Coordinate = Coordinate(), ds: float = 0.1, method: str = 'midpoint') \
         -> npt.NDArray[np.floating]:
         '''
         Transfer matrices from the given longitudinal position to the end of the element.
@@ -547,6 +554,7 @@ class Element(ElementABC, Object):
             s float: Longitudinal position [m].
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m] for integration (not used in the base class).
+            method str: Integration method ('midpoint' or 'rk4') (not used in the base class).
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix from s to the end of the element.
@@ -558,19 +566,19 @@ class Element(ElementABC, Object):
             cood = cood0.copy()
             for elem in self._elements:
                 if s >= s0 and s < s0 + elem._length:
-                    tmat = elem.transfer_matrix_from_s(s - s0, cood, ds)
+                    tmat = elem.transfer_matrix_from_s(s - s0, cood, ds, method)
                     coodvec = np.dot(tmat, cood.vector)
                     cood = Coordinate(coodvec, cood.s + elem._length - (s - s0), cood.z, cood.delta)
                 elif s < s0:
-                    tmat_elem = elem.transfer_matrix(cood, ds)
+                    tmat_elem = elem.transfer_matrix(cood, ds, method)
                     tmat = np.dot(tmat_elem, tmat)
-                    cood, _, _ = elem.transfer(cood)
+                    cood, _, _ = elem.transfer(cood, ds, method)
                 s0 += elem._length
             return tmat
         else:
             elem = self.copy()
             elem._length -= s
-            return elem.transfer_matrix(cood0, ds)
+            return elem.transfer_matrix(cood0, ds, method)
 
     def get_element(self, indices: int | Tuple[int, ...]) -> Element:
         '''

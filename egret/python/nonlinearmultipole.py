@@ -146,7 +146,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         x' + j y' = - k0 L - k1 L (x - j y)
 
         Args:
-            cood Coordinate: Particle oordinate.
+            cood Coordinate: Particle Coordinate.
 
         Returns:
             complex: Dipole strength [1/m].
@@ -179,8 +179,8 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         if np.abs(k1a) < 1.e-20:
             # no quadrupole, just dipole kick
             x1, y1 = x0 + (xp0 - 0.5*k0a.real*ds) * ds, y0 + (yp0 - 0.5*k0a.imag*ds) * ds
-            cood1 = Coordinate(np.array([x1, xp0 - k0a.real * ds, y1, yp0 - k0a.imag * ds]),
-                               cood0.s + ds, cood0.z, cood0.delta)
+            xp1, yp1 = xp0 - k0a.real * ds, yp0 - k0a.imag * ds
+            cood1 = Coordinate(np.array([x1, xp1, y1, yp1]), cood0.s + ds, cood0.z, cood0.delta)
         else:
             # transverse offset to generate dipole kick
             # offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0a) / np.abs(k1a)
@@ -196,15 +196,13 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         k0b, k1b = self.get_k(cood1)
         # get average dipole and quadrupole strengths
         k0, k1 = 0.5 * (k0a + k0b), 0.5 * (k1a + k1b)
-        # tilt angle of the quadrupole
-        tilt = np.angle(k1) * 0.5
         # calculate final coordinate after the step
         tmat, disp = None, None
         if np.abs(k1) < 1.e-20:
             # no quadrupole, just dipole kick
-            cood2 = Coordinate(np.array([x0 + (xp0 - 0.5*k0.real*ds) * ds, xp0 - k0.real * ds,
-                                         y0 + (yp0 - 0.5*k0.imag*ds) * ds, yp0 - k0.imag * ds]),
-                               cood0.s + ds, cood0.z, cood0.delta)
+            x2, y2 = x0 + (xp0 - 0.5*k0.real*ds) * ds, y0 + (yp0 - 0.5*k0.imag*ds) * ds
+            xp2, yp2 = xp0 - k0.real * ds, yp0 - k0.imag * ds
+            cood2 = Coordinate(np.array([x2, xp2, y2, yp2]), cood0.s + ds, cood0.z, cood0.delta)
             if tmatflag:
                 tmat = Drift.transfer_matrix_from_length(ds)
             if dispflag:
@@ -229,13 +227,156 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
                 disp = quad2.dispersion(cood)
         return tmat, cood2, disp
 
+    def transfer_matrix_by_rk4_method(self, cood0: Coordinate, ds: float = 0.1,
+                                      tmatflag: bool = True, dispflag: bool = False) \
+        -> Tuple[npt.NDArray[np.floating], Coordinate, npt.NDArray[np.floating]]:
+        '''
+        Calculate a single step transfer matrix using the 4th-order Runge-Kutta method.
+
+        Args:
+            cood0 Coordinate: Initial coordinate
+            ds float: Step size [m] for integration.
+            tmatflag bool: Calculate transfer matrix if true. (default: True)
+            dispflag bool: Calculate additive dispersion if True. (default: False)
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix, if tmatflag is True, else None.
+            Coordinate: Final coordinate after the step.
+            npt.NDArray[np.floating]: Additive dispersion if dispflag is True, else None.
+        '''
+        x0, y0, xp0, yp0 = cood0.x, cood0.y, cood0.xp, cood0.yp
+        ds_half = 0.5 * ds
+        # dipole and quadrupole strengths at the entrance
+        k0a, k1a = self.get_k(cood0)
+        # tilt angle of the quadrupole
+        tilt = np.angle(k1a) * 0.5
+        if np.abs(k1a) < 1.e-20:
+            # no quadrupole, just dipole kick
+            x1, y1 = x0 + (xp0 - 0.5*k0a.real*ds_half) * ds_half, y0 + (yp0 - 0.5*k0a.imag*ds_half) * ds_half
+            xp1, yp1 = xp0 - k0a.real * ds_half, yp0 - k0a.imag * ds_half
+            cood1 = Coordinate(np.array([x1, xp1, y1, yp1]), cood0.s + ds_half, cood0.z, cood0.delta)
+        else:
+            # transverse offset to generate dipole kick
+            # offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0a) / np.abs(k1a)
+            offset = - np.exp(2.j*tilt) * np.conj(k0a) / np.abs(k1a)
+            # get first quad
+            quad1 = Quadrupole(self._name+'_quad1', ds_half, np.abs(k1a), dx=offset.real, dy=offset.imag, tilt=tilt)
+            # get coordinate after first quad
+            cood1, _, _ = quad1.transfer(Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.))
+            cood1.x += x0
+            cood1.y += y0
+            cood1.delta = cood0.delta
+        # dipole and quadrupole strengths after the first quad
+        k0b, k1b = self.get_k(cood1)
+        # tilt angle of the quadrupole
+        tilt = np.angle(k1b) * 0.5
+        if np.abs(k1b) < 1.e-20:
+            # no quadrupole, just dipole kick
+            x2, y2 = x0 + (xp0 - 0.5*k0b.real*ds_half) * ds_half, y0 + (yp0 - 0.5*k0b.imag*ds_half) * ds_half
+            xp2, yp2 = xp0 - k0b.real * ds_half, yp0 - k0b.imag * ds_half
+            cood2 = Coordinate(np.array([x2, xp2, y2, yp2]), cood0.s + ds_half, cood0.z, cood0.delta)
+        else:
+            # transverse offset to generate dipole kick
+            # offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0b) / np.abs(k1b)
+            offset = - np.exp(2.j*tilt) * np.conj(k0b) / np.abs(k1b)
+            # get first quad
+            quad2 = Quadrupole(self._name+'_quad2', ds_half, np.abs(k1b), dx=offset.real, dy=offset.imag, tilt=tilt)
+            # get coordinate after first quad
+            cood2, _, _ = quad2.transfer(Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.))
+            cood2.x += x0
+            cood2.y += y0
+            cood2.delta = cood0.delta
+        # dipole and quadrupole strengths after the second quad
+        k0c, k1c = self.get_k(cood2)
+        # tilt angle of the quadrupole
+        tilt = np.angle(k1c) * 0.5
+        if np.abs(k1c) < 1.e-20:
+            # no quadrupole, just dipole kick
+            x3, y3 = x0 + (xp0 - 0.5*k0c.real*ds) * ds, y0 + (yp0 - 0.5*k0c.imag*ds) * ds
+            xp3, yp3 = xp0 - k0c.real * ds, yp0 - k0c.imag * ds
+            cood3 = Coordinate(np.array([x3, xp3, y3, yp3]), cood0.s + ds, cood0.z, cood0.delta)
+        else:
+            # transverse offset to generate dipole kick
+            # offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0b) / np.abs(k1b)
+            offset = - np.exp(2.j*tilt) * np.conj(k0c) / np.abs(k1c)
+            # get first quad
+            quad3 = Quadrupole(self._name+'_quad3', ds, np.abs(k1c), dx=offset.real, dy=offset.imag, tilt=tilt)
+            # get coordinate after first quad
+            cood3, _, _ = quad3.transfer(Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.))
+            cood3.x += x0
+            cood3.y += y0
+            cood3.delta = cood0.delta
+        # dipole and quadrupole strengths after the third quad
+        k0d, k1d = self.get_k(cood3)
+        # get average dipole and quadrupole strengths
+        k0, k1 = (k0a + 2.0*k0b + 2.0*k0c + k0d) / 6.0, (k1a + 2.0*k1b + 2.0*k1c + k1d) / 6.0
+        # tilt angle of the quadrupole
+        tilt = np.angle(k1) * 0.5
+        # calculate final coordinate after the step
+        tmat, disp = None, None
+        if np.abs(k1) < 1.e-20:
+            # no quadrupole, just dipole kick
+            x4, y4 = x0 + (xp0 - 0.5*k0.real*ds) * ds, y0 + (yp0 - 0.5*k0.imag*ds) * ds
+            xp4, yp4 = xp0 - k0.real * ds, yp0 - k0.imag * ds
+            cood4 = Coordinate(np.array([x4, xp4, y4, yp4]), cood0.s + ds, cood0.z, cood0.delta)
+            if tmatflag:
+                tmat = Drift.transfer_matrix_from_length(ds)
+            if dispflag:
+                disp = np.array([0.5 * k0.real * ds**2, k0.real * ds, 0.5 * k0.imag * ds**2, k0.imag * ds])
+        else:
+            # transverse offset to generate dipole kick
+            # offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
+            offset = - np.exp(2.j*tilt) * np.conj(k0) / np.abs(k1)
+            # get second quad
+            quad4 = Quadrupole(self._name+'_quad4', ds, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
+            # get coordinate after second quad
+            cood = Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.)
+            cood4, _, _ = quad4.transfer(cood)
+            cood4.x += x0
+            cood4.y += y0
+            cood4.delta = cood0.delta
+            # get transfer matrix and additive dispersion of the second quad
+            if tmatflag:
+                tmat = quad4.transfer_matrix()
+            if dispflag:
+                cood = Coordinate(np.array([-offset.real, xp0, -offset.imag, yp0]), cood0.s, cood0.z, delta=0.)
+                disp = quad4.dispersion(cood)
+        return tmat, cood4, disp
+
+
+    def transfer_matrix_by_integration(self, cood0: Coordinate, ds: float = 0.1,
+                                      tmatflag: bool = True, dispflag: bool = False, method='midpoint') \
+        -> Tuple[npt.NDArray[np.floating], Coordinate, npt.NDArray[np.floating]]:
+        '''
+        Calculate transfer matrix using specified integration method.
+
+        Args:
+            cood0 Coordinate: Initial coordinate
+            ds float: Step size [m] for integration.
+            tmatflag bool: Calculate transfer matrix if true. (default: True)
+            dispflag bool: Calculate additive dispersion if True. (default: False).
+            method str: Integration method ('midpoint' or 'rk4').
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix, if tmatflag is True, else None.
+            Coordinate: Final coordinate after the step.
+            npt.NDArray[np.floating]: Additive dispersion if dispflag is True, else None.
+        '''
+        match method:
+            case 'midpoint':
+                return self.transfer_matrix_by_midpoint_method(cood0, ds, tmatflag, dispflag)
+            case 'rk4':
+                return self.transfer_matrix_by_rk4_method(cood0, ds, tmatflag, dispflag)
+            case _:
+                raise ValueError(f'Unknown integration method: {method}')
+
     def get_step(self, ds):
         '''
         Calculate the number of steps and step size for integration.
-        
+
         Args:
             ds float: Maximum step size [m] for integration.
-            
+
         Returns:
             int: Number of steps.
             float: Step size [m].
@@ -244,13 +385,14 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         s_step = self._length / n_step
         return n_step, s_step
 
-    def transfer_matrix(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate, ds: float = 0.1, method='midpoint') -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the multipole magnet calculated by midpoint method.
 
         Args:
             cood0 Coordinate: Initial coordinate
             ds float: Maximum step size [m] for integration.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
@@ -259,11 +401,11 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         cood = cood0.copy()
         tmat = np.eye(4)
         for _ in range(n_step):
-            tmat_step, cood, _ = self.transfer_matrix_by_midpoint_method(cood, s_step)
+            tmat_step, cood, _ = self.transfer_matrix_by_integration(cood, s_step, method=method)
             tmat = tmat_step @ tmat
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method='midpoint') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the multipole magnet.
@@ -272,6 +414,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             cood0 Coordinate: Initial coordinate
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
@@ -283,18 +426,19 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         tmat = np.eye(4)
         tmat_list = [tmat.copy()]
         for _ in range(n_step - int(not endpoint)):
-            tmat_step, cood, _ = self.transfer_matrix_by_midpoint_method(cood, s_step)
+            tmat_step, cood, _ = self.transfer_matrix_by_integration(cood, s_step, method=method)
             tmat = tmat_step @ tmat
             tmat_list.append(tmat.copy())
         return np.array(tmat_list), s
 
-    def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate, ds: float = 0.1, method='midpoint') -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector at the exit of the multipole magnet.
 
         Args:
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m] for integration.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
@@ -303,11 +447,11 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         cood = cood0.copy()
         dispout = np.zeros(4)
         for _ in range(n_step):
-            tmat, cood, disp = self.transfer_matrix_by_midpoint_method(cood, s_step, dispflag=True)
+            tmat, cood, disp = self.transfer_matrix_by_integration(cood, s_step, dispflag=True, method=method)
             dispout = np.dot(tmat, dispout) + disp
         return dispout
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method='midpoint') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the multipole magnet.
@@ -316,6 +460,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             npt.NDArray[np.floating]: 4xN Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
@@ -326,11 +471,11 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         cood = cood0.copy()
         disp_list = [np.zeros(4)]
         for _ in range(n_step - int(not endpoint)):
-            tmat, cood, disp = self.transfer_matrix_by_midpoint_method(cood, s_step, dispflag=True)
+            tmat, cood, disp = self.transfer_matrix_by_integration(cood, s_step, dispflag=True, method=method)
             disp_list.append(np.dot(tmat, disp_list[-1]) + disp)
         return np.array(disp_list).T, s
 
-    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method='midpoint') \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
         Calculate the coordinate, envelope, and dispersion after the multipole magnet.
@@ -340,6 +485,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             evlp0 Envelope: Initial beam envelope (optional).
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m] for integration.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             Coordinate: Coordinate after the element.
@@ -354,7 +500,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         tmat = np.eye(4) if evlp0 is not None else None
         dispvec = disp0.vector.copy() if disp0 is not None else None
         for _ in range(n_step):
-            tmat_step, cood, disp = self.transfer_matrix_by_midpoint_method(cood, s_step, dispflag=(disp0 is not None))
+            tmat_step, cood, disp = self.transfer_matrix_by_integration(cood, s_step, dispflag=(disp0 is not None), method=method)
             if evlp0 is not None:
                 tmat = tmat_step @ tmat
             if disp0 is not None:
@@ -375,7 +521,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.1, endpoint: bool = True) \
+                       ds: float = 0.1, endpoint: bool = True, method='midpoint') \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate, envelope, and dispersion arrays along the multipole magnet.
@@ -386,6 +532,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             CoordinateArray: Coordinate array along the element.
@@ -402,7 +549,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         tmat, tmat_list = np.eye(4), [np.eye(4)] if evlp0 is not None else None
         disp_list = [disp0.vector.copy()] if disp0 is not None else None
         for _ in range(n_step - int(not endpoint)):
-            tmat_step, cood, disp = self.transfer_matrix_by_midpoint_method(cood, s_step, dispflag=(disp0 is not None))
+            tmat_step, cood, disp = self.transfer_matrix_by_integration(cood, s_step, dispflag=(disp0 is not None), method=method)
             cood_list.append(cood.vector.copy())
             if evlp0 is not None:
                 tmat = tmat_step @ tmat

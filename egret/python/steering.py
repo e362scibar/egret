@@ -135,20 +135,21 @@ class Steering(SteeringABC, Element):
         kick_tilted = np.dot(rotmat, np.array([self.kick_x, self.kick_y])) / (1. + delta)
         return kick_tilted[0], kick_tilted[1]
 
-    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the steering magnet.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the steering magnet).
             ds float: Maximum step size [m] for integration. (not used in the steering magnet).
+            method str: Integration method. (Not used in the steering magnet).
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
         return Drift.transfer_matrix_from_length(self._length)
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the steering magnet.
@@ -157,6 +158,7 @@ class Steering(SteeringABC, Element):
             cood0 Coordinate: Initial coordinate (not used in the steering magnet).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method. (Not used in the steering magnet).
 
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
@@ -164,13 +166,14 @@ class Steering(SteeringABC, Element):
         '''
         return Drift.transfer_matrix_array_from_length(self._length, ds, endpoint)
 
-    def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
         '''
         Additive dispersion function at the end of the steering magnet.
 
         Args:
             cood0 Coordinate: Initial coordinate. (Only delta is used here.)
             ds float: Maximum step size for integration [m]. (Not used in this method.)
+            method str: Integration method. (Not used in the Steering class.)
 
         Returns:
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].
@@ -181,7 +184,7 @@ class Steering(SteeringABC, Element):
         eta_y = -0.5 * kick_y * self._length
         return np.array([eta_x, eta_xp, eta_y, eta_yp])
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion function along the steering magnet.
@@ -190,6 +193,7 @@ class Steering(SteeringABC, Element):
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method. (Not used in the Steering class.)
 
         Returns:
             npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
@@ -210,7 +214,7 @@ class Steering(SteeringABC, Element):
         disp = np.array([eta_x, eta_xp, eta_y, eta_yp])
         return disp, s
 
-    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method: str = 'midpoint') \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
         Calculate the coordinate, envelope, and dispersion after the steering magnet.
@@ -220,6 +224,7 @@ class Steering(SteeringABC, Element):
             evlp0 Envelope: Initial beam envelope (optional).
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m] for integration (not used in the Steering class).
+            method str: Integration method. (Not used in the Steering class.)
 
         Returns:
             Coordinate: Coordinate after the element.
@@ -228,7 +233,7 @@ class Steering(SteeringABC, Element):
         '''
         kick_x, kick_y = self._tilted_kick(cood0.delta)
         dx, dy = 0.5 * self._length * kick_x, 0.5 * self._length * kick_y
-        tmat = self.transfer_matrix(cood0)
+        tmat = self.transfer_matrix(cood0, ds, method)
         cood = np.dot(tmat, cood0.vector) + np.array([dx, kick_x, dy, kick_y])
         cood1 = Coordinate(cood, cood0.s + self._length, cood0.z, cood0.delta)
         if evlp0 is not None:
@@ -237,14 +242,14 @@ class Steering(SteeringABC, Element):
         else:
             evlp1 = None
         if disp0 is not None:
-            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0)
+            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0, ds, method)
             disp1 = Dispersion(disp, disp0.s + self._length)
         else:
             disp1 = None
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.1, endpoint: bool = True) \
+                       ds: float = 0.1, endpoint: bool = True, method: str = 'midpoint') \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate array along the steering magnet.
@@ -255,6 +260,7 @@ class Steering(SteeringABC, Element):
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method. (Not used in the Steering class.)
 
         Returns:
             CoordinateArray: Coordinate array along the element.
@@ -262,7 +268,7 @@ class Steering(SteeringABC, Element):
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
         kick_x, kick_y = self._tilted_kick(cood0.delta)
-        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
+        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint, method)
         if np.abs(self._length) > 0.:
             x, y = 0.5 * s**2 * kick_x / self._length, 0.5 * s**2 * kick_y / self._length
             xp, yp = s * kick_x / self._length, s * kick_y / self._length
@@ -277,7 +283,7 @@ class Steering(SteeringABC, Element):
         else:
             evlp1 = None
         if disp0 is not None:
-            disp_add, _ = self.dispersion_array(cood0, ds, endpoint)
+            disp_add, _ = self.dispersion_array(cood0, ds, endpoint, method)
             disp = np.matmul(tmat, disp0.vector).T + disp_add
             disp1 = DispersionArray(disp, s + disp0.s)
         else:

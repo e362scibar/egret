@@ -171,13 +171,14 @@ class Dipole(DipoleABC, Element):
                       self._e1, self._e2, self._h1, self._h2,
                       self._dx, self._dy, self._ds, self._tilt, self._info)
 
-    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1) -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the dipole element.
 
         Args:
             cood0 Coordinate: Initial coordinate (only delta is used in the dipole class).
             ds float: Maximum step size [m] for integration. (not used in the dipole class).
+            method str: Integration method ('midpoint' or 'rk4'). (not used in the dipole class).
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
@@ -215,7 +216,7 @@ class Dipole(DipoleABC, Element):
                 tmat[2:4, 2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]])
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False) \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the dipole element.
@@ -224,6 +225,7 @@ class Dipole(DipoleABC, Element):
             cood0 Coordinate: Initial coordinate (only delta is used in the dipole class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4'). (not used in the dipole class).
 
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
@@ -263,13 +265,14 @@ class Dipole(DipoleABC, Element):
                 tmat[:,2:4, 2:4] = np.array([[cosy, siny/sqrtky], [-sqrtky*siny, cosy]]).transpose(2,0,1)
         return tmat, s
 
-    def dispersion(self, cood0: Coordinate, ds: float = 0.1) -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
         '''
         Additive dispersion function at the end of the dipole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m] for integration. (not used in the dipole class).
+            method str: Integration method ('midpoint' or 'rk4'). (not used in the dipole class).
 
         Returns:
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].
@@ -323,7 +326,7 @@ class Dipole(DipoleABC, Element):
                 disp[2:4] += np.dot(My1 + My2, cood0vec[2:4])
         return disp
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False) \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion function along the dipole.
@@ -331,6 +334,7 @@ class Dipole(DipoleABC, Element):
         Args:
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4'). (not used in the dipole class).
 
         Returns:
             npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
@@ -386,7 +390,7 @@ class Dipole(DipoleABC, Element):
                 disp[2:4,:] += np.matmul((My1 + My2).transpose(2,0,1), cood0vec[2:4]).T
         return disp, s
 
-    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1) \
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method: str = 'midpoint') \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
         Calculate the coordinate, envelope, and dispersion after the element.
@@ -396,6 +400,7 @@ class Dipole(DipoleABC, Element):
             evlp0 Envelope: Initial beam envelope (optional).
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m] for integration (not used in the Dipole class).
+            method str: Integration method ('midpoint' or 'rk4'). (not used in the Dipole class).
 
         Returns:
             Coordinate: Coordinate after the element.
@@ -418,14 +423,14 @@ class Dipole(DipoleABC, Element):
         else:
             evlp1 = None
         if disp0 is not None:
-            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds)
+            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds, method)
             disp1 = Dispersion(disp, disp0.s + self._length)
         else:
             disp1 = None
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.1, endpoint: bool = True) \
+                       ds: float = 0.1, endpoint: bool = True, method: str = 'midpoint') \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate array along the element.
@@ -436,6 +441,7 @@ class Dipole(DipoleABC, Element):
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint' or 'rk4'). (not used in the dipole class).
 
         Returns:
             CoordinateArray: Coordinate array along the element.
@@ -446,8 +452,8 @@ class Dipole(DipoleABC, Element):
         cood0err.x -= self._dx
         cood0err.y -= self._dy
         cood0err.s -= self._ds
-        tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint)
-        disp, _ = self.dispersion_array(Coordinate(), ds, endpoint)
+        tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint, method)
+        disp, _ = self.dispersion_array(Coordinate(), ds, endpoint, method)
         cood = np.matmul(tmat, cood0err.vector).T + disp * cood0.delta
         cood[0] += self._dx
         cood[2] += self._dy
@@ -458,14 +464,14 @@ class Dipole(DipoleABC, Element):
         else:
             evlp1 = None
         if disp0 is not None:
-            disp_add, _ = self.dispersion_array(cood0err, ds, endpoint)
+            disp_add, _ = self.dispersion_array(cood0err, ds, endpoint, method)
             disp = np.matmul(tmat, disp0.vector).T + disp_add
             disp1 = DispersionArray(disp, s + disp0.s)
         else:
             disp1 = None
         return cood1, evlp1, disp1
 
-    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1) \
+    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1, method: str = 'midpoint') \
         -> Tuple[float, float, float]:
         '''
         Calculate radiation integrals.
@@ -474,13 +480,14 @@ class Dipole(DipoleABC, Element):
             beta0 BetaFunc: Initial Twiss parameters.
             eta0 npt.NDArray[np.floating]: Initial dispersion [eta_x, eta_x', eta_y, eta_y'].
             ds float: Step size for numerical integration.
+            method str: Integration method ('midpoint' or 'rk4').
 
         Returns:
             Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
         '''
         kappa = 1./self._rho
         k = self._k1
-        _, evlp, disp = self.transfer_array(cood0, evlp0, disp0, ds, endpoint=True)
+        _, evlp, disp = self.transfer_array(cood0, evlp0, disp0, ds, endpoint=True, method=method)
         dispuv = np.matvec(evlp.T_matrix(), disp.vector.T).T
         I2 = self._length * kappa**2
         I4 = scipy.integrate.simpson(disp.x * kappa * (kappa**2 + 2. * k), x=disp.s)
