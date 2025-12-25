@@ -35,7 +35,7 @@
  * @param tilt Rotation angle (radians)
  * @return Eigen::Matrix4d Transfer matrix
  */
-Eigen::Matrix4d egret::Quadrupole::transfer_matrix( const double length, const double k1,
+Eigen::Matrix4d egret::Quadrupole::transfer_matrix(const double length, const double k1,
     const std::optional<Eigen::Matrix4d> &rmat) noexcept(false) {
     Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
     if (k1 == 0.0) { // drift case
@@ -89,12 +89,14 @@ Eigen::Matrix4d egret::Quadrupole::rotation_matrix(const double tilt) noexcept(f
  * @brief Calculate the transfer matrix for the quadrupole element.
  * @param cood0 Initial coordinate (optional)
  * @param ds Step size (unused)
+ * @param method Integration method (not used here)
  * @return Eigen::Matrix4d Transfer matrix
  */
 Eigen::Matrix4d egret::Quadrupole::transfer_matrix(
     const std::optional<Coordinate> &cood0,
-    const double ds) const noexcept(false) {
+    const double ds, const IntegrationMethod method) const noexcept(false) {
     (void)ds; // unused parameter
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     double k = k1_ / (1.0 + delta);
     std::optional<Eigen::Matrix4d> rmat = std::nullopt;
@@ -109,12 +111,14 @@ Eigen::Matrix4d egret::Quadrupole::transfer_matrix(
  * @param cood0 Initial coordinate (optional)
  * @param ds Step size (unused)
  * @param endpoint Include endpoint in s_array
+ * @param method Integration method (not used here)
  * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Tuple of transfer matrix array and s_array
  */
 std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
 egret::Quadrupole::transfer_matrix_array(
-    const std::optional<Coordinate> &cood0,
-    const double ds, const bool endpoint) const noexcept(false) {
+    const std::optional<Coordinate> &cood0, const double ds, const bool endpoint,
+    const IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const double k = k1_ / (1.0 + delta);
     const auto s_array = Element::s_array(ds, endpoint);
@@ -193,12 +197,14 @@ Eigen::Vector4d egret::Quadrupole::dispersion(const Eigen::Vector4d &cood0_vec,
  * @brief Calculate the additive dispersion function at the end of the quadrupole.
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size for integration (m) (unused)
+ * @param method Integration method (not used here)
  * @return Eigen::Vector4d Additive dispersion vector
  */
 Eigen::Vector4d egret::Quadrupole::dispersion(
-    const std::optional<Coordinate> &cood0,
-    const double ds) const noexcept(false) {
+    const std::optional<Coordinate> &cood0, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
     (void)ds; // unused parameter
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const double k = k1_ / (1.0 + delta);
     const auto vector0 = cood0 ? cood0->vector() : Eigen::Vector4d::Zero();
@@ -210,12 +216,15 @@ Eigen::Vector4d egret::Quadrupole::dispersion(
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size (m)
  * @param endpoint Whether to include the endpoint in the array
+ * @param method Integration method (not used here)
  * @return std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> Tuple of dispersion array and s_array
  */
 std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
 egret::Quadrupole::dispersion_array(
     const std::optional<Coordinate> &cood0,
-    const double ds, const bool endpoint) const noexcept(false) {
+    const double ds, const bool endpoint,
+    const IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const double k = k1_ / (1.0 + delta);
     const auto cood0_vec = cood0 ? cood0->vector() : Eigen::Vector4d::Zero();

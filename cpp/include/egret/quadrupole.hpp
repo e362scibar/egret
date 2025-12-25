@@ -82,25 +82,27 @@ public:
     static Eigen::Matrix4d rotation_matrix(double tilt) noexcept(false);
 
     // Calculate transfer matrix for this quadrupole element
-    Eigen::Matrix4d transfer_matrix(const std::optional<Coordinate> &cood0,
-        double ds=0.1) const noexcept(false) override;
+    Eigen::Matrix4d transfer_matrix(const std::optional<Coordinate> &cood0, double ds=0.1,
+        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate transfer matrix array along this quadrupole element
     std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0,
-        double ds=0.1, bool endpoint = false) const noexcept(false) override;
+        double ds=0.1,bool endpoint = false,
+        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     static Eigen::Vector4d dispersion(const Eigen::Vector4d &cood0_vec,
         double length, double k1, double tilt=0.0) noexcept(false);
 
     // Calculate additive dispersion vector for given initial coordinate
     Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1) const noexcept(false) override;
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate additive dispersion vector array for given initial coordinate
     std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
     dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, bool endpoint = false) const noexcept(false) override;
+        double ds=0.1, bool endpoint = false,
+        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate transferred coordinates through a quadrupole magnet
     static std::tuple<Eigen::Vector4d, std::optional<Eigen::Matrix4d>,
@@ -118,16 +120,18 @@ public:
      * @param evlp0 Initial envelope
      * @param disp0 Initial dispersion
      * @param ds Step size for integration
+     * @param method Integration method (not used here)
      * @return std::tuple<double, double, double, double, double, double>
      *         Radiation integrals (I1, I2, I3, I4, I5, I6)
      */
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
-        double ds=0.1) const override{
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const override{
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter
         (void)ds; // unused parameter
+        (void)method; // unused parameter
         return std::make_tuple(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
 };

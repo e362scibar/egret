@@ -138,38 +138,65 @@ public:
     transfer_by_midpoint_method(const Coordinate &cood0, double ds=0.1,
         bool tmat_flag=true, bool disp_flag=false) const noexcept(false);
 
+    /**
+     * @brief Calculate coordinate, transfer matrix, and dispersion by specified integration method.
+     * @param cood0 Initial coordinate
+     * @param ds Step size for integration
+     * @param tmat_flag Whether to calculate transfer matrix
+     * @param disp_flag Whether to calculate dispersion
+     * @param method Integration method
+     * @return std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+     *         Tuple of final coordinate, optional transfer matrix, and optional dispersion
+     */
+    virtual std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+        transfer_by_integration(const Coordinate &cood0, const double ds=0.1,
+        const bool tmat_flag=true, const bool disp_flag=false,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false){
+        switch(method){
+            case IntegrationMethod::MIDPOINT:
+                return transfer_by_midpoint_method(cood0, ds, tmat_flag, disp_flag);
+            case IntegrationMethod::RK4:
+                throw std::runtime_error("RK4 integration not implemented for NonlinearMultipole yet.");
+            default:
+                throw std::runtime_error("Unknown integration method.");
+        }
+    }
+
     // Calculate transfer matrix of the nonlinear multipole.
     virtual Eigen::Matrix4d transfer_matrix(
-        const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1) const noexcept(false) override;
+        const std::optional<Coordinate> &cood0 = std::nullopt, double ds=0.1,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate transfer matrix array of the nonlinear multipole.
     virtual std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, bool endpoint = false) const noexcept(false) override;
+        double ds=0.1, bool endpoint = false,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate additive dispersion of the nonlinear multipole.
     virtual Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1) const noexcept(false) override;
+        double ds=0.1, const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate additive dispersion array of the nonlinear multipole.
     virtual std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
     dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, bool endpoint = false) const noexcept(false) override;
+        double ds=0.1, bool endpoint = false,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate coordinate, envelope, and dispersion after the nonlinear multipole.
     virtual std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
     transfer(const Coordinate &cood0,
         const std::optional<Envelope> &evlp0 = std::nullopt,
-        const std::optional<Dispersion> &disp0 = std::nullopt,
-        double ds=0.1) const noexcept(false) override;
+        const std::optional<Dispersion> &disp0 = std::nullopt, double ds=0.1,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate coordinate array, envelope array, and dispersion array along the nonlinear multipole.
     virtual std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
     transfer_array(const Coordinate &cood0,
         const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt,
-        double ds=0.1, bool endpoint=false) const noexcept(false) override;
+        double ds=0.1, bool endpoint=false,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     /**
      * @brief Clone the NonlinearMultipole object.
@@ -183,16 +210,18 @@ public:
      * @param evlp0 Initial envelope
      * @param disp0 Initial dispersion
      * @param ds Step size for integration
+     * @param method Integration method (not used here)
      * @return std::tuple<double, double, double, double, double, double>
      *         Radiation integrals (I1, I2, I3, I4, I5, I6)
      */
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
-        double ds=0.1) const override{
+        double ds=0.1, const IntegrationMethod method = IntegrationMethod::MIDPOINT) const override{
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter
         (void)ds; // unused parameter
+        (void)method; // unused parameter
         return std::make_tuple(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
 };

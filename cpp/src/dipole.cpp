@@ -32,11 +32,14 @@
  * @brief Calculate the transfer matrix for the dipole element.
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size for integration (m) (not used here)
+ * @param method Integration method (not used here)
  * @return Eigen::Matrix4d Transfer matrix
  */
 Eigen::Matrix4d egret::Dipole::transfer_matrix(
-    const std::optional<Coordinate> &cood0, const double ds) const noexcept(false) {
+    const std::optional<Coordinate> &cood0, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
     (void)ds; // unused parameter
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const double rho = (length_ / angle_) * (1.0 + delta);
     Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
@@ -108,11 +111,13 @@ Eigen::Matrix4d egret::Dipole::transfer_matrix(
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size for integration (m)
  * @param endpoint Whether to include the endpoint in the array
+ * @param method Integration method (not used here)
  * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Transfer matrix array and corresponding s positions
  */
 std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> egret::Dipole::transfer_matrix_array(
     const std::optional<Coordinate> &cood0, const double ds,
-    const bool endpoint) const noexcept(false) {
+    const bool endpoint, const IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const double rho = (length_ / angle_) * (1.0 + delta);
     const Eigen::ArrayXd s_array = Element::s_array(ds, endpoint);
@@ -222,11 +227,13 @@ std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> egret::Dipole::transfer
  * @brief Calculate the additive dispersion function at the end of the dipole.
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size for integration (m) (not used here)
+ * @param method Integration method (not used here)
  * @return Eigen::Vector4d
  */
 Eigen::Vector4d egret::Dipole::dispersion(const std::optional<Coordinate> &cood0,
-    const double ds) const noexcept(false) {
+    const double ds, const IntegrationMethod method) const noexcept(false) {
     (void)ds; // unused parameter
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const double rho = (length_ / angle_) * (1.0 + delta);
     const auto vector0 = cood0 ? cood0->vector() : Eigen::Vector4d::Zero(); // Vector4d
@@ -327,11 +334,13 @@ Eigen::Vector4d egret::Dipole::dispersion(const std::optional<Coordinate> &cood0
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size for integration (m)
  * @param endpoint Whether to include the endpoint in the array
+ * @param method Integration method (not used here)
  * @return std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> Array of dispersion vectors and s array
  */
 std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> egret::Dipole::dispersion_array(
     const std::optional<Coordinate> &cood0, const double ds,
-    const bool endpoint) const noexcept(false) {
+    const bool endpoint, const IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const double rho = (length_ / angle_) * (1.0 + delta);
     const auto vector0 = cood0 ? cood0->vector() : Eigen::Vector4d::Zero(); // Vector4d
@@ -494,12 +503,14 @@ std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> egret::Dipo
  * @param evlp0 Initial envelope (optional)
  * @param disp0 Initial dispersion (optional)
  * @param ds Maximum step size for integration (m)
+ * @param method Integration method (not used here)
  * @return std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>> Coordinate, envelope, and dispersion after transfer
  */
 std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>>
-egret::Dipole::transfer(
-    const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-    const std::optional<Dispersion> &disp0, const double ds) const noexcept(false) {
+egret::Dipole::transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
+    const std::optional<Dispersion> &disp0, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     Coordinate cood = cood0;
     cood.x(cood.x() - dx_);
     cood.y(cood.y() - dy_);
@@ -536,7 +547,8 @@ egret::Dipole::transfer(
 std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>>
 egret::Dipole::transfer_array(const Coordinate &cood0,
     const std::optional<Envelope> &evlp0, const std::optional<Dispersion> &disp0,
-    const double ds, const bool endpoint) const noexcept(false) {
+    const double ds, const bool endpoint, const IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     Coordinate cood = cood0;
     cood.x(cood.x() - dx_);
     cood.y(cood.y() - dy_);
@@ -580,7 +592,9 @@ egret::Dipole::transfer_array(const Coordinate &cood0,
  */
 std::tuple<double, double, double, double, double, double>
 egret::Dipole::radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
-    const Dispersion &disp0, const double ds) const noexcept(false) {
+    const Dispersion &disp0, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     const double kappa = angle_ / length_;
     const auto &[cood_array, evlp_array, disp_array] =
         transfer_array(cood0, evlp0, disp0, ds, true);

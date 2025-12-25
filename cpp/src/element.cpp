@@ -57,11 +57,12 @@ Eigen::ArrayXd egret::Element::s_array(const double length, const double ds,
  * @brief Get the transfer matrix for a given coordinate and step size.
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size for integration
+ * @param method Integration method
  * @return Eigen::Matrix4d Transfer matrix of the element
  */
 Eigen::Matrix4d egret::Element::transfer_matrix(
     const std::optional<Coordinate> &cood0,
-    const double ds) const noexcept(false) {
+    const double ds, const IntegrationMethod method) const noexcept(false) {
     Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
     if (!elements_) {
         // Default: identity matrix
@@ -70,8 +71,8 @@ Eigen::Matrix4d egret::Element::transfer_matrix(
     }
     Coordinate cood = cood0.value_or(Coordinate());
     for (const auto &elem : *elements_) {
-        M = elem->transfer_matrix(cood, ds) * M;
-        cood = std::get<0>(elem->transfer(cood, std::nullopt, std::nullopt, ds));
+        M = elem->transfer_matrix(cood, ds, method) * M;
+        cood = std::get<0>(elem->transfer(cood, std::nullopt, std::nullopt, ds, method));
     }
     return M;
 }
@@ -81,12 +82,14 @@ Eigen::Matrix4d egret::Element::transfer_matrix(
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size
  * @param endpoint Whether to include the endpoint
+ * @param method Integration method
  * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Array of transfer matrices and s array
  */
 std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
 egret::Element::transfer_matrix_array(
     const std::optional<Coordinate> &cood0,
-    const double ds, const bool endpoint) const noexcept(false) {
+    const double ds, const bool endpoint,
+    const IntegrationMethod method) const noexcept(false) {
     if (!elements_) {
         // Default: identity matrix array
         //Eigen::ArrayXd s_array = this->s_array(ds, endpoint);
@@ -100,15 +103,15 @@ egret::Element::transfer_matrix_array(
     Eigen::ArrayXd s_array;
     std::vector<Eigen::Matrix4d> M_array;
     for (const auto &elem: *elements_) {
-        const auto [M_sub_array, s_sub_array] = elem->transfer_matrix_array(cood, ds, false);
+        const auto [M_sub_array, s_sub_array] = elem->transfer_matrix_array(cood, ds, false, method);
         M_array.insert(M_array.end(), M_sub_array.begin(), M_sub_array.end());
         const size_t prev_size = s_array.size();
         const size_t sub_size = s_sub_array.size();
         s_array.conservativeResize(prev_size + sub_size);
         s_array.tail(sub_size) = s + s_sub_array;
         s += elem->length();
-        M = elem->transfer_matrix(cood, ds) * M;
-        cood = std::get<0>(elem->transfer(cood, std::nullopt, std::nullopt, ds));
+        M = elem->transfer_matrix(cood, ds, method) * M;
+        cood = std::get<0>(elem->transfer(cood, std::nullopt, std::nullopt, ds, method));
     }
     if (endpoint) {
         const size_t s_size = s_array.size();
@@ -123,11 +126,12 @@ egret::Element::transfer_matrix_array(
  * @brief Get the additive dispersion vector of the element.
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size for integration
+ * @param method Integration method
  * @return Eigen::Vector4d Additive dispersion vector
  */
 Eigen::Vector4d egret::Element::dispersion(
     const std::optional<Coordinate> &cood0,
-    const double ds) const noexcept(false) {
+    const double ds, const IntegrationMethod method) const noexcept(false) {
     if (!elements_) {
         // Default: zero dispersion
         return Eigen::Vector4d::Zero();
@@ -136,7 +140,7 @@ Eigen::Vector4d egret::Element::dispersion(
     Coordinate cood = cood0.value_or(Coordinate());
     Dispersion disp;
     for (const auto &elem : *elements_) {
-        const auto results = elem->transfer(cood, std::nullopt, disp, ds);
+        const auto results = elem->transfer(cood, std::nullopt, disp, ds, method);
         cood = std::get<0>(results);
         disp = *std::get<2>(results);
     }
@@ -148,12 +152,12 @@ Eigen::Vector4d egret::Element::dispersion(
  * @param cood0 Initial coordinate (optional)
  * @param ds Maximum step size
  * @param endpoint Whether to include the endpoint
+ * @param method Integration method
  * @return std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> Array of additive dispersion vectors and s array
  */
 std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
-egret::Element::dispersion_array(
-    const std::optional<Coordinate> &cood0,
-    const double ds, const bool endpoint) const noexcept(false) {
+egret::Element::dispersion_array(const std::optional<Coordinate> &cood0,
+    const double ds, const bool endpoint, const IntegrationMethod method) const noexcept(false) {
     if (!elements_) {
         // Default: zero dispersion array
         const auto s_array = this->s_array(ds, endpoint);
@@ -167,7 +171,7 @@ egret::Element::dispersion_array(
     Eigen::ArrayXd s_array;
     Eigen::Matrix<double, 4, Eigen::Dynamic> disp_vec_array(4, 0);
     for (const auto &elem : *elements_) {
-        const auto [disp_sub_array, s_sub_array] = elem->dispersion_array(cood, ds, false);
+        const auto [disp_sub_array, s_sub_array] = elem->dispersion_array(cood, ds, false, method);
         const size_t prev_size = s_array.size();
         const size_t sub_size = s_sub_array.size();
         disp_vec_array.conservativeResize(4, prev_size + sub_size);
@@ -176,7 +180,7 @@ egret::Element::dispersion_array(
         s_array.conservativeResize(s_prev_size + sub_size);
         s_array.tail(sub_size) = s + s_sub_array;
         s += elem->length();
-        const auto results = elem->transfer(cood, std::nullopt, disp, ds);
+        const auto results = elem->transfer(cood, std::nullopt, disp, ds, method);
         cood = std::get<0>(results);
         disp = *std::get<2>(results);
     }
@@ -196,11 +200,13 @@ egret::Element::dispersion_array(
  * @param evlp0 Initial envelope (optional)
  * @param disp0 Initial dispersion (optional)
  * @param ds Maximum step size
+ * @param method Integration method
  * @return std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>> Transfer results
  */
 std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>>
 egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-    const std::optional<Dispersion> &disp0, const double ds) const noexcept(false) {
+    const std::optional<Dispersion> &disp0, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
     Coordinate cood0err = cood0;
     cood0err.x(cood0.x() - dx_);
     cood0err.y(cood0.y() - dy_);
@@ -210,14 +216,14 @@ egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> 
         std::optional<Envelope> evlp = evlp0;
         std::optional<Dispersion> disp = disp0;
         for (const auto &elem : *elements_) {
-            std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds);
+            std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds, method);
         }
         cood.x(cood.x() + dx_);
         cood.y(cood.y() + dy_);
         cood.s(cood.s() + ds_);
         return std::make_tuple(cood, evlp, disp);
     }
-    const auto M = transfer_matrix(cood0err, ds); // Matrix4d
+    const auto M = transfer_matrix(cood0err, ds, method); // Matrix4d
     const auto v_out = M * cood0err.vector(); // Vector4d
     Coordinate cood(v_out, cood0.s() + length_, cood0.z(), cood0.delta());
     cood.x(cood.x() + dx_);
@@ -229,7 +235,7 @@ egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> 
     }
     std::optional<Dispersion> disp = disp0;
     if (disp) {
-        const Eigen::Vector4d disp_v_out = M * disp->vector() + dispersion(cood0err, ds);
+        const Eigen::Vector4d disp_v_out = M * disp->vector() + dispersion(cood0err, ds, method);
         disp->vector(disp_v_out);
         disp->s(disp->s() + length_);
     }
@@ -243,12 +249,14 @@ egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> 
 * @param disp0 Initial dispersion
 * @param ds Maximum step size
 * @param endpoint Whether to include the endpoint
+* @param method Integration method
 * @return std::tuple of CoordinateArray, EnvelopeArray, DispersionArray
 */
 std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>,
     std::optional<egret::DispersionArray>>
 egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-    const std::optional<Dispersion> &disp0, const double ds, const bool endpoint) const noexcept(false) {
+    const std::optional<Dispersion> &disp0, const double ds, const bool endpoint,
+    const IntegrationMethod method) const noexcept(false) {
     Coordinate cood0err = cood0;
     cood0err.x(cood0.x() - dx_);
     cood0err.y(cood0.y() - dy_);
@@ -261,7 +269,7 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
         std::optional<EnvelopeArray> evlp_array = std::nullopt;
         std::optional<DispersionArray> disp_array = std::nullopt;
         for (const auto &elem : *elements_) {
-            const auto results = elem->transfer_array(cood, evlp, disp, ds, false);
+            const auto results = elem->transfer_array(cood, evlp, disp, ds, false, method);
             if (cood_array) {
                 cood_array->append(std::get<0>(results));
             } else {
@@ -277,7 +285,7 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
             } else if (std::get<2>(results)) {
                 disp_array = *std::get<2>(results);
             }
-            std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds);
+            std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds, method);
         }
         if (endpoint) {
             const Eigen::ArrayXd s_array = Eigen::ArrayXd::Constant(1, cood.s());
@@ -310,7 +318,7 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
         cood_array->s_array(cood_array->s_array() + ds_);
         return std::make_tuple(*cood_array, evlp_array, disp_array);
     }
-    const auto results = transfer_matrix_array(cood0err, ds, endpoint);
+    const auto results = transfer_matrix_array(cood0err, ds, endpoint, method);
     const auto &M_array = std::get<0>(results); // vector<Matrix4d>
     const auto &s_array = std::get<1>(results); // ArrayXd
     const size_t n = s_array.size();
@@ -330,7 +338,7 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
         evlp_array = EnvelopeArray::transport(*evlp0, M_array, s_array);
     }
     if (disp0) {
-        const auto results = dispersion_array(cood0err, ds, endpoint);
+        const auto results = dispersion_array(cood0err, ds, endpoint, method);
         const auto &dispersion = std::get<0>(results); // Matrix<double, 4, Dynamic>
         Eigen::Matrix<double, 4, Eigen::Dynamic> disp_vector_array(4, n);
         for (const size_t i : std::views::iota(0u, n)) {
@@ -348,11 +356,12 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
  * @param evlp0 Initial envelope
  * @param disp0 Initial dispersion
  * @param ds Maximum step size
+ * @param method Integration method
  * @return std::tuple<double, double, double, double, double, double> Radiation integrals (I2, I4, I5u, I5v, I4u, I4v)
  */
 std::tuple<double, double, double, double, double, double>
 egret::Element::radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
-    const Dispersion &disp0, const double ds) const noexcept(false) {
+    const Dispersion &disp0, const double ds, const IntegrationMethod method) const noexcept(false) {
     if (!elements_) {
         // Default: zero radiation integrals
         //return std::make_tuple(0., 0., 0., 0., 0., 0.);
@@ -372,14 +381,14 @@ egret::Element::radiation_integrals(const Coordinate &cood0, const Envelope &evl
         if (elem->length() == 0.0) {
             continue;
         }
-        std::tie(i2, i4, i5u, i5v, i4u, i4v) = elem->radiation_integrals(cood, *evlp, *disp, ds);
+        std::tie(i2, i4, i5u, i5v, i4u, i4v) = elem->radiation_integrals(cood, *evlp, *disp, ds, method);
         I2 += i2;
         I4 += i4;
         I5u += i5u;
         I5v += i5v;
         I4u += i4u;
         I4v += i4v;
-        std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds);
+        std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds, method);
     }
     return std::make_tuple(I2, I4, I5u, I5v, I4u, I4v);
 }
@@ -414,10 +423,12 @@ egret::Element::get_element_from_s(const double s) const noexcept(false) {
  * @param s Longitudinal position within the element
  * @param cood0 Initial coordinate at position s
  * @param ds Maximum step size
+ * @param method Integration method
  * @return Eigen::Matrix4d Transfer matrix from position s to the end of the element
  */
 Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
-    const egret::Coordinate &cood0, const double ds) const noexcept(false) {
+    const egret::Coordinate &cood0, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
     (void)cood0; // suppress unused parameter warning
     if (s < 0. || s > length_) {
         throw std::out_of_range("s is out of range in this element.");
@@ -428,7 +439,7 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
         Eigen::Matrix4d M_total = Eigen::Matrix4d::Identity();
         for (const auto &elem : *elements_) {
             if (s >= s_accum && s < s_accum + elem->length()) {
-                M_total = elem->transfer_matrix_from_s(s - s_accum, cood0_local, ds);
+                M_total = elem->transfer_matrix_from_s(s - s_accum, cood0_local, ds, method);
                 const auto v_out = M_total * cood0_local.vector(); // Vector4d
                 cood0_local = Coordinate(v_out,
                     cood0_local.s() + elem->length() - (s - s_accum),
@@ -437,7 +448,7 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
                 const auto M = elem->transfer_matrix(cood0_local, ds); // Matrix4d
                 M_total = M * M_total;
                 std::tie(cood0_local, std::ignore, std::ignore) = elem->transfer(cood0_local,
-                    std::nullopt, std::nullopt, ds);
+                    std::nullopt, std::nullopt, ds, method);
             }
             s_accum += elem->length();
         }
@@ -445,7 +456,7 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
     } else {
         auto elem = clone(); // std::shared_ptr<egret::Element>
         elem->length(elem->length() - s);
-        return elem->transfer_matrix(cood0, ds);
+        return elem->transfer_matrix(cood0, ds, method);
     }
 }
 

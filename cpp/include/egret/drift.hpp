@@ -57,12 +57,16 @@ public:
 
     /**
      * @brief Get the transfer matrix for this drift element.
+     * @param cood0 Initial coordinate (optional)
+     * @param ds Step size (not used here)
+     * @param method Integration method (not used here)
      * @return Eigen::Matrix4d Transfer matrix (4x4)
      */
     Eigen::Matrix4d transfer_matrix(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1) const noexcept(false) override {
+        double ds=0.1, const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
+        (void)method; // unused parameter
         return transfer_matrix(length_);
     }
 
@@ -70,12 +74,15 @@ public:
      * @brief Get an array of transfer matrices for this drift element.
      * @param ds Step size
      * @param endpoint Include endpoint
+     * @param method Integration method (not used here)
      * @return std::vector<Eigen::Matrix4d> Array of transfer matrices
      */
     std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        const double ds = 0.1, const bool endpoint = false) const noexcept(false) override {
+        const double ds = 0.1, const bool endpoint = false,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override {
         (void)cood0; // unused parameter
+        (void)method; // unused parameter
         return transfer_matrix_array(length_, ds, endpoint);
     }
 
@@ -96,11 +103,12 @@ public:
      */
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
-        double ds=0.1) const override{
+        double ds=0.1, const IntegrationMethod method = IntegrationMethod::MIDPOINT) const override{
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter
         (void)ds; // unused parameter
+        (void)method; // unused parameter
         return std::make_tuple(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
 };

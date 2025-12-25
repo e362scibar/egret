@@ -78,21 +78,23 @@ std::shared_ptr<egret::Element> egret::Ring::clone() const noexcept(false) {
 /**
  * @brief Update the ring parameters (tunes, etc.)
  * @param delta Relative momentum deviation
+ * @param method Integration method
  */
-void egret::Ring::update(double delta) noexcept(false) {
+void egret::Ring::update(double delta,
+    const IntegrationMethod method) noexcept(false) {
     // find closed orbit
     try {
         const Coordinate cood_guess(Eigen::Vector4d::Zero(), 0.0, 0.0, delta);
-        cood0_ = find_initial_coordinate_of_closed_orbit(cood_guess);
+        cood0_ = find_initial_coordinate_of_closed_orbit(cood_guess, method);
     } catch (const std::runtime_error &e) {
         std::cout << "Error in finding closed orbit: " << e.what() << std::endl;
         std::cout << "Using previous closed orbit guess." << std::endl;
         cood0_ = Coordinate(Eigen::Vector4d::Zero(), 0.0, 0.0, delta);
     }
     // One-turn transfer matrix
-    const auto M = transfer_matrix(cood0_); // Matrix4d
+    const auto M = transfer_matrix(cood0_, method); // Matrix4d
     // Initial dispersion
-    const auto disp = dispersion(cood0_); // Vector4d
+    const auto disp = dispersion(cood0_, method); // Vector4d
     const auto disp0 = (Eigen::Matrix4d::Identity() - M).inverse() * disp;
     disp0_ = Dispersion(disp0, 0.0);
     // Initial betatron function
@@ -145,7 +147,7 @@ void egret::Ring::update(double delta) noexcept(false) {
     if (tune_y_ < 0.0) {
         tune_y_ += 1.0;
     }
-    std::tie(I2_, I4_, I5u_, I5v_, I4u_, I4v_) = radiation_integrals( cood0_, evlp0_, disp0_);
+    std::tie(I2_, I4_, I5u_, I5v_, I4u_, I4v_) = radiation_integrals( cood0_, evlp0_, disp0_, method);
     const double lgamma = energy_ / m_e_eV;
     emittance_x_ = C_q * lgamma * lgamma * I5u_ / (I2_ - I4u_);
     emittance_y_ = C_q * lgamma * lgamma * I5v_ / (I2_ - I4v_);
@@ -163,16 +165,19 @@ namespace {
     bool func_eval_failed = false;
     // Objective function for GSL minimizer to find closed orbit
     double eval_func_cod(const gsl_vector *v, void *params) {
+        using IntegrationMethod = egret::Element::IntegrationMethod;
         Eigen::Vector4d x;
         for (size_t i = 0; i < ::DIM; ++i) {
             x(i) = gsl_vector_get(v, i);
         }
-        const std::tuple<const egret::Ring*, double> *eval_params =
-            static_cast<std::tuple<const egret::Ring*, double>*>(params);
+        const std::tuple<const egret::Ring*, double, double, IntegrationMethod> *eval_params =
+            static_cast<std::tuple<const egret::Ring*, double, double, IntegrationMethod>*>(params);
         const egret::Ring *ring = std::get<0>(*eval_params);
         const double delta = std::get<1>(*eval_params);
+        const double ds = std::get<2>(*eval_params);
+        const egret::Element::IntegrationMethod method = std::get<3>(*eval_params);
         const egret::Coordinate cood0(x, 0.0, 0.0, delta);
-        const auto cood1 = std::get<0>(ring->transfer(cood0)); // Coordinate after one turn
+        const auto cood1 = std::get<0>(ring->transfer(cood0, std::nullopt, std::nullopt, ds, method)); // Coordinate after one turn
         const double norm = (cood1.vector() - x).norm();
         if (std::isnan(norm) || std::isinf(norm)) {
             func_eval_failed = true;
@@ -189,9 +194,11 @@ namespace {
  * @throws std::runtime_error if the minimization fails to converge
  */
 egret::Coordinate egret::Ring::find_initial_coordinate_of_closed_orbit(
-    const Coordinate &cood_guess) const noexcept(false) {
+    const Coordinate &cood_guess, const IntegrationMethod method) const noexcept(false) {
+    constexpr double ds = 0.1;
     // Set up GSL minimizer
-    std::tuple<const Ring*, double> params = std::make_tuple(this, cood_guess.delta());
+    std::tuple<const Ring*, double, double, IntegrationMethod> params
+        = std::make_tuple(this, cood_guess.delta(), ds, method);
     ::gsl_multimin_function f;
     f.n = ::DIM;
     f.f = &eval_func_cod;

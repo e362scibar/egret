@@ -78,12 +78,12 @@ public:
     using Element::Element;
 
     Eigen::Matrix4d transfer_matrix(const std::optional<Coordinate> &cood0,
-        double ds) const noexcept(false) override {
+        double ds, IntegrationMethod method) const noexcept(false) override {
         PYBIND11_OVERRIDE(
             Eigen::Matrix4d, // return type
             Element, // parent class
             transfer_matrix, // python function name
-            cood0, ds // arguments
+            cood0, ds, method // arguments
         );
     }
 
@@ -91,21 +91,22 @@ public:
     using tuple_of_tmat_array = std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>;
     tuple_of_tmat_array
     transfer_matrix_array(const std::optional<Coordinate> &cood0,
-        double ds, bool endpoint) const noexcept(false) override {
+        double ds, bool endpoint, IntegrationMethod method) const noexcept(false) override {
         PYBIND11_OVERRIDE(
             tuple_of_tmat_array, // return type
             Element, // parent class
             transfer_matrix_array, // python function name
-            cood0, ds, endpoint // arguments
+            cood0, ds, endpoint, method // arguments
         );
     }
 
-    Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0, double ds) const noexcept(false) override {
+    Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0, double ds,
+        IntegrationMethod method) const noexcept(false) override {
         PYBIND11_OVERRIDE(
             Eigen::Vector4d, // return type
             Element, // parent class
             dispersion, // python function name
-            cood0, ds // arguments
+            cood0, ds, method // arguments
         );
     }
 
@@ -113,12 +114,12 @@ public:
     using tuple_of_disp_array = std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>;
     tuple_of_disp_array
     dispersion_array(const std::optional<Coordinate> &cood0,
-        double ds, bool endpoint) const noexcept(false) override {
+        double ds, bool endpoint, IntegrationMethod method) const noexcept(false) override {
         PYBIND11_OVERRIDE(
             tuple_of_disp_array, // return type
             Element, // parent class
             dispersion_array, // python function name
-            cood0, ds, endpoint // arguments
+            cood0, ds, endpoint, method // arguments
         );
     }
 
@@ -128,12 +129,12 @@ public:
     transfer(const Coordinate &cood0,
         const std::optional<Envelope> &evlp0,
         const std::optional<Dispersion> &disp0,
-        double ds) const noexcept(false) override {
+        double ds, IntegrationMethod method) const noexcept(false) override {
         PYBIND11_OVERRIDE(
             tuple_of_beam_params, // return type
             Element, // parent class
             transfer, // python function name
-            cood0, evlp0, disp0, ds // arguments
+            cood0, evlp0, disp0, ds, method // arguments
         );
     }
 
@@ -143,24 +144,24 @@ public:
     transfer_array(const Coordinate &cood0,
         const std::optional<Envelope> &evlp0,
         const std::optional<Dispersion> &disp0,
-        double ds, bool endpoint) const noexcept(false) override {
+        double ds, bool endpoint, IntegrationMethod method) const noexcept(false) override {
         PYBIND11_OVERRIDE(
             tuple_of_beam_param_array, // return type
             Element, // parent class
             transfer_array, // python function name
-            cood0, evlp0, disp0, ds, endpoint // arguments
+            cood0, evlp0, disp0, ds, endpoint, method // arguments
         );
     }
 
     using tuple_of_rad_ints =  std::tuple<double, double, double, double, double, double>;
     tuple_of_rad_ints
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
-        const Dispersion &disp0, double ds) const noexcept(false) override {
+        const Dispersion &disp0, double ds, IntegrationMethod method) const noexcept(false) override {
         PYBIND11_OVERRIDE(
             tuple_of_rad_ints, // return type
             Element, // parent class
             radiation_integrals, // python function name
-            cood0, evlp0, disp0, ds // arguments
+            cood0, evlp0, disp0, ds, method // arguments
         );
     }
 };
@@ -187,6 +188,11 @@ public:
 
 PYBIND11_MODULE(cppegret, m) {
     m.doc() = "pybind11 bindings for egret";
+
+    py::enum_<egret::Element::IntegrationMethod>(m, "IntegrationMethod")
+        .value("MIDPOINT", egret::Element::IntegrationMethod::MIDPOINT)
+        .value("RK4", egret::Element::IntegrationMethod::RK4)
+        .export_values();
 
     py::class_<egret::BaseArray, egret::PyBaseArray, py::smart_holder>(m, "BaseArray")
         .def(py::init<const Eigen::ArrayXd&>(), py::arg("s_array"))
@@ -424,25 +430,33 @@ PYBIND11_MODULE(cppegret, m) {
             static_cast<Eigen::ArrayXd(egret::Element::*)(double, bool) const>(&egret::Element::s_array),
             py::arg("ds") = 0.1, py::arg("endpoint") = true)
         .def("transfer_matrix", &egret::Element::transfer_matrix,
-            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("transfer_matrix_array", &egret::Element::transfer_matrix_array,
-            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("dispersion", &egret::Element::dispersion,
-            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1)
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("dispersion_array", &egret::Element::dispersion_array,
-            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false)
+            py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("transfer", &egret::Element::transfer,
             py::arg("cood0"), py::arg("evlp0") = std::nullopt,
-            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1)
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("transfer_array", &egret::Element::transfer_array,
             py::arg("cood0"), py::arg("evlp0") = std::nullopt,
             py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
-            py::arg("endpoint") = false)
+            py::arg("endpoint") = false,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("radiation_integrals", &egret::Element::radiation_integrals,
-            py::arg("cood0"), py::arg("evlp0"), py::arg("disp0"), py::arg("ds") = 0.1)
+            py::arg("cood0"), py::arg("evlp0"), py::arg("disp0"), py::arg("ds") = 0.1,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("get_element_from_s", &egret::Element::get_element_from_s, py::arg("s"))
         .def("transfer_matrix_from_s", &egret::Element::transfer_matrix_from_s,
-            py::arg("s0"), py::arg("cood0"), py::arg("ds") = 0.1)
+            py::arg("s0"), py::arg("cood0"), py::arg("ds") = 0.1,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("get_element", &egret::Element::get_element, py::arg("indices"))
         .def("set_element", &egret::Element::set_element,
             py::arg("indices"), py::arg("element"))
@@ -621,10 +635,12 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("I5v", &egret::Ring::I5v)
         .def_property_readonly("I4u", &egret::Ring::I4u)
         .def_property_readonly("I4v", &egret::Ring::I4v)
-        .def("update", &egret::Ring::update, py::arg("delta") = 0.0)
+        .def("update", &egret::Ring::update, py::arg("delta") = 0.0,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def("find_initial_coordinate_of_closed_orbit",
             &egret::Ring::find_initial_coordinate_of_closed_orbit,
-            py::arg("cood_guess") = std::nullopt)
+            py::arg("cood_guess") = std::nullopt,
+            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
         .def_readonly_static("C_q", &egret::Ring::C_q)
         .def_readonly_static("m_e_eV", &egret::Ring::m_e_eV)
         .def_readwrite_static("tol_cod", &egret::Ring::tol_cod)

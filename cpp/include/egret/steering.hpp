@@ -124,12 +124,14 @@ public:
      * @brief Get the transfer matrix for the steering magnet.
      * @param cood0 Input coordinate (not used here)
      * @param ds Maximum step size for integration (not used here)
+     * @param method Integration method (not used here)
      * @return Eigen::Matrix4d Transfer matrix
      */
     Eigen::Matrix4d transfer_matrix(std::optional<Coordinate> const &cood0 = std::nullopt,
-        const double ds=0.1) const noexcept(false) override {
+        const double ds=0.1, IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override {
         (void)cood0; // unused parameter
         (void)ds; // unused parameter
+        (void)method; // unused parameter
         return Drift::transfer_matrix(length_);
     }
 
@@ -138,35 +140,40 @@ public:
      * @param cood0 Input coordinate (not used here)
      * @param ds Maximum step size for integration (not used here)
      * @param endpoint Whether to include the endpoint
+     * @param method Integration method (not used here)
      * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Array of transfer matrices and s array
      */
     std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        const double ds = 0.1, const bool endpoint = false) const noexcept(false) override {
+        const double ds = 0.1, const bool endpoint = false,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override {
         (void)cood0; // unused parameter
+        (void)method; // unused parameter
         return Drift::transfer_matrix_array(length_, ds, endpoint);
     }
 
     // Additive dispersion function at the end of the steering magnet.
-    Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1) const noexcept(false) override;
+    Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt, double ds=0.1,
+        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Array of additive dispersion functions along the steering magnet.
     std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
     dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, bool endpoint=false) const noexcept(false) override;
+        double ds=0.1, bool endpoint=false,
+        IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate Coordinate, Envelope, and Dispersion after the steering magnet.
     std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
     transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0 = std::nullopt,
-        const std::optional<Dispersion> &disp0 = std::nullopt,
-        double ds=0.1) const noexcept(false) override;
+        const std::optional<Dispersion> &disp0 = std::nullopt, double ds=0.1,
+        IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     // Calculate CoordinateArray, EnvelopeArray, and DispersionArray along the steering magnet.
     std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
     transfer_array(const Coordinate &cood0, const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt,
-        double ds=0.1, bool endpoint=false) const noexcept(false) override;
+        double ds=0.1, bool endpoint=false,
+        IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
 
     /**
      * @brief Clone the Steering object.
@@ -180,16 +187,18 @@ public:
      * @param evlp0 Initial envelope
      * @param disp0 Initial dispersion
      * @param ds Step size for integration
+     * @param method Integration method (not used here)
      * @return std::tuple<double, double, double, double, double, double>
      *         Radiation integrals (I1, I2, I3, I4, I5, I6)
      */
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
-        double ds=0.1) const override{
+        double ds=0.1, const IntegrationMethod method = IntegrationMethod::MIDPOINT) const override{
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter
         (void)ds; // unused parameter
+        (void)method; // unused parameter
         return std::make_tuple(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
 };

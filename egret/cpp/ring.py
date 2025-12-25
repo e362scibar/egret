@@ -182,26 +182,29 @@ class Ring(RingABC, Element):
         '''
         return self.instance.I5v
 
-    def update(self, delta: float = 0.):
+    def update(self, delta: float = 0., method= 'midpoint') -> None:
         '''
         Update transfer matrix, dispersion, and emittance.
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
+            method str: Integration method (default: 'midpoint').
         '''
-        self.instance.update(delta)
+        self.instance.update(delta, Element.INTEGRATION_METHODS[method])
 
-    def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = None) -> None:
+    def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = None, method: str = 'midpoint') -> None:
         '''
         Find initial coordinate of the closed orbit using Newton-Raphson method.
 
         Args:
             guess Coordinate: Initial guess of the closed orbit.
+            method str: Integration method (default: 'midpoint').
         '''
+        imethod = Element.INTEGRATION_METHODS[method]
         if guess is None:
-            self.instance.find_initial_coordinate_of_closed_orbit()
+            self.instance.find_initial_coordinate_of_closed_orbit(method=imethod)
         else:
-            self.instance.find_initial_coordinate_of_closed_orbit(guess.instance)
+            self.instance.find_initial_coordinate_of_closed_orbit(guess.instance, method=imethod)
 
     @classmethod
     def read_json(cls, path: str) -> Ring:

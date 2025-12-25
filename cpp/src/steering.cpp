@@ -45,11 +45,13 @@ std::tuple<double, double> egret::Steering::tilted_kick(const double delta) cons
  * @brief Calculate the additive dispersion function at the end of the steering magnet.
  * @param cood0 Optional input coordinate
  * @param ds Step size (unused)
+ * @param method Integration method (unused)
  * @return Eigen::Vector4d Additive dispersion vector [eta_x, eta'_x, eta_y, eta'_y]
  */
 Eigen::Vector4d egret::Steering::dispersion(const std::optional<Coordinate> &cood0,
-    const double ds) const noexcept(false) {
+    const double ds, IntegrationMethod method) const noexcept(false) {
     (void)ds; // unused parameter
+    (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const auto [kick_x_eff, kick_y_eff] = tilted_kick(delta);
     const double eta_x = -0.5 * length_ * kick_x_eff;
@@ -66,11 +68,13 @@ Eigen::Vector4d egret::Steering::dispersion(const std::optional<Coordinate> &coo
  * @param cood0 Optional input coordinate
  * @param ds Step size
  * @param endpoint Whether to include the endpoint
+ * @param method Integration method (unused)
  * @return std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> Array of additive dispersion vectors and corresponding s values
  */
 std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
 egret::Steering::dispersion_array(const std::optional<Coordinate> &cood0,
-    const double ds, const bool endpoint) const noexcept(false) {
+    const double ds, const bool endpoint, IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     const auto s_array = Element::s_array(ds, endpoint); // ArrayXd
     const size_t n = s_array.size();
     const double delta = cood0 ? cood0->delta() : 0.0;
@@ -99,11 +103,13 @@ egret::Steering::dispersion_array(const std::optional<Coordinate> &cood0,
  * @param evlp0 Initial envelope (optional)
  * @param disp0 Initial dispersion (optional)
  * @param ds Step size for integration
+ * @param method Integration method (unused)
  * @return std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>> Coordinate, envelope, and dispersion after transfer
  */
 std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>>
 egret::Steering::transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
-    const std::optional<Dispersion> &disp0, const double ds) const noexcept(false) {
+    const std::optional<Dispersion> &disp0, const double ds, IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     const double delta = cood0.delta();
     const auto [kick_x_eff, kick_y_eff] = tilted_kick(delta);
     const double dx = 0.5 * length_ * kick_x_eff;
@@ -133,13 +139,16 @@ egret::Steering::transfer(const Coordinate &cood0, const std::optional<Envelope>
  * @param disp0 Initial dispersion (optional)
  * @param ds Step size for integration
  * @param endpoint Whether to include the endpoint in the array
+ * @param method Integration method (unused)
  * @return std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>> Coordinate, envelope, and dispersion arrays after transfer
  */
 std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>>
 egret::Steering::transfer_array(const Coordinate &cood0,
     const std::optional<Envelope> &evlp0,
     const std::optional<Dispersion> &disp0,
-    const double ds, const bool endpoint) const noexcept(false) {
+    const double ds, const bool endpoint,
+    IntegrationMethod method) const noexcept(false) {
+    (void)method; // unused parameter
     const double delta = cood0.delta();
     const auto [kick_x_eff, kick_y_eff] = tilted_kick(delta);
     const auto [M_array, s_array] = transfer_matrix_array(cood0, ds, endpoint); // vector<Matrix4d>, ArrayXd

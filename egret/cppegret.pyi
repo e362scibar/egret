@@ -6,7 +6,7 @@ import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['BaseArray', 'Coordinate', 'CoordinateArray', 'Dipole', 'Dispersion', 'DispersionArray', 'Drift', 'Element', 'Envelope', 'EnvelopeArray', 'Lattice', 'NonlinearMultipole', 'Object', 'Octupole', 'Quadrupole', 'Ring', 'Sextupole', 'Steering']
+__all__: list[str] = ['BaseArray', 'Coordinate', 'CoordinateArray', 'Dipole', 'Dispersion', 'DispersionArray', 'Drift', 'Element', 'Envelope', 'EnvelopeArray', 'IntegrationMethod', 'Lattice', 'MIDPOINT', 'NonlinearMultipole', 'Object', 'Octupole', 'Quadrupole', 'RK4', 'Ring', 'Sextupole', 'Steering']
 class BaseArray:
     def __init__(self, s_array: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"]) -> None:
         ...
@@ -251,9 +251,9 @@ class Element(Object):
     info: str
     def __init__(self, name: str, length: typing.SupportsFloat, angle: typing.SupportsFloat = 0.0, dx: typing.SupportsFloat = 0.0, dy: typing.SupportsFloat = 0.0, ds: typing.SupportsFloat = 0.0, tilt: typing.SupportsFloat = 0.0, info: str = '') -> None:
         ...
-    def dispersion(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]"]:
+    def dispersion(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]"]:
         ...
-    def dispersion_array(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1, endpoint: bool = False) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, n]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]]:
+    def dispersion_array(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1, endpoint: bool = False, method: IntegrationMethod = ...) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, n]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]]:
         ...
     def find_index(self, names: collections.abc.Sequence[str]) -> list[list[int]]:
         ...
@@ -263,7 +263,7 @@ class Element(Object):
         ...
     def get_s(self, indices: collections.abc.Sequence[typing.SupportsInt]) -> float:
         ...
-    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: typing.SupportsFloat = 0.1) -> tuple[float, float, float, float, float, float]:
+    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> tuple[float, float, float, float, float, float]:
         ...
     def s_array(self, ds: typing.SupportsFloat = 0.1, endpoint: bool = True) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
@@ -271,15 +271,15 @@ class Element(Object):
         ...
     def set_indices(self, indices: collections.abc.Sequence[typing.SupportsInt] = []) -> None:
         ...
-    def transfer(self, cood0: Coordinate, evlp0: egret.cppegret.Envelope | None = None, disp0: egret.cppegret.Dispersion | None = None, ds: typing.SupportsFloat = 0.1) -> tuple[Coordinate, egret.cppegret.Envelope | None, egret.cppegret.Dispersion | None]:
+    def transfer(self, cood0: Coordinate, evlp0: egret.cppegret.Envelope | None = None, disp0: egret.cppegret.Dispersion | None = None, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> tuple[Coordinate, egret.cppegret.Envelope | None, egret.cppegret.Dispersion | None]:
         ...
-    def transfer_array(self, cood0: Coordinate, evlp0: egret.cppegret.Envelope | None = None, disp0: egret.cppegret.Dispersion | None = None, ds: typing.SupportsFloat = 0.1, endpoint: bool = False) -> tuple[CoordinateArray, egret.cppegret.EnvelopeArray | None, egret.cppegret.DispersionArray | None]:
+    def transfer_array(self, cood0: Coordinate, evlp0: egret.cppegret.Envelope | None = None, disp0: egret.cppegret.Dispersion | None = None, ds: typing.SupportsFloat = 0.1, endpoint: bool = False, method: IntegrationMethod = ...) -> tuple[CoordinateArray, egret.cppegret.EnvelopeArray | None, egret.cppegret.DispersionArray | None]:
         ...
-    def transfer_matrix(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]:
+    def transfer_matrix(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]:
         ...
-    def transfer_matrix_array(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1, endpoint: bool = False) -> tuple[list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]]:
+    def transfer_matrix_array(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1, endpoint: bool = False, method: IntegrationMethod = ...) -> tuple[list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]]:
         ...
-    def transfer_matrix_from_s(self, s0: typing.SupportsFloat, cood0: Coordinate, ds: typing.SupportsFloat = 0.1) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]:
+    def transfer_matrix_from_s(self, s0: typing.SupportsFloat, cood0: Coordinate, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]:
         ...
     @property
     def angle(self) -> float:
@@ -507,6 +507,43 @@ class EnvelopeArray(BaseArray):
     @property
     def tau_array(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
+class IntegrationMethod:
+    """
+    Members:
+    
+      MIDPOINT
+    
+      RK4
+    """
+    MIDPOINT: typing.ClassVar[IntegrationMethod]  # value = <IntegrationMethod.MIDPOINT: 0>
+    RK4: typing.ClassVar[IntegrationMethod]  # value = <IntegrationMethod.RK4: 1>
+    __members__: typing.ClassVar[dict[str, IntegrationMethod]]  # value = {'MIDPOINT': <IntegrationMethod.MIDPOINT: 0>, 'RK4': <IntegrationMethod.RK4: 1>}
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
+        ...
 class Lattice(Element, Object):
     @staticmethod
     def angle_of(elements: collections.abc.Sequence[Element]) -> float:
@@ -599,9 +636,9 @@ class Ring(Element, Object):
     tol_cod: typing.ClassVar[float] = 1e-12
     def __init__(self, name: str, elements: collections.abc.Sequence[Element], energy: typing.SupportsFloat, info: str = '') -> None:
         ...
-    def find_initial_coordinate_of_closed_orbit(self, cood_guess: Coordinate = None) -> Coordinate:
+    def find_initial_coordinate_of_closed_orbit(self, cood_guess: Coordinate = None, method: IntegrationMethod = ...) -> Coordinate:
         ...
-    def update(self, delta: typing.SupportsFloat = 0.0) -> None:
+    def update(self, delta: typing.SupportsFloat = 0.0, method: IntegrationMethod = ...) -> None:
         ...
     @property
     def I2(self) -> float:
@@ -686,3 +723,5 @@ class Steering(Element, Object):
     @kick_y.setter
     def kick_y(self, arg1: typing.SupportsFloat) -> None:
         ...
+MIDPOINT: IntegrationMethod  # value = <IntegrationMethod.MIDPOINT: 0>
+RK4: IntegrationMethod  # value = <IntegrationMethod.RK4: 1>

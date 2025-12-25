@@ -141,11 +141,12 @@ public:
      */
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
-        double ds=0.1) const override{
+        double ds=0.1, const IntegrationMethod method=IntegrationMethod::MIDPOINT) const override{
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter
         (void)ds; // unused parameter
+        (void)method; // unused parameter
         return std::make_tuple(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
 };

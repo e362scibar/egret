@@ -156,10 +156,12 @@ public:
     double I4v() const { return I4v_; }
 
     // Update the ring parameters (tunes, etc.)
-    void update(double delta=0.0) noexcept(false);
+    void update(double delta=0.0,
+        IntegrationMethod method=IntegrationMethod::MIDPOINT) noexcept(false);
 
     // find initial coordinates of closed orbit
-    Coordinate find_initial_coordinate_of_closed_orbit(const Coordinate &cood_guess) const noexcept(false);
+    Coordinate find_initial_coordinate_of_closed_orbit(const Coordinate &cood_guess,
+        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
 
     // Polymorphic clone
     std::shared_ptr<Element> clone() const noexcept(false) override;

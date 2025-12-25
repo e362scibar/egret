@@ -68,17 +68,19 @@ egret::NonlinearMultipole::transfer_by_midpoint_method(const Coordinate &cood0,
  * @brief Compute the transfer matrix of the nonlinear multipole element.
  * @param cood0 Initial coordinate. (optional)
  * @param ds Step size for the transfer matrix calculation.
+ * @param method Integration method to use.
  * @return Eigen::Matrix4d The transfer matrix.
  */
 Eigen::Matrix4d egret::NonlinearMultipole::transfer_matrix(
-    const std::optional<Coordinate> &cood0, const double ds) const noexcept(false) {
+    const std::optional<Coordinate> &cood0, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
     const size_t n_step = static_cast<size_t>(std::ceil(length_ / ds));
     const double ds_step = length_ / n_step;
     Coordinate cood = cood0 ? *cood0 : Coordinate();
     Eigen::Matrix4d tmat = Eigen::Matrix4d::Identity();
     for (const size_t i : std::views::iota(0u, n_step)) {
         (void)i; // unused variable
-        const auto results = transfer_by_midpoint_method(cood, ds_step, true, false);
+        const auto results = transfer_by_integration(cood, ds_step, true, false, method);
         cood = std::get<0>(results);
         const auto tmat_step = std::get<1>(results);
         tmat = *tmat_step * tmat;
@@ -91,11 +93,12 @@ Eigen::Matrix4d egret::NonlinearMultipole::transfer_matrix(
  * @param cood0 Initial coordinate. (optional)
  * @param ds Step size for the transfer matrix calculation.
  * @param endpoint Whether to include the endpoint in the s array.
+ * @param method Integration method to use.
  * @return std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> Tuple of the array of transfer matrices and the corresponding s positions.
  */
 std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
 egret::NonlinearMultipole::transfer_matrix_array(const std::optional<Coordinate> &cood0,
-    const double ds, const bool endpoint) const noexcept(false) {
+    const double ds, const bool endpoint, const IntegrationMethod method) const noexcept(false) {
     auto s_array = Element::s_array(ds, endpoint);
     Coordinate cood = cood0 ? *cood0 : Coordinate();
     std::vector<Eigen::Matrix4d> tmat_array;
@@ -103,7 +106,7 @@ egret::NonlinearMultipole::transfer_matrix_array(const std::optional<Coordinate>
     tmat_array.push_back(tmat);
     for (const size_t i : std::views::iota(0u, static_cast<size_t>(s_array.size() - 1))) {
         const double ds_step = s_array[i + 1] - s_array[i];
-        const auto results = transfer_by_midpoint_method(cood, ds_step, true, false);
+        const auto results = transfer_by_integration(cood, ds_step, true, false, method);
         cood = std::get<0>(results);
         const auto tmat_step = std::get<1>(results);
         tmat = *tmat_step * tmat;
@@ -116,17 +119,19 @@ egret::NonlinearMultipole::transfer_matrix_array(const std::optional<Coordinate>
  * @brief Calculate the additive dispersion vector of the nonlinear multipole element.
  * @param cood0 Initial coordinate. (optional)
  * @param ds Step size for the dispersion calculation.
+ * @param method Integration method to use.
  * @return Eigen::Vector4d The additive dispersion vector.
  */
 Eigen::Vector4d egret::NonlinearMultipole::dispersion(
-    const std::optional<Coordinate> &cood0, const double ds) const noexcept(false) {
+    const std::optional<Coordinate> &cood0, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
     const size_t n_step = static_cast<size_t>(std::ceil(length_ / ds));
     const double ds_step = length_ / n_step;
     Coordinate cood = cood0 ? *cood0 : Coordinate();
     Eigen::Vector4d dispout = Eigen::Vector4d::Zero();
     for (const size_t i : std::views::iota(0u, n_step)) {
         (void)i; // unused variable
-        const auto results = transfer_by_midpoint_method(cood, ds_step, true, true);
+        const auto results = transfer_by_integration(cood, ds_step, true, true, method);
         const auto tmat_step = std::get<1>(results);
         const auto disp_step = std::get<2>(results);
         cood = std::get<0>(results);
@@ -140,12 +145,13 @@ Eigen::Vector4d egret::NonlinearMultipole::dispersion(
  * @param cood0 Initial coordinate. (optional)
  * @param ds Step size for the dispersion calculation.
  * @param endpoint Whether to include the endpoint in the s array.
+ * @param method Integration method to use.
  * @return std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> Tuple of the dispersion array and the corresponding s positions.
  */
 std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
 egret::NonlinearMultipole::dispersion_array(
     const std::optional<Coordinate> &cood0, const double ds,
-    const bool endpoint) const noexcept(false) {
+    const bool endpoint, const IntegrationMethod method) const noexcept(false) {
     auto s_array = Element::s_array(ds, endpoint);
     Coordinate cood = cood0 ? *cood0 : Coordinate();
     Eigen::Matrix<double, 4, Eigen::Dynamic> disp_array(4, s_array.size());
@@ -153,7 +159,7 @@ egret::NonlinearMultipole::dispersion_array(
     Eigen::Vector4d dispout = Eigen::Vector4d::Zero();
     for (const size_t i : std::views::iota(0u, static_cast<size_t>(s_array.size() - 1))) {
         const double ds_step = s_array[i+1] - s_array[i];
-        const auto results = transfer_by_midpoint_method(cood, ds_step, true, true);
+        const auto results = transfer_by_integration(cood, ds_step, true, true, method);
         const auto tmat_step = std::get<1>(results);
         const auto disp_step = std::get<2>(results);
         cood = std::get<0>(results);
@@ -169,12 +175,13 @@ egret::NonlinearMultipole::dispersion_array(
  * @param evlp0 Initial envelope. (optional)
  * @param disp0 Initial dispersion. (optional)
  * @param ds Step size for the transfer calculation.
+ * @param method Integration method to use.
  * @return std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>> Tuple of final coordinate, envelope, and dispersion.
  */
 std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>>
 egret::NonlinearMultipole::transfer(const Coordinate &cood0,
     const std::optional<Envelope> &evlp0, const std::optional<Dispersion> &disp0,
-    const double ds) const noexcept(false) {
+    const double ds, const IntegrationMethod method) const noexcept(false) {
     Coordinate cood = cood0;
     cood.x(cood0.x() - dx_);
     cood.y(cood0.y() - dy_);
@@ -191,8 +198,8 @@ egret::NonlinearMultipole::transfer(const Coordinate &cood0,
     }
     for (const size_t i : std::views::iota(0u, n_step)) {
         (void)i; // unused variable
-        const auto results = transfer_by_midpoint_method(cood, ds_step,
-            tmat.has_value() || dispout.has_value(), dispout.has_value());
+        const auto results = transfer_by_integration(cood, ds_step,
+            tmat.has_value() || dispout.has_value(), dispout.has_value(), method);
         cood = std::get<0>(results);
         const auto tmat_step = std::get<1>(results);
         const auto disp_step = std::get<2>(results);
@@ -225,12 +232,13 @@ egret::NonlinearMultipole::transfer(const Coordinate &cood0,
  * @param disp0 Initial dispersion. (optional)
  * @param ds Maximum step size for the transfer calculation.
  * @param endpoint Whether to include the endpoint in the output arrays.
+ * @param method Integration method to use.
  * @return std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>> Tuple of coordinate array, envelope array, and dispersion array.
  */
 std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>>
 egret::NonlinearMultipole::transfer_array(const Coordinate &cood0,
     const std::optional<Envelope> &evlp0, const std::optional<Dispersion> &disp0,
-    const double ds, const bool endpoint) const noexcept(false) {
+    const double ds, const bool endpoint, const IntegrationMethod method) const noexcept(false) {
     const auto s_array = Element::s_array(ds, endpoint); // ArrayXd
     Coordinate cood = cood0;
     cood.x(cood0.x() - dx_);
@@ -255,8 +263,8 @@ egret::NonlinearMultipole::transfer_array(const Coordinate &cood0,
     }
     for (const size_t i : std::views::iota(0u, n_step)) {
         const double ds_step = s_array[i+1] - s_array[i];
-        const auto results = transfer_by_midpoint_method(cood, ds_step,
-            evlp0.has_value() || disp0.has_value(), disp0.has_value());
+        const auto results = transfer_by_integration(cood, ds_step,
+            evlp0.has_value() || disp0.has_value(), disp0.has_value(), method);
         cood = std::get<0>(results);
         const auto tmat_step = std::get<1>(results);
         const auto disp_step = std::get<2>(results);
