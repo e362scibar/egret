@@ -599,7 +599,7 @@ egret::Dipole::radiation_integrals(const Coordinate &cood0, const Envelope &evlp
     (void)method; // unused parameter
     const double kappa = angle_ / length_;
     const auto &[cood_array, evlp_array, disp_array] =
-        transfer_array(cood0, evlp0, disp0, ds, true);
+        transfer_array(cood0, evlp0, disp0, ds, true, method);
     const size_t n = evlp_array->size();
     Eigen::Matrix<double, 4, Eigen::Dynamic> dispuv(4, n);
     for (const size_t i : std::views::iota(0u, n)) {

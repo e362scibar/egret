@@ -645,9 +645,9 @@ class Ring(Element, Object):
     tol_cod: typing.ClassVar[float] = 1e-12
     def __init__(self, name: str, elements: collections.abc.Sequence[Element], energy: typing.SupportsFloat, info: str = '') -> None:
         ...
-    def find_initial_coordinate_of_closed_orbit(self, cood_guess: Coordinate = None, method: IntegrationMethod = ...) -> Coordinate:
+    def find_initial_coordinate_of_closed_orbit(self, cood_guess: Coordinate = None, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> Coordinate:
         ...
-    def update(self, delta: typing.SupportsFloat = 0.0, method: IntegrationMethod = ...) -> None:
+    def update(self, delta: typing.SupportsFloat = 0.0, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> None:
         ...
     @property
     def I2(self) -> float:

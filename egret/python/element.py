@@ -463,7 +463,8 @@ class Element(ElementABC, Object):
             if endpoint:
                 cood1.append(CoordinateArray(cood.vector[:, np.newaxis], np.array([cood.s])))
                 if evlp0 is not None:
-                    evlp1.append(EnvelopeArray(evlp.cov[np.newaxis, :, :], np.array([evlp.s]), evlp.T[np.newaxis, :, :]))
+                    evlp1.append(EnvelopeArray(evlp.cov[np.newaxis, :, :], np.array([evlp.s]), evlp.T[np.newaxis, :, :],
+                                               np.array([evlp.psix]), np.array([evlp.psiy])))
                 if disp0 is not None:
                     disp1.append(DispersionArray(disp.vector[:, np.newaxis], np.array([disp.s])))
             cood1.x += self._dx

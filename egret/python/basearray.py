@@ -27,6 +27,7 @@ class BaseArray(BaseArrayABC):
     '''
     Base class for array types.
     '''
+    TOL = 1.0e-6
 
     def __init__(self, s: npt.NDArray[np.floating]) -> None:
         '''
@@ -90,9 +91,14 @@ class BaseArray(BaseArrayABC):
         Returns:
             int: Index corresponding to the s position.
         '''
-        idx = np.searchsorted(self._s, s)
+        if s < self._s[0] - self.TOL or s > self._s[-1] + self.TOL:
+            raise ValueError(f'Out of range: s={s}, range=({self._s[0]}, {self._s[-1]})')
+        #idx = np.searchsorted(self._s, s)
+        idx = np.searchsorted(self._s, s, side='right')
         if isinstance(idx, np.ndarray):
             idx = idx[0]
-        if idx == len(self._s) - 1:
-            raise ValueError(f'Out of range: s={s}, max={self._s[-1]}')
-        return idx
+        if idx <= 0:
+            idx = 1
+        if idx >= len(self._s):
+            idx = len(self._s) - 1
+        return idx - 1

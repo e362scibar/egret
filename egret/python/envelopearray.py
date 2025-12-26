@@ -305,6 +305,8 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         idx = self.index_from_s(s)
         s0, s1 = self._s[idx], self._s[idx+1]
         ds = s1 - s0
+        if s < s0 - self.TOL or s > s1 + self.TOL:
+            raise ValueError(f"s = {s} is out of range of s_array: [{s0}, {s1}]")
         if ds == 0.0:
             a = np.array([0.5, 0.5])
         else:

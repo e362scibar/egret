@@ -327,6 +327,11 @@ egret::Envelope egret::EnvelopeArray::from_s(const double s) const noexcept(fals
     const double s0 = s_array_(idx);
     const double s1 = s_array_(idx + 1);
     const double ds = s1 - s0;
+    if (s < s0 || s1 < s) {
+        std::ostringstream ss;
+        ss << "s = " << s << " is out of range of s_array: [" << s0 << ", " << s1 << "]";
+        throw std::out_of_range(ss.str());
+    }
     if (ds == 0.) {
         // Degenerate case: s0 == s1
         const auto cov = 0.5 * (cov_array_[idx] + cov_array_[idx + 1]); // Matrix4d

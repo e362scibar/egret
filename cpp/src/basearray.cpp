@@ -62,11 +62,12 @@ void egret::BaseArray::append(const BaseArray &other) noexcept(false) {
  * @throws std::out_of_range if s is out of the range of s_array.
  */
 size_t egret::BaseArray::index_from_s(const double s) const noexcept(false) {
+    static constexpr double tol = 1.0e-6;
     const size_t n = s_array_.size();
     if (n < 2) {
         throw std::out_of_range("s_array must contain at least two points.");
     }
-    if (s < s_array_(0) || s > s_array_(n - 1)) {
+    if (s < s_array_(0) - tol || s > s_array_(n - 1) + tol) {
         throw std::out_of_range("s value is out of the range of the s_array");
     }
     // binary search to find the right interval
@@ -75,13 +76,9 @@ size_t egret::BaseArray::index_from_s(const double s) const noexcept(false) {
     const double *it = std::upper_bound(begin, end, s);
     size_t idx = std::distance(begin, it);
     if (idx == 0) {
-        throw std::out_of_range("Out of range");
-    }
-    if (idx == n) {
+        idx = 1;
+    } else if (idx == n) {
         idx = n - 1;
-    }
-    if (idx == n - 1) {
-        throw std::out_of_range("Out of range");
     }
     return idx - 1;
 }

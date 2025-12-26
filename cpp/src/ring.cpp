@@ -78,9 +78,10 @@ std::shared_ptr<egret::Element> egret::Ring::clone() const noexcept(false) {
 /**
  * @brief Update the ring parameters (tunes, etc.)
  * @param delta Relative momentum deviation
+ * @param ds Longitudinal step size
  * @param method Integration method
  */
-void egret::Ring::update(double delta,
+void egret::Ring::update(const double delta, const double ds,
     const IntegrationMethod method) noexcept(false) {
     // find closed orbit
     try {
@@ -92,9 +93,9 @@ void egret::Ring::update(double delta,
         cood0_ = Coordinate(Eigen::Vector4d::Zero(), 0.0, 0.0, delta);
     }
     // One-turn transfer matrix
-    const auto M = transfer_matrix(cood0_, method); // Matrix4d
+    const auto M = transfer_matrix(cood0_, ds, method); // Matrix4d
     // Initial dispersion
-    const auto disp = dispersion(cood0_, method); // Vector4d
+    const auto disp = dispersion(cood0_, ds, method); // Vector4d
     const auto disp0 = (Eigen::Matrix4d::Identity() - M).inverse() * disp;
     disp0_ = Dispersion(disp0, 0.0);
     // Initial betatron function
@@ -147,7 +148,7 @@ void egret::Ring::update(double delta,
     if (tune_y_ < 0.0) {
         tune_y_ += 1.0;
     }
-    std::tie(I2_, I4_, I5u_, I5v_, I4u_, I4v_) = radiation_integrals(cood0_, evlp0_, disp0_, method);
+    std::tie(I2_, I4_, I5u_, I5v_, I4u_, I4v_) = radiation_integrals(cood0_, evlp0_, disp0_, ds, method);
     const double lgamma = energy_ / m_e_eV;
     emittance_x_ = C_q * lgamma * lgamma * I5u_ / (I2_ - I4u_);
     emittance_y_ = C_q * lgamma * lgamma * I5v_ / (I2_ - I4v_);
@@ -194,8 +195,8 @@ namespace {
  * @throws std::runtime_error if the minimization fails to converge
  */
 egret::Coordinate egret::Ring::find_initial_coordinate_of_closed_orbit(
-    const Coordinate &cood_guess, const IntegrationMethod method) const noexcept(false) {
-    constexpr double ds = 0.1;
+    const Coordinate &cood_guess, const double ds,
+    const IntegrationMethod method) const noexcept(false) {
     // Set up GSL minimizer
     std::tuple<const Ring*, double, double, IntegrationMethod> params
         = std::make_tuple(this, cood_guess.delta(), ds, method);

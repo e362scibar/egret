@@ -638,11 +638,11 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("I5v", &egret::Ring::I5v)
         .def_property_readonly("I4u", &egret::Ring::I4u)
         .def_property_readonly("I4v", &egret::Ring::I4v)
-        .def("update", &egret::Ring::update, py::arg("delta") = 0.0,
+        .def("update", &egret::Ring::update, py::arg("delta") = 0.0, py::arg("ds") = 0.1,
             py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("find_initial_coordinate_of_closed_orbit",
             &egret::Ring::find_initial_coordinate_of_closed_orbit,
-            py::arg("cood_guess") = std::nullopt,
+            py::arg("cood_guess") = std::nullopt, py::arg("ds") = 0.1,
             py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def_readonly_static("C_q", &egret::Ring::C_q)
         .def_readonly_static("m_e_eV", &egret::Ring::m_e_eV)

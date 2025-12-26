@@ -182,29 +182,31 @@ class Ring(RingABC, Element):
         '''
         return self.instance.I5v
 
-    def update(self, delta: float = 0., method= 'symplectic4') -> None:
+    def update(self, delta: float = 0., ds: float = 0.1, method= 'symplectic4') -> None:
         '''
         Update transfer matrix, dispersion, and emittance.
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
+            ds float: Longitudinal step size (default: 0.1).
             method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
         '''
-        self.instance.update(delta, Element.INTEGRATION_METHODS[method])
+        self.instance.update(delta, ds, Element.INTEGRATION_METHODS[method])
 
-    def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = None, method: str = 'symplectic4') -> None:
+    def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = None, ds: float = 0.1, method: str = 'symplectic4') -> None:
         '''
         Find initial coordinate of the closed orbit using Newton-Raphson method.
 
         Args:
             guess Coordinate: Initial guess of the closed orbit.
+            ds float: Longitudinal step size (default: 0.1).
             method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
         '''
         imethod = Element.INTEGRATION_METHODS[method]
         if guess is None:
-            self.instance.find_initial_coordinate_of_closed_orbit(method=imethod)
+            self.instance.find_initial_coordinate_of_closed_orbit(ds=ds, method=imethod)
         else:
-            self.instance.find_initial_coordinate_of_closed_orbit(guess.instance, method=imethod)
+            self.instance.find_initial_coordinate_of_closed_orbit(guess.instance, ds=ds, method=imethod)
 
     @classmethod
     def read_json(cls, path: str) -> Ring:
