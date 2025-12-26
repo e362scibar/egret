@@ -221,14 +221,14 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'symplectic4') -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m] for integration (not used in the base class).
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
@@ -236,7 +236,7 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = True, method: str = 'midpoint') \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = True, method: str = 'symplectic4') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
@@ -245,7 +245,7 @@ class Element(Object):
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
@@ -254,14 +254,14 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def dispersion(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'symplectic4') -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m] for integration (not used in the base class).
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
@@ -269,7 +269,7 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
+    def dispersion_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'symplectic4') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the element.
@@ -278,7 +278,7 @@ class Element(Object):
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             npt.NDArray[np.floating]: Dispersion array of shape (4, N).
@@ -287,7 +287,7 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method: str = 'midpoint') \
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method: str = 'symplectic4') \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
         Calculate the coordinate, envelope, and dispersion after the element.
@@ -297,7 +297,7 @@ class Element(Object):
             evlp0 Envelope: Initial beam envelope (optional).
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m] for integration (not used in the base class).
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             Coordinate: Coordinate after the element.
@@ -308,7 +308,7 @@ class Element(Object):
 
     @abstractmethod
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.1, endpoint: bool = True) \
+                       ds: float = 0.1, endpoint: bool = True, method: str = 'symplectic4') \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate array along the element.
@@ -319,7 +319,7 @@ class Element(Object):
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             CoordinateArray: Coordinate array along the element.
@@ -329,7 +329,7 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1, method: str = 'midpoint') \
+    def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1, method: str = 'symplectic4') \
         -> Tuple[float, float, float]:
         '''
         Calculate radiation integrals.
@@ -339,7 +339,7 @@ class Element(Object):
             evlp0 Envelope: Initial envelope.
             disp0 Dispersion: Initial dispersion.
             ds float: Maximum step size [m].
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
@@ -361,7 +361,7 @@ class Element(Object):
         pass
 
     @abstractmethod
-    def transfer_matrix_from_s(self, s: float, cood0: Coordinate, ds: float = 0.1, method: str = 'midpoint') \
+    def transfer_matrix_from_s(self, s: float, cood0: Coordinate, ds: float = 0.1, method: str = 'symplectic4') \
         -> npt.NDArray[np.floating]:
         '''
         Transfer matrices from the given longitudinal position to the end of the element.
@@ -370,7 +370,7 @@ class Element(Object):
             s float: Longitudinal position [m].
             cood0 Coordinate: Initial coordinate (not used in the base class).
             ds float: Maximum step size [m] for integration (not used in the base class).
-            method str: Integration method ('midpoint' or 'rk4') (not used in the base class).
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}') (not used in the base class).
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix from s to the end of the element.

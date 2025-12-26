@@ -138,25 +138,46 @@ public:
     transfer_by_midpoint_method(const Coordinate &cood0, double ds=0.1,
         bool tmat_flag=true, bool disp_flag=false) const noexcept(false);
 
-    /**
-     * @brief Calculate coordinate, transfer matrix, and dispersion by specified integration method.
-     * @param cood0 Initial coordinate
-     * @param ds Step size for integration
-     * @param tmat_flag Whether to calculate transfer matrix
-     * @param disp_flag Whether to calculate dispersion
-     * @param method Integration method
-     * @return std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
-     *         Tuple of final coordinate, optional transfer matrix, and optional dispersion
-     */
+    // Calculate coordinate, transfer matrix, and dispersion by RK4 method.
     virtual std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
-        transfer_by_integration(const Coordinate &cood0, const double ds=0.1,
-        const bool tmat_flag=true, const bool disp_flag=false,
-        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false){
-        switch(method){
+    transfer_by_rk4_method(const Coordinate &cood0, double ds=0.1,
+        bool tmat_flag=true, bool disp_flag=false) const noexcept(false);
+
+    // Calculate coordinate, transfer matrix, and dispersion by 1st-order symplectic method.
+    virtual std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+    transfer_by_symplectic1_method(const Coordinate &cood0, double ds=0.1,
+        bool tmat_flag=true, bool disp_flag=false) const noexcept(false);
+
+    // Calculate coordinate, transfer matrix, and dispersion by 2nd-order symplectic method.
+    virtual std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+    transfer_by_symplectic2_method(const Coordinate &cood0, double ds=0.1,
+        bool tmat_flag=true, bool disp_flag=false) const noexcept(false);
+
+    // Calculate coordinate, transfer matrix, and dispersion by 4th-order symplectic method.
+    virtual std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+    transfer_by_symplectic4_method(const Coordinate &cood0, double ds=0.1,
+        bool tmat_flag=true, bool disp_flag=false) const noexcept(false);
+
+    using TransferFuncPtr = std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+        (NonlinearMultipole::*)(const Coordinate &, double, bool, bool) const;
+
+    /**
+     * @brief Get the transfer function pointer for the specified integration method.
+     * @param method Integration method
+     * @return TransferFuncPtr Pointer to the corresponding transfer function
+     */
+    TransferFuncPtr get_transfer_func_ptr(const IntegrationMethod method) const {
+        switch (method) {
             case IntegrationMethod::MIDPOINT:
-                return transfer_by_midpoint_method(cood0, ds, tmat_flag, disp_flag);
+                return &NonlinearMultipole::transfer_by_midpoint_method;
             case IntegrationMethod::RK4:
-                throw std::runtime_error("RK4 integration not implemented for NonlinearMultipole yet.");
+                return &NonlinearMultipole::transfer_by_rk4_method;
+            case IntegrationMethod::SYMPLECTIC1:
+                return &NonlinearMultipole::transfer_by_symplectic1_method;
+            case IntegrationMethod::SYMPLECTIC2:
+                return &NonlinearMultipole::transfer_by_symplectic2_method;
+            case IntegrationMethod::SYMPLECTIC4:
+                return &NonlinearMultipole::transfer_by_symplectic4_method;
             default:
                 throw std::runtime_error("Unknown integration method.");
         }
@@ -165,30 +186,30 @@ public:
     // Calculate transfer matrix of the nonlinear multipole.
     virtual Eigen::Matrix4d transfer_matrix(
         const std::optional<Coordinate> &cood0 = std::nullopt, double ds=0.1,
-        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        const IntegrationMethod method = IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate transfer matrix array of the nonlinear multipole.
     virtual std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
         double ds=0.1, bool endpoint = false,
-        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        const IntegrationMethod method = IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate additive dispersion of the nonlinear multipole.
     virtual Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        double ds=0.1, const IntegrationMethod method = IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate additive dispersion array of the nonlinear multipole.
     virtual std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
     dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt,
         double ds=0.1, bool endpoint = false,
-        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        const IntegrationMethod method = IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate coordinate, envelope, and dispersion after the nonlinear multipole.
     virtual std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
     transfer(const Coordinate &cood0,
         const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt, double ds=0.1,
-        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        const IntegrationMethod method = IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate coordinate array, envelope array, and dispersion array along the nonlinear multipole.
     virtual std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
@@ -196,7 +217,7 @@ public:
         const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt,
         double ds=0.1, bool endpoint=false,
-        const IntegrationMethod method = IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        const IntegrationMethod method = IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     /**
      * @brief Clone the NonlinearMultipole object.
@@ -216,7 +237,7 @@ public:
      */
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
-        double ds=0.1, const IntegrationMethod method = IntegrationMethod::MIDPOINT) const override{
+        double ds=0.1, const IntegrationMethod method = IntegrationMethod::SYMPLECTIC4) const override{
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter

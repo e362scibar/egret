@@ -30,6 +30,14 @@
 #include <cmath>
 #include <ranges>
 
+/**
+ * @brief Compute coordinate, transfer matrix, and dispersion using the midpoint integration method.
+ * @param cood0 Initial coordinate.
+ * @param ds Step size for the integration.
+ * @param tmat_flag Whether to compute the transfer matrix.
+ * @param disp_flag Whether to compute the dispersion vector.
+ * @return std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>> Tuple of the final coordinate, transfer matrix, and dispersion vector.
+ */
 std::tuple<egret::Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
 egret::NonlinearMultipole::transfer_by_midpoint_method(const Coordinate &cood0,
     const double ds, const bool tmat_flag, const bool disp_flag) const noexcept(false) {
@@ -65,6 +73,202 @@ egret::NonlinearMultipole::transfer_by_midpoint_method(const Coordinate &cood0,
 }
 
 /**
+ * @brief Compute coordinate, transfer matrix, and dispersion using the RK4 integration method.
+ * @param cood0 Initial coordinate.
+ * @param ds Step size for the integration.
+ * @param tmat_flag Whether to compute the transfer matrix.
+ * @param disp_flag Whether to compute the dispersion vector.
+ * @return std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>> Tuple of the final coordinate, transfer matrix, and dispersion vector.
+ */
+std::tuple<egret::Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+egret::NonlinearMultipole::transfer_by_rk4_method(const Coordinate &cood0,
+    const double ds, const bool tmat_flag, const bool disp_flag) const noexcept(false) {
+    // dipole and quadrupole strengths at the entrance.
+    // (x'+jy' = - k0 L - k1 L x + j k1 L y)
+    const auto [k0_a, k1_a] = get_k(cood0); // tuple of std::complex<double>
+    // tilt angle of the quadrupole component at the entrance
+    const double tilt_a = 0.5 * std::arg(k1_a);
+    // Coordinates after the first quarter step
+    Eigen::Vector4d cood0_vec = cood0.vector();
+    cood0_vec(0) = 0.0;
+    cood0_vec(2) = 0.0;
+    auto cood1_vec = std::get<0>(Quadrupole::transfer(cood0_vec, 0.5 * ds,
+        std::abs(k1_a), k0_a.real(), k0_a.imag(), tilt_a, false, false)); // Vector4d
+    cood1_vec(0) += cood0.x();
+    cood1_vec(2) += cood0.y();
+    const Coordinate cood1(cood1_vec, cood0.s() + 0.5 * ds, cood0.z(), cood0.delta());
+    // dipole and quadrupole strengths after the first quarter step.
+    const auto [k0_b, k1_b] = get_k(cood1); // tuple of std::complex<double>
+    // tilt angle of the quadrupole component after the first quarter step
+    const double tilt_b = 0.5 * std::arg(k1_b);
+    // Coordinates after the second quarter step
+    auto cood2_vec = std::get<0>(Quadrupole::transfer(cood0_vec, 0.5 * ds,
+        std::abs(k1_b), k0_b.real(), k0_b.imag(), tilt_b, false, false)); // Vector4d
+    cood2_vec(0) += cood0.x();
+    cood2_vec(2) += cood0.y();
+    const Coordinate cood2(cood2_vec, cood0.s() + 0.5 * ds, cood0.z(), cood0.delta());
+    // dipole and quadrupole strengths after the second quarter step.
+    const auto [k0_c, k1_c] = get_k(cood2); // tuple of std::complex<double>
+    // tilt angle of the quadrupole component after the second quarter step
+    const double tilt_c = 0.5 * std::arg(k1_c);
+    // Coordinates after the third quarter step
+    auto cood3_vec = std::get<0>(Quadrupole::transfer(cood0_vec, ds,
+        std::abs(k1_c), k0_c.real(), k0_c.imag(), tilt_c, false, false)); // Vector4d
+    cood3_vec(0) += cood0.x();
+    cood3_vec(2) += cood0.y();
+    const Coordinate cood3(cood3_vec, cood0.s() + ds, cood0.z(), cood0.delta());
+    // dipole and quadrupole strengths at the exit.
+    const auto [k0_d, k1_d] = get_k(cood3); // tuple of std::complex<double>
+    // average dipole and quadrupole strengths
+    const std::complex<double> k0 = (k0_a + 2.0 * k0_b + 2.0 * k0_c + k0_d) / 6.0;
+    const std::complex<double> k1 = (k1_a + 2.0 * k1_b + 2.0 * k1_c + k1_d) / 6.0;
+    // tilt angle of the quadrupole component
+    const double tilt = 0.5 * std::arg(k1);
+    // final coordinates after the fourth quarter step
+    const auto [cood4_vec, tmat, disp] = Quadrupole::transfer(cood0_vec, ds,
+        std::abs(k1), k0.real(), k0.imag(), tilt, tmat_flag, disp_flag);
+    auto cood4_vec_mod = cood4_vec;
+    cood4_vec_mod(0) += cood0.x();
+    cood4_vec_mod(2) += cood0.y();
+    const Coordinate cood4(cood4_vec_mod, cood0.s() + ds, cood0.z(), cood0.delta());
+    return std::make_tuple(cood4, tmat, disp);
+}
+
+/**
+ * @brief Compute coordinate, transfer matrix, and dispersion using the symplectic 1st order integration method.
+ * @param cood0 Initial coordinate.
+ * @param ds Step size for the integration.
+ * @param tmat_flag Whether to compute the transfer matrix.
+ * @param disp_flag Whether to compute the dispersion vector.
+ * @return std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>> Tuple of the final coordinate, transfer matrix, and dispersion vector.
+ */
+std::tuple<egret::Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+egret::NonlinearMultipole::transfer_by_symplectic1_method(const Coordinate &cood0,
+    const double ds, const bool tmat_flag, const bool disp_flag) const noexcept(false) {
+    // initial coordinates
+    const auto &x0 = cood0.x(); // double &
+    const auto &xp0 = cood0.xp(); // double &
+    const auto &y0 = cood0.y(); // double &
+    const auto &yp0 = cood0.yp(); // double &
+    // dipole and quadrupole strengths at the entrance.
+    // (x'+jy' = - k0 L - k1 L x + j k1 L y)
+    const auto [k0, k1] = get_k(cood0); // tuple of std::complex<double>
+    // update momenta
+    const auto dxp = -k0.real() * ds;
+    const auto dyp = -k0.imag() * ds;
+    const auto xp1 = xp0 + dxp;
+    const auto yp1 = yp0 + dyp;
+    // update positions
+    const auto x1 = x0 + xp1 * ds;
+    const auto y1 = y0 + yp1 * ds;
+    // final coordinates
+    const auto cood1_vec = Eigen::Vector4d(x1, xp1, y1, yp1);
+    const Coordinate cood1(cood1_vec, cood0.s() + ds, cood0.z(), cood0.delta());
+    // transfer matrix and dispersion
+    std::optional<Eigen::Matrix4d> tmat = std::nullopt;
+    std::optional<Eigen::Vector4d> disp = std::nullopt;
+    if (tmat_flag) {
+        if (std::abs(k1.imag()) == 0.0) {
+            tmat = Quadrupole::transfer_matrix(ds, k1.real());
+        } else {
+            const auto rmat = Quadrupole::rotation_matrix(std::arg(k1) * 0.5);
+            tmat = Quadrupole::transfer_matrix(ds, std::abs(k1), rmat);
+        }
+    }
+    if (disp_flag) {
+        disp = Eigen::Vector4d(-dxp * ds, -dxp, -dyp * ds, -dyp);
+    }
+    return std::make_tuple(cood1, tmat, disp);
+}
+
+/**
+ * @brief Compute coordinate, transfer matrix, and dispersion using the symplectic 2nd order integration method.
+ * @param cood0 Initial coordinate.
+ * @param ds Step size for the integration.
+ * @param tmat_flag Whether to compute the transfer matrix.
+ * @param disp_flag Whether to compute the dispersion vector.
+ * @return std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>> Tuple of the final coordinate, transfer matrix, and dispersion vector.
+ */
+std::tuple<egret::Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+egret::NonlinearMultipole::transfer_by_symplectic2_method(const Coordinate &cood0,
+    const double ds, const bool tmat_flag, const bool disp_flag) const noexcept(false) {
+    // initial coordinates
+    const auto &x0 = cood0.x(); // double &
+    const auto &xp0 = cood0.xp(); // double &
+    const auto &y0 = cood0.y(); // double &
+    const auto &yp0 = cood0.yp(); // double &
+    // update displacements (first half step)
+    const auto ds_half = 0.5 * ds; // double
+    const auto x1 = x0 + xp0 * ds_half; // double
+    const auto y1 = y0 + yp0 * ds_half; // double
+    // dipole and quadrupole strengths at the half step.
+    // (x'+jy' = - k0 L - k1 L x + j k1 L y)
+    const auto cood1_vec = Eigen::Vector4d(x1, xp0, y1, yp0);
+    const Coordinate cood1(cood1_vec, cood0.s() + ds_half, cood0.z(), cood0.delta());
+    const auto [k0, k1] = get_k(cood1); // tuple of std::complex<double>
+    // update momenta
+    const auto dxp = -k0.real() * ds; // double
+    const auto dyp = -k0.imag() * ds; // double
+    const auto xp1 = xp0 + dxp; // double
+    const auto yp1 = yp0 + dyp; // double
+    // update displacements (second half step)
+    const auto x2 = x1 + xp1 * ds_half; // double
+    const auto y2 = y1 + yp1 * ds_half; // double
+    // final coordinates
+    const auto cood2_vec = Eigen::Vector4d(x2, xp1, y2, yp1);
+    const Coordinate cood2(cood2_vec, cood0.s() + ds, cood0.z(), cood0.delta());
+    // transfer matrix and dispersion
+    std::optional<Eigen::Matrix4d> tmat = std::nullopt;
+    std::optional<Eigen::Vector4d> disp = std::nullopt;
+    if (tmat_flag) {
+        if (std::abs(k1.imag()) == 0.0) {
+            tmat = Quadrupole::transfer_matrix(ds, k1.real());
+        } else {
+            const auto rmat = Quadrupole::rotation_matrix(std::arg(k1) * 0.5);
+            tmat = Quadrupole::transfer_matrix(ds, std::abs(k1), rmat);
+        }
+    }
+    if (disp_flag) {
+        disp = Eigen::Vector4d(-dxp * ds_half, -dxp, -dyp * ds_half, -dyp);
+    }
+    return std::make_tuple(cood2, tmat, disp);
+}
+
+/**
+ * @brief Compute coordinate, transfer matrix, and dispersion using the symplectic 4th order integration method.
+ * @param cood0 Initial coordinate.
+ * @param ds Step size for the integration.
+ * @param tmat_flag Whether to compute the transfer matrix.
+ * @param disp_flag Whether to compute the dispersion vector.
+ * @return std::tuple<Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>> Tuple of the final coordinate, transfer matrix, and dispersion vector.
+ */
+std::tuple<egret::Coordinate, std::optional<Eigen::Matrix4d>, std::optional<Eigen::Vector4d>>
+egret::NonlinearMultipole::transfer_by_symplectic4_method(const Coordinate &cood0,
+    const double ds, const bool tmat_flag, const bool disp_flag) const noexcept(false) {
+    static const double a1 = 1.0 / (2.0 - std::cbrt(2.0));
+    static const double a0 = 1.0 - 2.0 * a1;
+    const auto ds0 = a0 * ds; // double
+    const auto ds1 = a1 * ds; // double
+    const auto [cood1, tmat1, disp1] = transfer_by_symplectic2_method(
+        cood0, ds1, tmat_flag, disp_flag);
+    const auto [cood2, tmat2, disp2] = transfer_by_symplectic2_method(
+        cood1, ds0, tmat_flag || disp_flag, disp_flag);
+    const auto [cood3, tmat3, disp3] = transfer_by_symplectic2_method(
+        cood2, ds1, tmat_flag || disp_flag, disp_flag);
+    // transfer matrix and dispersion
+    std::optional<Eigen::Matrix4d> tmat = std::nullopt;
+    std::optional<Eigen::Vector4d> disp = std::nullopt;
+    if (tmat_flag) {
+        tmat = (*tmat3) * (*tmat2) * (*tmat1);
+    }
+    if (disp_flag) {
+        disp = (*tmat2) * (*disp1) + (*disp2);
+        disp = (*tmat3) * (*disp) + (*disp3);
+    }
+    return std::make_tuple(cood3, tmat, disp);
+}
+
+/**
  * @brief Compute the transfer matrix of the nonlinear multipole element.
  * @param cood0 Initial coordinate. (optional)
  * @param ds Step size for the transfer matrix calculation.
@@ -78,9 +282,10 @@ Eigen::Matrix4d egret::NonlinearMultipole::transfer_matrix(
     const double ds_step = length_ / n_step;
     Coordinate cood = cood0 ? *cood0 : Coordinate();
     Eigen::Matrix4d tmat = Eigen::Matrix4d::Identity();
+    auto transfer_by_integration = get_transfer_func_ptr(method);
     for (const size_t i : std::views::iota(0u, n_step)) {
         (void)i; // unused variable
-        const auto results = transfer_by_integration(cood, ds_step, true, false, method);
+        const auto results = (this->*transfer_by_integration)(cood, ds_step, true, false);
         cood = std::get<0>(results);
         const auto tmat_step = std::get<1>(results);
         tmat = *tmat_step * tmat;
@@ -104,9 +309,10 @@ egret::NonlinearMultipole::transfer_matrix_array(const std::optional<Coordinate>
     std::vector<Eigen::Matrix4d> tmat_array;
     Eigen::Matrix4d tmat = Eigen::Matrix4d::Identity();
     tmat_array.push_back(tmat);
+    auto transfer_by_integration = get_transfer_func_ptr(method);
     for (const size_t i : std::views::iota(0u, static_cast<size_t>(s_array.size() - 1))) {
         const double ds_step = s_array[i + 1] - s_array[i];
-        const auto results = transfer_by_integration(cood, ds_step, true, false, method);
+        const auto results = (this->*transfer_by_integration)(cood, ds_step, true, false);
         cood = std::get<0>(results);
         const auto tmat_step = std::get<1>(results);
         tmat = *tmat_step * tmat;
@@ -129,9 +335,10 @@ Eigen::Vector4d egret::NonlinearMultipole::dispersion(
     const double ds_step = length_ / n_step;
     Coordinate cood = cood0 ? *cood0 : Coordinate();
     Eigen::Vector4d dispout = Eigen::Vector4d::Zero();
+    auto transfer_by_integration = get_transfer_func_ptr(method);
     for (const size_t i : std::views::iota(0u, n_step)) {
         (void)i; // unused variable
-        const auto results = transfer_by_integration(cood, ds_step, true, true, method);
+        const auto results = (this->*transfer_by_integration)(cood, ds_step, true, true);
         const auto tmat_step = std::get<1>(results);
         const auto disp_step = std::get<2>(results);
         cood = std::get<0>(results);
@@ -157,9 +364,10 @@ egret::NonlinearMultipole::dispersion_array(
     Eigen::Matrix<double, 4, Eigen::Dynamic> disp_array(4, s_array.size());
     disp_array.setZero();
     Eigen::Vector4d dispout = Eigen::Vector4d::Zero();
+    auto transfer_by_integration = get_transfer_func_ptr(method);
     for (const size_t i : std::views::iota(0u, static_cast<size_t>(s_array.size() - 1))) {
         const double ds_step = s_array[i+1] - s_array[i];
-        const auto results = transfer_by_integration(cood, ds_step, true, true, method);
+        const auto results = (this->*transfer_by_integration)(cood, ds_step, true, true);
         const auto tmat_step = std::get<1>(results);
         const auto disp_step = std::get<2>(results);
         cood = std::get<0>(results);
@@ -196,10 +404,11 @@ egret::NonlinearMultipole::transfer(const Coordinate &cood0,
     if (disp0) {
         dispout = disp0->vector();
     }
+    auto transfer_by_integration = get_transfer_func_ptr(method);
     for (const size_t i : std::views::iota(0u, n_step)) {
         (void)i; // unused variable
-        const auto results = transfer_by_integration(cood, ds_step,
-            tmat.has_value() || dispout.has_value(), dispout.has_value(), method);
+        const auto results = (this->*transfer_by_integration)(cood, ds_step,
+            tmat.has_value() || dispout.has_value(), dispout.has_value());
         cood = std::get<0>(results);
         const auto tmat_step = std::get<1>(results);
         const auto disp_step = std::get<2>(results);
@@ -261,10 +470,11 @@ egret::NonlinearMultipole::transfer_array(const Coordinate &cood0,
         disp_array = Eigen::Matrix<double, 4, Eigen::Dynamic>(4, s_array.size());
         disp_array->col(0) = disp0->vector();
     }
+    auto transfer_by_integration = get_transfer_func_ptr(method);
     for (const size_t i : std::views::iota(0u, n_step)) {
         const double ds_step = s_array[i+1] - s_array[i];
-        const auto results = transfer_by_integration(cood, ds_step,
-            evlp0.has_value() || disp0.has_value(), disp0.has_value(), method);
+        const auto results = (this->*transfer_by_integration)(cood, ds_step,
+            evlp0.has_value() || disp0.has_value(), disp0.has_value());
         cood = std::get<0>(results);
         const auto tmat_step = std::get<1>(results);
         const auto disp_step = std::get<2>(results);

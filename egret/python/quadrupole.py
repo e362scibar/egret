@@ -93,14 +93,14 @@ class Quadrupole(QuadruopoleABC, Element):
                          [0., -st, 0., ct]])
         return rmat
 
-    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'symplectic4') -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the quadrupole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m] for integration. (Not used in the Quadrupole class.)
-            method str: Integration method. (Not used in the Quadrupole class.)
+            method str: Integration method. ('midpoint', 'rk4', 'symplectic{1,2,4}') (Not used in the Quadrupole class.)
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
@@ -108,7 +108,7 @@ class Quadrupole(QuadruopoleABC, Element):
         delta = 0. if cood0 is None else cood0.delta
         k = self._k1 / (1. + delta)
         tmat = np.eye(4)
-        if k == 0.: # drift
+        if np.abs(k) == 0.: # drift
             tmat[0, 1] = self._length
             tmat[2, 3] = self._length
             return tmat
@@ -129,7 +129,7 @@ class Quadrupole(QuadruopoleABC, Element):
             tmat = rmat.T @ tmat @ rmat
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'symplectic4') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the quadrupole.
@@ -138,8 +138,7 @@ class Quadrupole(QuadruopoleABC, Element):
             cood0 Coordinate: Initial coordinate. (Not used in the Quadrupole class.)
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method. (Not used in the Quadrupole class.)
-
+            method str: Integration method. ('midpoint', 'rk4', 'symplectic{1,2,4}') (Not used in the Quadrupole class.)
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
@@ -169,14 +168,14 @@ class Quadrupole(QuadruopoleABC, Element):
             tmat = np.einsum('ji,njk,kl->nil', rmat, tmat, rmat)
         return tmat, s
 
-    def dispersion(self, cood0: Coordinate, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate, ds: float = 0.1, method: str = 'symplectic4') -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the quadrupole.
 
         Args:
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size for integration [m]. (Not used in this method.)
-            method str: Integration method. (Not used in the Quadrupole class.)
+            method str: Integration method. ('midpoint', 'rk4', 'symplectic{1,2,4}') (Not used in the Quadrupole class.)
 
         Returns:
             npt.NDArray[np.floating]: 4-element dispersion vector [eta_x, eta'_x, eta_y, eta'_y].
@@ -214,7 +213,7 @@ class Quadrupole(QuadruopoleABC, Element):
             disp = M_rot @ cood0vec
         return disp
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method: str = 'symplectic4') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the quadrupole.
@@ -223,7 +222,7 @@ class Quadrupole(QuadruopoleABC, Element):
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method. (Not used in the Quadrupole class.)
+            method str: Integration method. ('midpoint', 'rk4', 'symplectic{1,2,4}') (Not used in the Quadrupole class.)
 
         Returns:
             npt.NDArray[np.floating]: Dispersion array of shape (4, N).

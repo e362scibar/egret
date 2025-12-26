@@ -542,6 +542,7 @@ egret::Dipole::transfer(const Coordinate &cood0, const std::optional<Envelope> &
  * @param disp0 Initial dispersion (optional)
  * @param ds Maximum step size (m)
  * @param endpoint Whether to include the endpoint in the calculation
+ * @param method Integration method (not used here)
  * @return std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>> Coordinate array, envelope array, and dispersion array after transfer
  */
 std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>>
@@ -588,6 +589,7 @@ egret::Dipole::transfer_array(const Coordinate &cood0,
  * @param evlp0 Initial envelope
  * @param disp0 Initial dispersion
  * @param ds Maximum step size (m)
+ * @param method Integration method
  * @return std::tuple<double, double, double, double, double, double> Tuple of radiation integrals I2, I4, I5u, I5v, I4u, I4v
  */
 std::tuple<double, double, double, double, double, double>

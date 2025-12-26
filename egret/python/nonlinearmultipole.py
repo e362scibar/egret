@@ -343,30 +343,139 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
                 disp = quad4.dispersion(cood)
         return tmat, cood4, disp
 
-
-    def transfer_matrix_by_integration(self, cood0: Coordinate, ds: float = 0.1,
-                                      tmatflag: bool = True, dispflag: bool = False, method='midpoint') \
+    def transfer_matrix_by_symplectic1_method(self, cood0: Coordinate, ds: float = 0.1,
+                                                tmatflag: bool = True, dispflag: bool = False) \
         -> Tuple[npt.NDArray[np.floating], Coordinate, npt.NDArray[np.floating]]:
         '''
-        Calculate transfer matrix using specified integration method.
+        Calculate a single step transfer matrix using the 1st-order symplectic integration.
 
         Args:
             cood0 Coordinate: Initial coordinate
             ds float: Step size [m] for integration.
             tmatflag bool: Calculate transfer matrix if true. (default: True)
-            dispflag bool: Calculate additive dispersion if True. (default: False).
-            method str: Integration method ('midpoint' or 'rk4').
+            dispflag bool: Calculate additive dispersion if True. (default: False)
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix, if tmatflag is True, else None.
             Coordinate: Final coordinate after the step.
             npt.NDArray[np.floating]: Additive dispersion if dispflag is True, else None.
         '''
+        x0, y0, xp0, yp0 = cood0.x, cood0.y, cood0.xp, cood0.yp
+        # dipole and quadrupole strengths at the entrance
+        k0, k1 = self.get_k(cood0)
+        # update momenta
+        dxp, dyp = - k0.real * ds, - k0.imag * ds
+        xp1, yp1 = xp0 + dxp, yp0 + dyp
+        # update displacements
+        dx, dy = xp1 * ds, yp1 * ds
+        x1, y1 = x0 + dx, y0 + dy
+        # final coordinate after the step
+        cood1 = Coordinate(np.array([x1, xp1, y1, yp1]), cood0.s + ds, cood0.z, cood0.delta)
+        # calculate transfer matrix
+        tmat = None
+        if tmatflag:
+            quad = Quadrupole(self._name+'_quad', ds, np.abs(k1), tilt=np.angle(k1) * 0.5)
+            tmat = quad.transfer_matrix()
+        disp = None
+        if dispflag:
+            disp = np.array([-dxp * ds, -dxp, -dyp * ds, -dyp])
+        return tmat, cood1, disp
+
+    def transfer_matrix_by_symplectic2_method(self, cood0: Coordinate, ds: float = 0.1,
+                                                tmatflag: bool = True, dispflag: bool = False) \
+        -> Tuple[npt.NDArray[np.floating], Coordinate, npt.NDArray[np.floating]]:
+        '''
+        Calculate a single step transfer matrix using the 2nd-order symplectic integration.
+
+        Args:
+            cood0 Coordinate: Initial coordinate
+            ds float: Step size [m] for integration.
+            tmatflag bool: Calculate transfer matrix if true. (default: True)
+            dispflag bool: Calculate additive dispersion if True. (default: False)
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix, if tmatflag is True, else None.
+            Coordinate: Final coordinate after the step.
+            npt.NDArray[np.floating]: Additive dispersion if dispflag is True, else None.
+        '''
+        x0, y0, xp0, yp0 = cood0.x, cood0.y, cood0.xp, cood0.yp
+        ds_half = 0.5 * ds
+        # update displacements (first half step)
+        dx, dy = xp0 * ds_half, yp0 * ds_half
+        x1, y1 = x0 + dx, y0 + dy
+        # dipole and quadrupole strengths at the middle
+        cood1 = Coordinate(np.array([x1, xp0, y1, yp0]), cood0.s + ds_half, cood0.z, cood0.delta)
+        k0, k1 = self.get_k(cood1)
+        # update momenta
+        dxp, dyp = - k0.real * ds, - k0.imag * ds
+        xp1, yp1 = xp0 + dxp, yp0 + dyp
+        # update displacements (second half step)
+        dx, dy = xp1 * ds_half, yp1 * ds_half
+        x2, y2 = x1 + dx, y1 + dy
+        # final coordinate after the step
+        cood2 = Coordinate(np.array([x2, xp1, y2, yp1]), cood0.s + ds, cood0.z, cood0.delta)
+        # calculate transfer matrix
+        tmat = None
+        if tmatflag:
+            quad = Quadrupole(self._name+'_quad', ds, np.abs(k1), tilt=np.angle(k1) * 0.5)
+            tmat = quad.transfer_matrix()
+        disp = None
+        if dispflag:
+            disp = np.array([-dxp * ds_half, -dxp, -dyp * ds_half, -dyp])
+        return tmat, cood2, disp
+
+    def transfer_matrix_by_symplectic4_method(self, cood0: Coordinate, ds: float = 0.1,
+                                                tmatflag: bool = True, dispflag: bool = False) \
+        -> Tuple[npt.NDArray[np.floating], Coordinate, npt.NDArray[np.floating]]:
+        '''
+        Calculate a single step transfer matrix using the 4th-order symplectic integration.
+
+        Args:
+            cood0 Coordinate: Initial coordinate
+            ds float: Step size [m] for integration.
+            tmatflag bool: Calculate transfer matrix if true. (default: True)
+            dispflag bool: Calculate additive dispersion if True. (default: False)
+
+        Returns:
+            npt.NDArray[np.floating]: 4x4 transfer matrix, if tmatflag is True, else None.
+            Coordinate: Final coordinate after the step.
+            npt.NDArray[np.floating]: Additive dispersion if dispflag is True, else None.
+        '''
+        ds_1 = ds / (2.0 - 2.0**(1.0/3.0))
+        ds_0 = ds - 2.0 * ds_1
+        tmat1, cood1, disp1 = self.transfer_matrix_by_symplectic2_method(cood0, ds_1, tmatflag, dispflag)
+        tmat2, cood2, disp2 = self.transfer_matrix_by_symplectic2_method(cood1, ds_0, tmatflag or dispflag, dispflag)
+        tmat3, cood3, disp3 = self.transfer_matrix_by_symplectic2_method(cood2, ds_1, tmatflag or dispflag, dispflag)
+        tmat = None
+        if tmatflag:
+            tmat = tmat3 @ tmat2 @ tmat1
+        disp = None
+        if dispflag:
+            disp = tmat2 @ disp1 + disp2
+            disp = tmat3 @ disp + disp3
+        return tmat, cood3, disp
+
+    def get_transfer_method(self, method: str):
+        '''
+        Get the transfer matrix calculation method.
+
+        Args:
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
+
+        Returns:
+            function: Transfer matrix calculation method.
+        '''
         match method:
             case 'midpoint':
-                return self.transfer_matrix_by_midpoint_method(cood0, ds, tmatflag, dispflag)
+                return self.transfer_matrix_by_midpoint_method
             case 'rk4':
-                return self.transfer_matrix_by_rk4_method(cood0, ds, tmatflag, dispflag)
+                return self.transfer_matrix_by_rk4_method
+            case 'symplectic1':
+                return self.transfer_matrix_by_symplectic1_method
+            case 'symplectic2':
+                return self.transfer_matrix_by_symplectic2_method
+            case 'symplectic4':
+                return self.transfer_matrix_by_symplectic4_method
             case _:
                 raise ValueError(f'Unknown integration method: {method}')
 
@@ -385,14 +494,14 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         s_step = self._length / n_step
         return n_step, s_step
 
-    def transfer_matrix(self, cood0: Coordinate, ds: float = 0.1, method='midpoint') -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate, ds: float = 0.1, method='symplectic4') -> npt.NDArray[np.floating]:
         '''
-        Transfer matrix of the multipole magnet calculated by midpoint method.
+        Transfer matrix of the multipole magnet calculated by integration method.
 
         Args:
             cood0 Coordinate: Initial coordinate
             ds float: Maximum step size [m] for integration.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
@@ -400,12 +509,13 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         n_step, s_step = self.get_step(ds)
         cood = cood0.copy()
         tmat = np.eye(4)
+        transfer_method = self.get_transfer_method(method)
         for _ in range(n_step):
-            tmat_step, cood, _ = self.transfer_matrix_by_integration(cood, s_step, method=method)
+            tmat_step, cood, _ = transfer_method(cood, s_step)
             tmat = tmat_step @ tmat
         return tmat
 
-    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method='midpoint') \
+    def transfer_matrix_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method='symplectic4') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the multipole magnet.
@@ -414,7 +524,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             cood0 Coordinate: Initial coordinate
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
@@ -425,20 +535,21 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         cood = cood0.copy()
         tmat = np.eye(4)
         tmat_list = [tmat.copy()]
+        transfer_method = self.get_transfer_method(method)
         for _ in range(n_step - int(not endpoint)):
-            tmat_step, cood, _ = self.transfer_matrix_by_integration(cood, s_step, method=method)
+            tmat_step, cood, _ = transfer_method(cood, s_step)
             tmat = tmat_step @ tmat
             tmat_list.append(tmat.copy())
         return np.array(tmat_list), s
 
-    def dispersion(self, cood0: Coordinate, ds: float = 0.1, method='midpoint') -> npt.NDArray[np.floating]:
+    def dispersion(self, cood0: Coordinate, ds: float = 0.1, method='symplectic4') -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector at the exit of the multipole magnet.
 
         Args:
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m] for integration.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
@@ -446,12 +557,13 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         n_step, s_step = self.get_step(ds)
         cood = cood0.copy()
         dispout = np.zeros(4)
+        transfer_method = self.get_transfer_method(method)
         for _ in range(n_step):
-            tmat, cood, disp = self.transfer_matrix_by_integration(cood, s_step, dispflag=True, method=method)
+            tmat, cood, disp = transfer_method(cood, s_step, dispflag=True)
             dispout = np.dot(tmat, dispout) + disp
         return dispout
 
-    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method='midpoint') \
+    def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method='symplectic4') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the multipole magnet.
@@ -460,7 +572,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             cood0 Coordinate: Initial coordinate.
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             npt.NDArray[np.floating]: 4xN Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
@@ -470,12 +582,13 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         s = self.s_array(ds, endpoint)
         cood = cood0.copy()
         disp_list = [np.zeros(4)]
+        transfer_method = self.get_transfer_method(method)
         for _ in range(n_step - int(not endpoint)):
-            tmat, cood, disp = self.transfer_matrix_by_integration(cood, s_step, dispflag=True, method=method)
+            tmat, cood, disp = transfer_method(cood, s_step, dispflag=True)
             disp_list.append(np.dot(tmat, disp_list[-1]) + disp)
         return np.array(disp_list).T, s
 
-    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method='midpoint') \
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method='symplectic4') \
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
         Calculate the coordinate, envelope, and dispersion after the multipole magnet.
@@ -485,7 +598,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             evlp0 Envelope: Initial beam envelope (optional).
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m] for integration.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             Coordinate: Coordinate after the element.
@@ -499,8 +612,9 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         n_step, s_step = self.get_step(ds)
         tmat = np.eye(4) if evlp0 is not None else None
         dispvec = disp0.vector.copy() if disp0 is not None else None
+        transfer_method = self.get_transfer_method(method)
         for _ in range(n_step):
-            tmat_step, cood, disp = self.transfer_matrix_by_integration(cood, s_step, dispflag=(disp0 is not None), method=method)
+            tmat_step, cood, disp = transfer_method(cood, s_step, dispflag=(disp0 is not None))
             if evlp0 is not None:
                 tmat = tmat_step @ tmat
             if disp0 is not None:
@@ -521,7 +635,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
-                       ds: float = 0.1, endpoint: bool = True, method='midpoint') \
+                       ds: float = 0.1, endpoint: bool = True, method='symplectic4') \
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate, envelope, and dispersion arrays along the multipole magnet.
@@ -532,7 +646,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             disp0 Dispersion: Initial dispersion (optional).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             CoordinateArray: Coordinate array along the element.
@@ -548,8 +662,9 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         cood_list = [cood.vector.copy()]
         tmat, tmat_list = np.eye(4), [np.eye(4)] if evlp0 is not None else None
         disp_list = [disp0.vector.copy()] if disp0 is not None else None
+        transfer_method = self.get_transfer_method(method)
         for _ in range(n_step - int(not endpoint)):
-            tmat_step, cood, disp = self.transfer_matrix_by_integration(cood, s_step, dispflag=(disp0 is not None), method=method)
+            tmat_step, cood, disp = transfer_method(cood, s_step, dispflag=(disp0 is not None))
             cood_list.append(cood.vector.copy())
             if evlp0 is not None:
                 tmat = tmat_step @ tmat

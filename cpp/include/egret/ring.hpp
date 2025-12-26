@@ -157,11 +157,11 @@ public:
 
     // Update the ring parameters (tunes, etc.)
     void update(double delta=0.0,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) noexcept(false);
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) noexcept(false);
 
     // find initial coordinates of closed orbit
     Coordinate find_initial_coordinate_of_closed_orbit(const Coordinate &cood_guess,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Polymorphic clone
     std::shared_ptr<Element> clone() const noexcept(false) override;

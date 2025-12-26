@@ -56,21 +56,21 @@ class Drift(DriftABC, Element):
         return Drift(self._name, self._length, self._dx, self._dy, self._ds,
                      self._tilt, self._info)
 
-    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'midpoint') -> npt.NDArray[np.floating]:
+    def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'symplectic4') -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the drift class).
             ds float: Maximum step size [m] for integration. (not used in the drift class).
-            method str: Integration method ('midpoint' or 'rk4') (not used in the drift class).
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}') (not used in the drift class).
 
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
         return Drift.transfer_matrix_from_length(self._length)
 
-    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'midpoint') \
+    def transfer_matrix_array(self, cood0: Coordinate = None, ds: float = 0.1, endpoint: bool = False, method: str = 'symplectic4') \
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
@@ -79,7 +79,7 @@ class Drift(DriftABC, Element):
             cood0 Coordinate: Initial coordinate (not used in the drift class).
             ds float: Maximum step size [m].
             endpoint bool: If True, include the endpoint.
-            method str: Integration method ('midpoint' or 'rk4') (not used in the drift class).
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}') (not used in the drift class).
 
         Returns:
             npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).

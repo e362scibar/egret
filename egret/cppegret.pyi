@@ -6,7 +6,7 @@ import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['BaseArray', 'Coordinate', 'CoordinateArray', 'Dipole', 'Dispersion', 'DispersionArray', 'Drift', 'Element', 'Envelope', 'EnvelopeArray', 'IntegrationMethod', 'Lattice', 'MIDPOINT', 'NonlinearMultipole', 'Object', 'Octupole', 'Quadrupole', 'RK4', 'Ring', 'Sextupole', 'Steering']
+__all__: list[str] = ['BaseArray', 'Coordinate', 'CoordinateArray', 'Dipole', 'Dispersion', 'DispersionArray', 'Drift', 'Element', 'Envelope', 'EnvelopeArray', 'IntegrationMethod', 'Lattice', 'MIDPOINT', 'NonlinearMultipole', 'Object', 'Octupole', 'Quadrupole', 'RK4', 'Ring', 'SYMPLECTIC1', 'SYMPLECTIC2', 'SYMPLECTIC4', 'Sextupole', 'Steering']
 class BaseArray:
     def __init__(self, s_array: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"]) -> None:
         ...
@@ -514,10 +514,19 @@ class IntegrationMethod:
       MIDPOINT
     
       RK4
+    
+      SYMPLECTIC1
+    
+      SYMPLECTIC2
+    
+      SYMPLECTIC4
     """
     MIDPOINT: typing.ClassVar[IntegrationMethod]  # value = <IntegrationMethod.MIDPOINT: 0>
     RK4: typing.ClassVar[IntegrationMethod]  # value = <IntegrationMethod.RK4: 1>
-    __members__: typing.ClassVar[dict[str, IntegrationMethod]]  # value = {'MIDPOINT': <IntegrationMethod.MIDPOINT: 0>, 'RK4': <IntegrationMethod.RK4: 1>}
+    SYMPLECTIC1: typing.ClassVar[IntegrationMethod]  # value = <IntegrationMethod.SYMPLECTIC1: 2>
+    SYMPLECTIC2: typing.ClassVar[IntegrationMethod]  # value = <IntegrationMethod.SYMPLECTIC2: 3>
+    SYMPLECTIC4: typing.ClassVar[IntegrationMethod]  # value = <IntegrationMethod.SYMPLECTIC4: 4>
+    __members__: typing.ClassVar[dict[str, IntegrationMethod]]  # value = {'MIDPOINT': <IntegrationMethod.MIDPOINT: 0>, 'RK4': <IntegrationMethod.RK4: 1>, 'SYMPLECTIC1': <IntegrationMethod.SYMPLECTIC1: 2>, 'SYMPLECTIC2': <IntegrationMethod.SYMPLECTIC2: 3>, 'SYMPLECTIC4': <IntegrationMethod.SYMPLECTIC4: 4>}
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -725,3 +734,6 @@ class Steering(Element, Object):
         ...
 MIDPOINT: IntegrationMethod  # value = <IntegrationMethod.MIDPOINT: 0>
 RK4: IntegrationMethod  # value = <IntegrationMethod.RK4: 1>
+SYMPLECTIC1: IntegrationMethod  # value = <IntegrationMethod.SYMPLECTIC1: 2>
+SYMPLECTIC2: IntegrationMethod  # value = <IntegrationMethod.SYMPLECTIC2: 3>
+SYMPLECTIC4: IntegrationMethod  # value = <IntegrationMethod.SYMPLECTIC4: 4>

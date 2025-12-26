@@ -38,7 +38,7 @@
 Eigen::Matrix4d egret::Quadrupole::transfer_matrix(const double length, const double k1,
     const std::optional<Eigen::Matrix4d> &rmat) noexcept(false) {
     Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
-    if (k1 == 0.0) { // drift case
+    if (std::abs(k1) == 0.0) { // drift case
         M(0,1) = length;
         M(2,3) = length;
         return M;
@@ -100,7 +100,7 @@ Eigen::Matrix4d egret::Quadrupole::transfer_matrix(
     const double delta = cood0 ? cood0->delta() : 0.0;
     double k = k1_ / (1.0 + delta);
     std::optional<Eigen::Matrix4d> rmat = std::nullopt;
-    if (tilt_ != 0.0) {
+    if (std::abs(tilt_) != 0.0) {
         rmat = rotation_matrix(tilt_);
     }
     return transfer_matrix(length_, k, rmat);
@@ -124,7 +124,7 @@ egret::Quadrupole::transfer_matrix_array(
     const auto s_array = Element::s_array(ds, endpoint);
     const size_t n = s_array.size();
     std::optional<Eigen::Matrix4d> rmat = std::nullopt;
-    if (tilt_ != 0.0) {
+    if (std::abs(tilt_) != 0.0) {
         rmat = rotation_matrix(tilt_);
     }
     std::vector<Eigen::Matrix4d> M_array;

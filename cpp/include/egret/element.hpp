@@ -49,8 +49,12 @@ public:
     //! Integration methods
     enum IntegrationMethod {
         MIDPOINT = 0,
-        RK4 = 1
+        RK4 = 1,
+        SYMPLECTIC1 = 2,
+        SYMPLECTIC2 = 3,
+        SYMPLECTIC4 = 4
     };
+
 protected:
     //! Length of the element
     double length_;
@@ -175,30 +179,30 @@ public:
     // Get the transfer matrix of the element
     virtual Eigen::Matrix4d transfer_matrix(
         const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Get an array of transfer matrices through the element
     virtual std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0 = std::nullopt,
         const double ds=0.1, const bool endpoint=false,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Get the additive dispersion vector of the element.
     virtual Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Get an array of additive dispersion vectors for the element.
     virtual std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
     dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt,
         const double ds=0.1, const bool endpoint=false,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Transfer a single coordinate through the element
     virtual std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
     transfer(const Coordinate &cood0,
         const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt,
-        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Transfer coordinate array through the element
     virtual std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
@@ -206,13 +210,13 @@ public:
         const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt,
         double ds=0.1, bool endpoint=false,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Calculate radiation integrals through the element
     virtual std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0,
         const Dispersion &disp0, double ds=0.1,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Simpson's rule integration
     static double simpson_integration(const Eigen::ArrayXd &y_array, double dx) noexcept(false);
@@ -222,7 +226,7 @@ public:
 
     // Get transfer matrix from s to the end of the element
     virtual Eigen::Matrix4d transfer_matrix_from_s(double s, const Coordinate &cood0,
-        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false);
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
     // Get element at given indices if elements_ is set
     std::shared_ptr<Element> get_element(const std::vector<size_t> &indices) noexcept(false);

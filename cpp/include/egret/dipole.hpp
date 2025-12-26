@@ -129,38 +129,38 @@ public:
     // Calculate transfer matrix given initial coordinates
     Eigen::Matrix4d transfer_matrix(
         const std::optional<Coordinate> &cood0, double ds=0.1,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate array of transfer matrices along the dipole
     std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd> transfer_matrix_array(
         const std::optional<Coordinate> &cood0, double ds=0.1, bool endpoint=false,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate additive dispersion function at the end of the dipole
     Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0, double ds=0.1,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate array of additive dispersion functions along the dipole
     std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd> dispersion_array(
         const std::optional<Coordinate> &cood0, double ds=0.1, bool endpoint=false,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Transfer coordinate, envelope, and dispersion through the dipole
     std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
     transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt, double ds=0.1,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Transfer arrays of coordinate, envelope, and dispersion through the dipole
     std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
     transfer_array(const Coordinate &cood0, const std::optional<Envelope> &evlp0 = std::nullopt,
         const std::optional<Dispersion> &disp0 = std::nullopt, double ds=0.1, bool endpoint=false,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate radiation integrals contribution through the dipole
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
-        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     /**
      * @brief Clone the Dipole object.

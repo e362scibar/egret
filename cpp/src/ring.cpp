@@ -147,7 +147,7 @@ void egret::Ring::update(double delta,
     if (tune_y_ < 0.0) {
         tune_y_ += 1.0;
     }
-    std::tie(I2_, I4_, I5u_, I5v_, I4u_, I4v_) = radiation_integrals( cood0_, evlp0_, disp0_, method);
+    std::tie(I2_, I4_, I5u_, I5v_, I4u_, I4v_) = radiation_integrals(cood0_, evlp0_, disp0_, method);
     const double lgamma = energy_ / m_e_eV;
     emittance_x_ = C_q * lgamma * lgamma * I5u_ / (I2_ - I4u_);
     emittance_y_ = C_q * lgamma * lgamma * I5v_ / (I2_ - I4v_);

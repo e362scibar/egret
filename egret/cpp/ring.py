@@ -182,23 +182,23 @@ class Ring(RingABC, Element):
         '''
         return self.instance.I5v
 
-    def update(self, delta: float = 0., method= 'midpoint') -> None:
+    def update(self, delta: float = 0., method= 'symplectic4') -> None:
         '''
         Update transfer matrix, dispersion, and emittance.
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
-            method str: Integration method (default: 'midpoint').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
         '''
         self.instance.update(delta, Element.INTEGRATION_METHODS[method])
 
-    def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = None, method: str = 'midpoint') -> None:
+    def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = None, method: str = 'symplectic4') -> None:
         '''
         Find initial coordinate of the closed orbit using Newton-Raphson method.
 
         Args:
             guess Coordinate: Initial guess of the closed orbit.
-            method str: Integration method (default: 'midpoint').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
         '''
         imethod = Element.INTEGRATION_METHODS[method]
         if guess is None:

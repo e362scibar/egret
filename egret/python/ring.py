@@ -157,13 +157,13 @@ class Ring(RingABC, Element):
         '''
         return Ring(self._name, self._elements, self._energy, self._info)
 
-    def update(self, delta: float = 0., method: str = 'midpoint') -> None:
+    def update(self, delta: float = 0., method: str = 'symplectic4') -> None:
         '''
         Update transfer matrix, dispersion, and emittance.
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
         '''
         # initial coordinate of closed orbit
         try:
@@ -220,15 +220,15 @@ class Ring(RingABC, Element):
         self._Jz = 2. + self.I4 / self.I2
 
     def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = Coordinate(),
-        tol: float = None, maxiter: int = 500, method: str = 'midpoint') -> Coordinate:
+        tol: float = None, maxiter: int = 500, method: str = 'symplectic4') -> Coordinate:
         '''
-        Find initial coordinate of the closed orbit using Newton-Raphson method.
+        Find initial coordinate of the closed orbit using Nelder-Mead method.
 
         Args:
             guess Coordinate: Initial guess of the coordinate.
             tol float: Tolerance for convergence.
             maxiter int: Maximum number of iterations.
-            method str: Integration method ('midpoint' or 'rk4').
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
             Coordinate: Initial coordinate of the closed orbit.

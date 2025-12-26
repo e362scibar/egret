@@ -83,26 +83,26 @@ public:
 
     // Calculate transfer matrix for this quadrupole element
     Eigen::Matrix4d transfer_matrix(const std::optional<Coordinate> &cood0, double ds=0.1,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate transfer matrix array along this quadrupole element
     std::tuple<std::vector<Eigen::Matrix4d>, Eigen::ArrayXd>
     transfer_matrix_array(const std::optional<Coordinate> &cood0,
         double ds=0.1,bool endpoint = false,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     static Eigen::Vector4d dispersion(const Eigen::Vector4d &cood0_vec,
         double length, double k1, double tilt=0.0) noexcept(false);
 
     // Calculate additive dispersion vector for given initial coordinate
     Eigen::Vector4d dispersion(const std::optional<Coordinate> &cood0 = std::nullopt,
-        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate additive dispersion vector array for given initial coordinate
     std::tuple<Eigen::Matrix<double, 4, Eigen::Dynamic>, Eigen::ArrayXd>
     dispersion_array(const std::optional<Coordinate> &cood0 = std::nullopt,
         double ds=0.1, bool endpoint = false,
-        IntegrationMethod method=IntegrationMethod::MIDPOINT) const noexcept(false) override;
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Calculate transferred coordinates through a quadrupole magnet
     static std::tuple<Eigen::Vector4d, std::optional<Eigen::Matrix4d>,
@@ -126,7 +126,7 @@ public:
      */
     std::tuple<double, double, double, double, double, double>
     radiation_integrals(const Coordinate &cood0, const Envelope &evlp0, const Dispersion &disp0,
-        double ds=0.1, IntegrationMethod method=IntegrationMethod::MIDPOINT) const override{
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const override{
         (void)cood0; // unused parameter
         (void)evlp0; // unused parameter
         (void)disp0; // unused parameter

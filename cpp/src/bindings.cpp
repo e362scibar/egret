@@ -190,8 +190,11 @@ PYBIND11_MODULE(cppegret, m) {
     m.doc() = "pybind11 bindings for egret";
 
     py::enum_<egret::Element::IntegrationMethod>(m, "IntegrationMethod")
-        .value("MIDPOINT", egret::Element::IntegrationMethod::MIDPOINT)
-        .value("RK4", egret::Element::IntegrationMethod::RK4)
+        .value("MIDPOINT", egret::Element::MIDPOINT)
+        .value("RK4", egret::Element::RK4)
+        .value("SYMPLECTIC1", egret::Element::SYMPLECTIC1)
+        .value("SYMPLECTIC2", egret::Element::SYMPLECTIC2)
+        .value("SYMPLECTIC4", egret::Element::SYMPLECTIC4)
         .export_values();
 
     py::class_<egret::BaseArray, egret::PyBaseArray, py::smart_holder>(m, "BaseArray")
@@ -431,32 +434,32 @@ PYBIND11_MODULE(cppegret, m) {
             py::arg("ds") = 0.1, py::arg("endpoint") = true)
         .def("transfer_matrix", &egret::Element::transfer_matrix,
             py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("transfer_matrix_array", &egret::Element::transfer_matrix_array,
             py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("dispersion", &egret::Element::dispersion,
             py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("dispersion_array", &egret::Element::dispersion_array,
             py::arg("cood0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = false,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("transfer", &egret::Element::transfer,
             py::arg("cood0"), py::arg("evlp0") = std::nullopt,
             py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("transfer_array", &egret::Element::transfer_array,
             py::arg("cood0"), py::arg("evlp0") = std::nullopt,
             py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
             py::arg("endpoint") = false,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("radiation_integrals", &egret::Element::radiation_integrals,
             py::arg("cood0"), py::arg("evlp0"), py::arg("disp0"), py::arg("ds") = 0.1,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("get_element_from_s", &egret::Element::get_element_from_s, py::arg("s"))
         .def("transfer_matrix_from_s", &egret::Element::transfer_matrix_from_s,
             py::arg("s0"), py::arg("cood0"), py::arg("ds") = 0.1,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("get_element", &egret::Element::get_element, py::arg("indices"))
         .def("set_element", &egret::Element::set_element,
             py::arg("indices"), py::arg("element"))
@@ -636,11 +639,11 @@ PYBIND11_MODULE(cppegret, m) {
         .def_property_readonly("I4u", &egret::Ring::I4u)
         .def_property_readonly("I4v", &egret::Ring::I4v)
         .def("update", &egret::Ring::update, py::arg("delta") = 0.0,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+            py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("find_initial_coordinate_of_closed_orbit",
             &egret::Ring::find_initial_coordinate_of_closed_orbit,
             py::arg("cood_guess") = std::nullopt,
-            py::arg("method") = py::cast(egret::Element::IntegrationMethod::MIDPOINT))
+            py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def_readonly_static("C_q", &egret::Ring::C_q)
         .def_readonly_static("m_e_eV", &egret::Ring::m_e_eV)
         .def_readwrite_static("tol_cod", &egret::Ring::tol_cod)

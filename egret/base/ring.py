@@ -128,22 +128,24 @@ class Ring(Element):
         pass
 
     @abstractmethod
-    def update(self, delta: float = 0.):
+    def update(self, delta: float = 0., method: str = 'symplectic4') -> None:
         '''
         Update transfer matrix, dispersion, and emittance.
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
         '''
         pass
 
     @abstractmethod
-    def find_initial_coordinate_of_closed_orbit(guess: Coordinate = None) -> None:
+    def find_initial_coordinate_of_closed_orbit(guess: Coordinate = None, method: str = 'symplectic4') -> None:
         '''
         Find initial coordinate of the closed orbit using Newton-Raphson method.
 
         Args:
             guess Coordinate: Initial guess of the closed orbit.
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
         '''
         pass
 
