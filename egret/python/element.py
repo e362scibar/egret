@@ -573,7 +573,7 @@ class Element(ElementABC, Object):
                 elif s < s0:
                     tmat_elem = elem.transfer_matrix(cood, ds, method)
                     tmat = np.dot(tmat_elem, tmat)
-                    cood, _, _ = elem.transfer(cood, ds, method)
+                    cood, _, _ = elem.transfer(cood, ds=ds, method=method)
                 s0 += elem._length
             return tmat
         else:

@@ -19,9 +19,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
-from logging import config
-
-from modules_for_beta_func import chi, tau
 from ..base.ring import Ring as RingABC
 from .element import Element
 from .lattice import Lattice
