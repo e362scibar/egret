@@ -27,6 +27,7 @@
 #include "egret/envelopearray.hpp"
 #include <stdexcept>
 #include <ranges>
+#include <numbers>
 
 /**
  * @brief Construct a new egret::EnvelopeArray object.
