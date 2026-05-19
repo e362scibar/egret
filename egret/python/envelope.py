@@ -307,9 +307,9 @@ class Envelope(EnvelopeABC):
         self._tau = tau
         dpsix = np.arctan2(Mu[0,1], self.bu*Mu[0,0]-self.au*Mu[0,1])
         dpsiy = np.arctan2(Mv[0,1], self.bv*Mv[0,0]-self.av*Mv[0,1])
-        if dpsix < 0.:
+        if dpsix < 0. and length >= 0.:
             dpsix += 2. * np.pi
-        if dpsiy < 0.:
+        if dpsiy < 0. and length >= 0.:
             dpsiy += 2. * np.pi
         self._psix += dpsix
         self._psiy += dpsiy

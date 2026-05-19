@@ -252,6 +252,7 @@ class Element(ElementABC, Object):
     def transfer_matrix(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'symplectic4') -> npt.NDArray[np.floating]:
         '''
         Transfer matrix of the element.
+        Start point is always the beginning of the element, and the end point is always the end of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
@@ -275,6 +276,7 @@ class Element(ElementABC, Object):
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Transfer matrix array along the element.
+        Start point is always the beginning of the element, and the end point is always the end of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
@@ -311,6 +313,7 @@ class Element(ElementABC, Object):
     def dispersion(self, cood0: Coordinate = None, ds: float = 0.1, method: str = 'symplectic4') -> npt.NDArray[np.floating]:
         '''
         Additive dispersion vector of the element.
+        Start point is always the beginning of the element, and the end point is always the end of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
@@ -332,6 +335,7 @@ class Element(ElementABC, Object):
         -> Tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
         '''
         Additive dispersion array along the element.
+        Start point is always the beginning of the element, and the end point is always the end of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate (not used in the base class).
@@ -367,7 +371,7 @@ class Element(ElementABC, Object):
         -> Tuple[Coordinate, Envelope, Dispersion]:
         '''
         Calculate the coordinate, envelope, and dispersion after the element.
-        The start point is cood0.s and the end point is the end of the element.
+        The start point is always the beginning of the element, and the end point is always the end of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate.
@@ -381,37 +385,28 @@ class Element(ElementABC, Object):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        if cood0.s < 0. or cood0.s > self._length:
-            raise ValueError(f'Initial coordinate s out of range. s={cood0.s}, length={self._length}')
-        cood0err = cood0.copy()
-        evlp0err = evlp0.copy() if evlp0 is not None else None
-        disp0err = disp0.copy() if disp0 is not None else None
+        cood = cood0.copy()
+        evlp = evlp0.copy() if evlp0 is not None else None
+        disp = disp0.copy() if disp0 is not None else None
         if self._ds != 0.:
-            cood0err, evlp0err, disp0err = Drift('', self._ds).transfer(cood0err, evlp0err, disp0err, ds, method)
-        cood0err.x -= self._dx
-        cood0err.y -= self._dy
+            cood, evlp, disp = Drift('', self._ds).transfer(cood, evlp, disp, ds, method)
+        cood.x -= self._dx
+        cood.y -= self._dy
         if self._elements is not None:
-            element0, s0 = self.get_element_from_s(cood0.s) # To Do
-            cood = cood0err
-            evlp = evlp0err
-            disp = disp0err
             for elem in self._elements:
                 cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
             cood1, evlp1, disp1 = cood, evlp, disp
         else:
-            tmat = self.transfer_matrix(cood0err, ds, method)
-            cood = np.dot(tmat, cood0err.vector)
-            cood1 = Coordinate(cood, cood0err.s + self._length, cood0err.z, cood0err.delta)
-            if evlp0err is not None:
-                evlp1 = evlp0err
-                evlp1.transfer(tmat, self.length)
-            else:
-                evlp1 = None
-            if disp0err is not None:
-                disp = np.dot(tmat, disp0err.vector) + self.dispersion(cood0err, ds, method)
-                disp1 = Dispersion(disp, disp0err.s + self._length)
-            else:
-                disp1 = None
+            tmat = self.transfer_matrix(cood, ds, method)
+            cood1vec = np.dot(tmat, cood.vector)
+            cood1 = Coordinate(cood1vec, cood.s + self._length, cood.z, cood.delta)
+            evlp1 = evlp
+            if evlp1 is not None:
+                evlp1.transfer(tmat, self._length)
+            disp1 = disp
+            if disp1 is not None:
+                disp1vec = np.dot(tmat, disp1.vector) + self.dispersion(cood, ds, method)
+                disp1 = Dispersion(disp1vec, disp1.s + self._length)
         cood1.x += self._dx
         cood1.y += self._dy
         if self._ds != 0.:
@@ -423,7 +418,7 @@ class Element(ElementABC, Object):
         -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
         '''
         Calculate the coordinate array along the element.
-        The start point is cood0.s and the end point is the end of the element.
+        The start point is always the beginning of the element, and the end point is always the end of the element.
 
         Args:
             cood0 Coordinate: Initial coordinate.
@@ -438,20 +433,14 @@ class Element(ElementABC, Object):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        if cood0.s < 0. or cood0.s > self._length:
-            raise ValueError(f'Initial coordinate s out of range. s={cood0.s}, length={self._length}')
-        cood0err = cood0.copy()
-        evlp0err = evlp0.copy() if evlp0 is not None else None
-        disp0err = disp0.copy() if disp0 is not None else None
+        cood = cood0.copy()
+        evlp = evlp0.copy() if evlp0 is not None else None
+        disp = disp0.copy() if disp0 is not None else None
         if self._ds != 0.:
-            cood0err, evlp0err, disp0err = Drift('', self._ds).transfer(cood0err, evlp0err, disp0err, ds, method)
-        cood0err.x -= self._dx
-        cood0err.y -= self._dy
+            cood, evlp, disp = Drift('', self._ds).transfer(cood, evlp, disp, ds, method)
+        cood.x -= self._dx
+        cood.y -= self._dy
         if self._elements is not None:
-            element0, s0 = self.get_element_from_s(cood0.s) # To Do
-            cood = cood0err
-            evlp = evlp0err
-            disp = disp0err
             cood1, evlp1, disp1 = None, None, None
             for elem in self._elements:
                 coodarray, evlparray, disparray = elem.transfer_array(cood, evlp, disp, ds, False, method)
@@ -461,14 +450,14 @@ class Element(ElementABC, Object):
                     cood1.append(coodarray)
                     if cood1.vector.shape[1] != cood1.s.shape[0]:
                         raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(cood)={cood1.vector.shape[1]}, len(s)={cood1.s.shape[0]}')
-                if evlp0err is not None:
+                if evlp is not None:
                     if evlp1 is None:
                         evlp1 = evlparray
                     else:
                         evlp1.append(evlparray)
                         if evlp1.cov.shape[0] != evlp1.s.shape[0]:
                             raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(evlp)={evlp1.cov.shape[0]}, len(s)={evlp1.s.shape[0]}')
-                if disp0err is not None:
+                if disp is not None:
                     if disp1 is None:
                         disp1 = disparray
                     else:
@@ -478,31 +467,53 @@ class Element(ElementABC, Object):
                 cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
             if endpoint:
                 cood1.append(CoordinateArray(cood.vector[:, np.newaxis], np.array([cood.s])))
-                if evlp0err is not None:
+                if evlp is not None:
                     evlp1.append(EnvelopeArray(evlp.cov[np.newaxis, :, :], np.array([evlp.s]), evlp.T[np.newaxis, :, :],
                                                np.array([evlp.psix]), np.array([evlp.psiy])))
-                if disp0err is not None:
+                if disp is not None:
                     disp1.append(DispersionArray(disp.vector[:, np.newaxis], np.array([disp.s])))
             cood1.x += self._dx
             cood1.y += self._dy
             if self._ds != 0.:
-                cood1, evlp1, disp1 = Drift('', -self._ds).transfer(cood1, evlp1, disp1, ds, method)
+                tmat = Drift.transfer_matrix_from_length(-self._ds)
+                coodvec = np.matmul(tmat, cood1.vector)
+                cood1 = CoordinateArray(coodvec, cood1.s - self._ds, np.full_like(cood1.s, cood.z), np.full_like(cood1.s, cood.delta))
+                if evlp1 is not None:
+                    cov = np.matmul(tmat, np.matmul(evlp1.cov, tmat.T))
+                    tmat_ = Drift.transfer_matrix_from_length(self._ds)
+                    tmat_T1 = np.matmul(evlp1.T, tmat_)
+                    T1tmat = np.matmul(tmat, evlp1.T)
+                    T1 = 0.5 * (np.matmul(tmat, tmat_T1) + np.matmul(T1tmat, tmat_))
+                    dpsix = np.arctan2(-self._ds, evlp1.bu+evlp1.au*self._ds)
+                    dpsiy = np.arctan2(-self._ds, evlp1.bv+evlp1.av*self._ds)
+                    if self._ds > 0.:
+                        dpsix = np.unwrap(np.where(dpsix > 0., dpsix - 2. * np.pi, dpsix))
+                        dpsiy = np.unwrap(np.where(dpsiy > 0., dpsiy - 2. * np.pi, dpsiy))
+                    else:
+                        dpsix = np.unwrap(np.where(dpsix < 0., dpsix + 2. * np.pi, dpsix))
+                        dpsiy = np.unwrap(np.where(dpsiy < 0., dpsiy + 2. * np.pi, dpsiy))
+                    psix = evlp1.psix + dpsix
+                    psiy = evlp1.psiy + dpsiy
+                    evlp1 = EnvelopeArray(cov, evlp1.s - self._ds, T1, psix, psiy)
+                if disp1 is not None:
+                    dispvec = np.matmul(tmat, disp1.vector)
+                    disp1 = DispersionArray(dispvec, disp1.s - self._ds)
         else:
-            tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint, method)
+            tmat, s = self.transfer_matrix_array(cood, ds, endpoint, method)
             if self._ds != 0.:
                 tmat = np.matmul(Drift.transfer_matrix_from_length(-self._ds), tmat)
-            cood = np.matmul(tmat, cood0err.vector).T
-            cood[0] += self._dx
-            cood[2] += self._dy
-            cood1 = CoordinateArray(cood, s + cood0.s, np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
-            if evlp0err is not None:
-                evlp1 = EnvelopeArray.transport(evlp0err, tmat, s - self._ds)
+            coodvec = np.matmul(tmat, cood.vector).T
+            coodvec[0] += self._dx
+            coodvec[1] += self._dy
+            cood1 = CoordinateArray(coodvec, s + cood0.s, np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
+            if evlp is not None:
+                evlp1 = EnvelopeArray.transport(evlp, tmat, s - self._ds)
             else:
                 evlp1 = None
-            if disp0err is not None:
-                disp_add, _ = self.dispersion_array(cood0err, ds, endpoint, method)
-                disp = np.matmul(tmat, disp0err.vector).T + disp_add
-                disp1 = DispersionArray(disp, s + disp0.s)
+            if disp is not None:
+                disp_add, _ = self.dispersion_array(cood, ds, endpoint, method)
+                dispvec = np.matmul(tmat, disp.vector).T + disp_add
+                disp1 = DispersionArray(dispvec, s + disp0.s)
             else:
                 disp1 = None
         return cood1, evlp1, disp1
@@ -598,6 +609,165 @@ class Element(ElementABC, Object):
             elem = self.copy()
             elem._length -= s
             return elem.transfer_matrix(cood0, ds, method)
+
+    # To Do
+    def transfer_from_s(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method: str = 'symplectic4') \
+        -> Tuple[Coordinate, Envelope, Dispersion]:
+        '''
+        Calculate the coordinate, envelope, and dispersion after the element.
+        The start point is cood0.s and the end point is the end of the element.
+
+        Args:
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m] for integration (not used in the base class).
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
+
+        Returns:
+            Coordinate: Coordinate after the element.
+            Envelope: Beam envelope after the element (if evlp0 is provided).
+            Dispersion: Dispersion after the element (if disp0 is provided).
+        '''
+        if cood0.s < 0. or cood0.s > self._length:
+            raise ValueError(f'Initial coordinate s out of range. s={cood0.s}, length={self._length}')
+        cood0err = cood0.copy()
+        evlp0err = evlp0.copy() if evlp0 is not None else None
+        disp0err = disp0.copy() if disp0 is not None else None
+        if self._ds != 0.:
+            cood0err, evlp0err, disp0err = Drift('', self._ds).transfer(cood0err, evlp0err, disp0err, ds, method)
+            cood0err.s -= self._ds
+        cood0err.x -= self._dx
+        cood0err.y -= self._dy
+        if self._elements is not None:
+            cood, evlp, disp = cood0err, evlp0err, disp0err
+            s0 = 0.
+            for elem0 in self._elements:
+                if s0 < cood.s:
+                    continue
+                elif cood.s > s0 and cood.s < s0 + elem0._length:
+                    elem = elem0.copy()
+                    elem._length -= cood.s - s0
+                else:
+                    elem = elem0
+                cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
+                s0 += elem0._length
+            cood1, evlp1, disp1 = cood, evlp, disp
+        else:
+            if cood0.s == 0.:
+                elem = self
+            else:
+                elem = self.copy()
+                elem._length -= cood0.s
+            tmat = elem.transfer_matrix(cood0err, ds, method)
+            cood = np.dot(tmat, cood0err.vector)
+            cood1 = Coordinate(cood, cood0err.s + elem._length, cood0err.z, cood0err.delta)
+            if evlp0err is not None:
+                evlp1 = evlp0err
+                evlp1.transfer(tmat, elem._length)
+            else:
+                evlp1 = None
+            if disp0err is not None:
+                disp = np.dot(tmat, disp0err.vector) + elem.dispersion(cood0err, ds, method)
+                disp1 = Dispersion(disp, disp0err.s + elem._length)
+            else:
+                disp1 = None
+        cood1.x += self._dx
+        cood1.y += self._dy
+        if self._ds != 0.:
+            cood1, evlp1, disp1 = Drift('', -self._ds).transfer(cood1, evlp1, disp1, ds, method)
+            cood1.s += self._ds
+        return cood1, evlp1, disp1
+
+    # To Do
+    def transfer_array_from_s(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
+                              ds: float = 0.1, endpoint: bool = True, method: str = 'symplectic4') \
+        -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
+        '''
+        Calculate the coordinate array along the element.
+        The start point is cood0.s and the end point is the end of the element.
+
+        Args:
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
+
+        Returns:
+            CoordinateArray: Coordinate array along the element.
+            EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
+            DispersionArray: Dispersion array along the element (if disp0 is provided).
+        '''
+        if cood0.s < 0. or cood0.s > self._length:
+            raise ValueError(f'Initial coordinate s out of range. s={cood0.s}, length={self._length}')
+        cood0err = cood0.copy()
+        evlp0err = evlp0.copy() if evlp0 is not None else None
+        disp0err = disp0.copy() if disp0 is not None else None
+        if self._ds != 0.:
+            cood0err, evlp0err, disp0err = Drift('', self._ds).transfer(cood0err, evlp0err, disp0err, ds, method)
+        cood0err.x -= self._dx
+        cood0err.y -= self._dy
+        if self._elements is not None:
+            element0, s0 = self.get_element_from_s(cood0.s) # To Do
+            cood = cood0err
+            evlp = evlp0err
+            disp = disp0err
+            cood1, evlp1, disp1 = None, None, None
+            for elem in self._elements:
+                coodarray, evlparray, disparray = elem.transfer_array(cood, evlp, disp, ds, False, method)
+                if cood1 is None:
+                    cood1 = coodarray
+                else:
+                    cood1.append(coodarray)
+                    if cood1.vector.shape[1] != cood1.s.shape[0]:
+                        raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(cood)={cood1.vector.shape[1]}, len(s)={cood1.s.shape[0]}')
+                if evlp0err is not None:
+                    if evlp1 is None:
+                        evlp1 = evlparray
+                    else:
+                        evlp1.append(evlparray)
+                        if evlp1.cov.shape[0] != evlp1.s.shape[0]:
+                            raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(evlp)={evlp1.cov.shape[0]}, len(s)={evlp1.s.shape[0]}')
+                if disp0err is not None:
+                    if disp1 is None:
+                        disp1 = disparray
+                    else:
+                        disp1.append(disparray)
+                        if disp1.vector.shape[1] != disp1.s.shape[0]:
+                            raise ValueError(f'transfer_array: shape mismatch name={elem.name}, len(disp)={disp1.vector.shape[1]}, len(s)={disp1.s.shape[0]}')
+                cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
+            if endpoint:
+                cood1.append(CoordinateArray(cood.vector[:, np.newaxis], np.array([cood.s])))
+                if evlp0err is not None:
+                    evlp1.append(EnvelopeArray(evlp.cov[np.newaxis, :, :], np.array([evlp.s]), evlp.T[np.newaxis, :, :],
+                                               np.array([evlp.psix]), np.array([evlp.psiy])))
+                if disp0err is not None:
+                    disp1.append(DispersionArray(disp.vector[:, np.newaxis], np.array([disp.s])))
+            cood1.x += self._dx
+            cood1.y += self._dy
+            if self._ds != 0.:
+                cood1, evlp1, disp1 = Drift('', -self._ds).transfer(cood1, evlp1, disp1, ds, method)
+        else:
+            tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint, method)
+            if self._ds != 0.:
+                tmat = np.matmul(Drift.transfer_matrix_from_length(-self._ds), tmat)
+            cood = np.matmul(tmat, cood0err.vector).T
+            cood[0] += self._dx
+            cood[2] += self._dy
+            cood1 = CoordinateArray(cood, s + cood0.s, np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
+            if evlp0err is not None:
+                evlp1 = EnvelopeArray.transport(evlp0err, tmat, s - self._ds)
+            else:
+                evlp1 = None
+            if disp0err is not None:
+                disp_add, _ = self.dispersion_array(cood0err, ds, endpoint, method)
+                disp = np.matmul(tmat, disp0err.vector).T + disp_add
+                disp1 = DispersionArray(disp, s + disp0.s)
+            else:
+                disp1 = None
+        return cood1, evlp1, disp1
 
     def get_element(self, indices: int | Tuple[int, ...]) -> Element:
         '''
