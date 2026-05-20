@@ -284,8 +284,8 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         T = 0.5 * (np.matmul(Mv, Mv_T1) + np.matmul(T1Mu, Mu_))
         dpsix = np.arctan2(Mu[:,0,1], evlp0.bu*Mu[:,0,0]-evlp0.au*Mu[:,0,1])
         dpsiy = np.arctan2(Mv[:,0,1], evlp0.bv*Mv[:,0,0]-evlp0.av*Mv[:,0,1])
-        psix = evlp0.psix + np.unwrap(np.where(dpsix < 0., dpsix + 2. * np.pi, dpsix))
-        psiy = evlp0.psiy + np.unwrap(np.where(dpsiy < 0., dpsiy + 2. * np.pi, dpsiy))
+        psix = evlp0.psix + dpsix
+        psiy = evlp0.psiy + dpsiy
         U = np.einsum('nij,jk,nlk->nil', Mu, evlp0.U, Mu)
         V = np.einsum('nij,jk,nlk->nil', Mv, evlp0.V, Mv)
         return cls(cov, evlp0.s + s, T, psix, psiy)

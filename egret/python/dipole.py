@@ -278,14 +278,17 @@ class Dipole(DipoleABC, Element):
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].
         '''
         rho = self._rho * (1. + cood0.delta)
-        cood0vec = cood0.vector.copy()
+        cood = cood0.copy()
+        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood.x -= self._dx
+        cood.y -= self._dy
         if self._k1 == 0.: # simple dipole
             phi = self._length / rho
             cosphi, sinphi = np.cos(phi), np.sin(phi)
             disp = np.array([rho*(1.-cosphi), sinphi, 0., 0.])
             Mx1 = np.array([[sinphi, -rho*cosphi], [cosphi/rho, sinphi]]) * 0.5 * self._length / rho
             Mx2 = np.array([[0., rho*sinphi], [sinphi/rho, 0.]]) * 0.5
-            disp[0:2] += np.dot(Mx1 + Mx2, cood0vec[0:2])
+            disp[0:2] += np.dot(Mx1 + Mx2, cood.vector[0:2])
         else: # combined-function dipole
             k1 = self._k1 / (1. + cood0.delta)
             kx = k1 + 1./rho**2
@@ -300,30 +303,30 @@ class Dipole(DipoleABC, Element):
                 disp = np.array([(1.-coshx)/(kx*rho), sinhx/(sqrtkx*rho), 0., 0.])
                 Mx1 = np.array([[-sinhx, -coshx/sqrtkx], [-sqrtkx*coshx, -sinhx]]) * 0.5 * self._length * sqrtkx
                 Mx2 = np.array([[0., sinhx/sqrtkx], [-sqrtkx*sinhx, 0.]]) * 0.5
-                disp[0:2] += np.dot(Mx1 + Mx2, cood0vec[0:2])
+                disp[0:2] += np.dot(Mx1 + Mx2, cood.vector[0:2])
                 My1 = np.array([[siny, -cosy/sqrtky], [sqrtky*cosy, siny]]) * 0.5 * self._length * sqrtky
                 My2 = np.array([[0., siny/sqrtky], [sqrtky*siny, 0.]]) * 0.5
-                disp[2:4] += np.dot(My1 + My2, cood0vec[2:4])
+                disp[2:4] += np.dot(My1 + My2, cood.vector[2:4])
             elif ky < 0.: # focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 coshy, sinhy = np.cosh(psiy), np.sinh(psiy)
                 disp = np.array([(1.-cosx)/(kx*rho), sinx/(sqrtkx*rho), 0., 0.])
                 Mx1 = np.array([[sinx, -cosx/sqrtkx], [sqrtkx*cosx, sinx]]) * 0.5 * self._length * sqrtkx
                 Mx2 = np.array([[0., sinx/sqrtkx], [sqrtkx*sinx, 0.]]) * 0.5
-                disp[0:2] += np.dot(Mx1 + Mx2, cood0vec[0:2])
+                disp[0:2] += np.dot(Mx1 + Mx2, cood.vector[0:2])
                 My1 = np.array([[-sinhy, -coshy/sqrtky], [-sqrtky*coshy, -sinhy]]) * 0.5 * self._length * sqrtky
                 My2 = np.array([[0., sinhy/sqrtky], [-sqrtky*sinhy, 0.]]) * 0.5
-                disp[2:4] += np.dot(My1 + My2, cood0vec[2:4])
+                disp[2:4] += np.dot(My1 + My2, cood.vector[2:4])
             else: # both focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
                 disp = np.array([(1.-cosx)/(kx*rho), sinx/(sqrtkx*rho), 0., 0.])
                 Mx1 = np.array([[sinx, -cosx/sqrtkx], [sqrtkx*cosx, sinx]]) * 0.5 * self._length * sqrtkx
                 Mx2 = np.array([[0., sinx/sqrtkx], [sqrtkx*sinx, 0.]]) * 0.5
-                disp[0:2] += np.dot(Mx1 + Mx2, cood0vec[0:2])
+                disp[0:2] += np.dot(Mx1 + Mx2, cood.vector[0:2])
                 My1 = np.array([[siny, -cosy/sqrtky], [sqrtky*cosy, siny]]) * 0.5 * self._length * sqrtky
                 My2 = np.array([[0., siny/sqrtky], [sqrtky*siny, 0.]]) * 0.5
-                disp[2:4] += np.dot(My1 + My2, cood0vec[2:4])
+                disp[2:4] += np.dot(My1 + My2, cood.vector[2:4])
         return disp
 
     def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method: str = 'symplectic4') \
@@ -341,7 +344,10 @@ class Dipole(DipoleABC, Element):
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         rho = self._rho * (1. + cood0.delta)
-        cood0vec = cood0.vector.copy()
+        cood = cood0.copy()
+        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood.x -= self._dx
+        cood.y -= self._dy
         s = self.s_array(ds, endpoint)
         if self._k1 == 0.: # simple dipole
             phi = s / rho
@@ -349,7 +355,7 @@ class Dipole(DipoleABC, Element):
             disp = np.array([rho*(1.-cosphi), sinphi, np.zeros_like(s), np.zeros_like(s)])
             Mx1 = np.array([[sinphi, -rho*cosphi], [cosphi/rho, sinphi]]) * 0.5 * s[np.newaxis,np.newaxis,:] / rho
             Mx2 = np.array([[np.zeros_like(s), rho*sinphi], [sinphi/rho, np.zeros_like(s)]]) * 0.5
-            disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood0vec[0:2]).T
+            disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood.vector[0:2]).T
         else:
             k1 = self._k1 / (1. + cood0.delta)
             kx = k1 + 1./rho**2
@@ -364,30 +370,30 @@ class Dipole(DipoleABC, Element):
                 disp = np.array([(1.-coshx)/(kx*rho), sinhx/(sqrtkx*rho), np.zeros_like(s), np.zeros_like(s)])
                 Mx1 = np.array([[-sinhx, -coshx/sqrtkx], [-sqrtkx*coshx, -sinhx]]) * 0.5 * s[np.newaxis,np.newaxis,:] * sqrtkx
                 Mx2 = np.array([[np.zeros_like(s), sinhx/sqrtkx], [-sqrtkx*sinhx, np.zeros_like(s)]]) * 0.5
-                disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood0vec[0:2]).T
+                disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood.vector[0:2]).T
                 My1 = np.array([[siny, -cosy/sqrtky], [sqrtky*cosy, siny]]) * 0.5 * s[np.newaxis,np.newaxis,:] * sqrtky
                 My2 = np.array([[np.zeros_like(s), siny/sqrtky], [sqrtky*siny, np.zeros_like(s)]]) * 0.5
-                disp[2:4,:] += np.matmul((My1 + My2).transpose(2,0,1), cood0vec[2:4]).T
+                disp[2:4,:] += np.matmul((My1 + My2).transpose(2,0,1), cood.vector[2:4]).T
             elif ky < 0.: # focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 coshy, sinhy = np.cosh(psiy), np.sinh(psiy)
                 disp = np.array([(1.-cosx)/(kx*rho), sinx/(sqrtkx*rho), np.zeros_like(s), np.zeros_like(s)])
                 Mx1 = np.array([[sinx, -cosx/sqrtkx], [sqrtkx*cosx, sinx]]) * 0.5 * s[np.newaxis,np.newaxis,:] * sqrtkx
                 Mx2 = np.array([[np.zeros_like(s), sinx/sqrtkx], [sqrtkx*sinx, np.zeros_like(s)]]) * 0.5
-                disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood0vec[0:2]).T
+                disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood.vector[0:2]).T
                 My1 = np.array([[-sinhy, -coshy/sqrtky], [-sqrtky*coshy, -sinhy]]) * 0.5 * s[np.newaxis,np.newaxis,:] * sqrtky
                 My2 = np.array([[np.zeros_like(s), sinhy/sqrtky], [-sqrtky*sinhy, np.zeros_like(s)]]) * 0.5
-                disp[2:4,:] += np.matmul((My1 + My2).transpose(2,0,1), cood0vec[2:4]).T
+                disp[2:4,:] += np.matmul((My1 + My2).transpose(2,0,1), cood.vector[2:4]).T
             else: # both focusing dipole
                 cosx, sinx = np.cos(psix), np.sin(psix)
                 cosy, siny = np.cos(psiy), np.sin(psiy)
                 disp = np.array([(1.-cosx)/(kx*rho), sinx/(sqrtkx*rho), np.zeros_like(s), np.zeros_like(s)])
                 Mx1 = np.array([[sinx, -cosx/sqrtkx], [sqrtkx*cosx, sinx]]) * 0.5 * s[np.newaxis,np.newaxis,:] * sqrtkx
                 Mx2 = np.array([[np.zeros_like(s), sinx/sqrtkx], [sqrtkx*sinx, np.zeros_like(s)]]) * 0.5
-                disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood0vec[0:2]).T
+                disp[0:2,:] += np.matmul((Mx1 + Mx2).transpose(2,0,1), cood.vector[0:2]).T
                 My1 = np.array([[siny, -cosy/sqrtky], [sqrtky*cosy, siny]]) * 0.5 * s[np.newaxis,np.newaxis,:] * sqrtky
                 My2 = np.array([[np.zeros_like(s), siny/sqrtky], [sqrtky*siny, np.zeros_like(s)]]) * 0.5
-                disp[2:4,:] += np.matmul((My1 + My2).transpose(2,0,1), cood0vec[2:4]).T
+                disp[2:4,:] += np.matmul((My1 + My2).transpose(2,0,1), cood.vector[2:4]).T
         return disp, s
 
     def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method: str = 'symplectic4') \
@@ -407,26 +413,27 @@ class Dipole(DipoleABC, Element):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        cood0err = cood0.copy()
-        cood0err.x -= self._dx
-        cood0err.y -= self._dy
-        cood0err.s -= self._ds
-        tmat = self.transfer_matrix(cood0err, ds)
-        disp = self.dispersion(Coordinate(), ds)
-        cood = np.dot(tmat, cood0err.vector) + disp * cood0.delta
-        cood[0] += self._dx
-        cood[2] += self._dy
-        cood1 = Coordinate(cood, cood0err.s + self._length + self._ds, cood0err.z, cood0err.delta)
+        cood = cood0.copy()
+        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood.x -= self._dx
+        cood.y -= self._dy
+        tmat = self.transfer_matrix(cood0, ds)
+        disp = self.dispersion(cood0, ds)
+        coodvec = np.dot(tmat, cood.vector) + disp * cood.delta
+        cood1 = Coordinate(coodvec, cood0.s + self._length, cood0.z, cood0.delta)
         if evlp0 is not None:
             evlp1 = evlp0.copy()
             evlp1.transfer(tmat, self._length)
         else:
             evlp1 = None
         if disp0 is not None:
-            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0err, ds, method)
+            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0, ds)
             disp1 = Dispersion(disp, disp0.s + self._length)
         else:
             disp1 = None
+        cood1.x += self._dx
+        cood1.y += self._dy
+        cood1, evlp1, disp1 = self.drift_transfer(-self._ds, cood1, evlp1, disp1)
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
@@ -448,27 +455,27 @@ class Dipole(DipoleABC, Element):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        cood0err = cood0.copy()
-        cood0err.x -= self._dx
-        cood0err.y -= self._dy
-        cood0err.s -= self._ds
-        tmat, s = self.transfer_matrix_array(cood0err, ds, endpoint, method)
-        disp, _ = self.dispersion_array(Coordinate(), ds, endpoint, method)
-        cood = np.matmul(tmat, cood0err.vector).T + disp * cood0.delta
-        cood[0] += self._dx
-        cood[2] += self._dy
-        cood1 = CoordinateArray(cood, s + cood0.s,
+        cood = cood0.copy()
+        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood.x -= self._dx
+        cood.y -= self._dy
+        tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
+        dispvec, _ = self.dispersion_array(cood0, ds, endpoint)
+        coodvec = np.matmul(tmat, cood.vector).T + dispvec * cood0.delta
+        cood1 = CoordinateArray(coodvec, s + cood0.s,
                                 np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
         if evlp0 is not None:
             evlp1 = EnvelopeArray.transport(evlp0, tmat, s)
         else:
             evlp1 = None
         if disp0 is not None:
-            disp_add, _ = self.dispersion_array(cood0err, ds, endpoint, method)
-            disp = np.matmul(tmat, disp0.vector).T + disp_add
-            disp1 = DispersionArray(disp, s + disp0.s)
+            disp1vec = np.matmul(tmat, disp0.vector).T + dispvec
+            disp1 = DispersionArray(disp1vec, s + disp0.s)
         else:
             disp1 = None
+        cood1.x += self._dx
+        cood1.y += self._dy
+        cood1, evlp1, disp1 = self.drift_transfer_array(-self._ds, cood1, evlp1, disp1)
         return cood1, evlp1, disp1
 
     def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: float = 0.1, method: str = 'symplectic4') \

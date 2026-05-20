@@ -508,6 +508,9 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         '''
         n_step, s_step = self.get_step(ds)
         cood = cood0.copy()
+        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood.x -= self._dx
+        cood.y -= self._dy
         tmat = np.eye(4)
         transfer_method = self.get_transfer_method(method)
         for _ in range(n_step):
@@ -533,6 +536,9 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
         cood = cood0.copy()
+        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood.x -= self._dx
+        cood.y -= self._dy
         tmat = np.eye(4)
         tmat_list = [tmat.copy()]
         transfer_method = self.get_transfer_method(method)
@@ -556,6 +562,9 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         '''
         n_step, s_step = self.get_step(ds)
         cood = cood0.copy()
+        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood.x -= self._dx
+        cood.y -= self._dy
         dispout = np.zeros(4)
         transfer_method = self.get_transfer_method(method)
         for _ in range(n_step):
@@ -581,6 +590,9 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
         cood = cood0.copy()
+        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood.x -= self._dx
+        cood.y -= self._dy
         disp_list = [np.zeros(4)]
         transfer_method = self.get_transfer_method(method)
         for _ in range(n_step - int(not endpoint)):
@@ -606,12 +618,14 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
         cood = cood0.copy()
+        evlp = evlp0.copy() if evlp0 is not None else None
+        disp = disp0.copy() if disp0 is not None else None
+        cood, evlp, disp = self.drift_transfer(self._ds, cood, evlp, disp)
         cood.x -= self._dx
         cood.y -= self._dy
-        cood.s -= self._ds
         n_step, s_step = self.get_step(ds)
         tmat = np.eye(4) if evlp0 is not None else None
-        dispvec = disp0.vector.copy() if disp0 is not None else None
+        dispvec = disp.vector.copy() if disp is not None else None
         transfer_method = self.get_transfer_method(method)
         for _ in range(n_step):
             tmat_step, cood, disp = transfer_method(cood, s_step, dispflag=(disp0 is not None))
@@ -619,19 +633,13 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
                 tmat = tmat_step @ tmat
             if disp0 is not None:
                 dispvec = np.dot(tmat_step, dispvec) + disp
-        cood1 = cood
-        cood1.x += self._dx
-        cood1.y += self._dy
-        cood1.s += self._ds
-        if evlp0 is not None:
-            evlp1 = evlp0.copy()
-            evlp1.transfer(tmat, self._length)
-        else:
-            evlp1 = None
-        if disp0 is not None:
-            disp1 = Dispersion(dispvec, disp0.s + self._length)
-        else:
-            disp1 = None
+        if evlp is not None:
+            evlp.transfer(tmat, self._length)
+        if disp is not None:
+            disp = Dispersion(dispvec, disp0.s + self._length)
+        cood.x += self._dx
+        cood.y += self._dy
+        cood1, evlp1, disp1 = self.drift_transfer(-self._ds, cood, evlp, disp)
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
@@ -654,34 +662,37 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
         cood = cood0.copy()
+        evlp = evlp0.copy() if evlp0 is not None else None
+        disp = disp0.copy() if disp0 is not None else None
+        cood, evlp, disp = self.drift_transfer(self._ds, cood, evlp, disp)
         cood.x -= self._dx
         cood.y -= self._dy
-        cood.s -= self._ds
         n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
         cood_list = [cood.vector.copy()]
-        tmat, tmat_list = np.eye(4), [np.eye(4)] if evlp0 is not None else None
-        disp_list = [disp0.vector.copy()] if disp0 is not None else None
+        tmat, tmat_list = np.eye(4), [np.eye(4)] if evlp is not None else None
+        disp_list = [disp.vector.copy()] if disp is not None else None
         transfer_method = self.get_transfer_method(method)
         for _ in range(n_step - int(not endpoint)):
-            tmat_step, cood, disp = transfer_method(cood, s_step, dispflag=(disp0 is not None))
+            tmat_step, cood, disp = transfer_method(cood, s_step, dispflag=(disp is not None))
             cood_list.append(cood.vector.copy())
-            if evlp0 is not None:
+            if evlp is not None:
                 tmat = tmat_step @ tmat
                 tmat_list.append(tmat.copy())
-            if disp0 is not None:
+            if disp is not None:
                 disp_list.append(np.dot(tmat_step, disp_list[-1]) + disp)
         cood_array = np.array(cood_list).T
-        cood_array[0] += self._dx
-        cood_array[2] += self._dy
-        cood1 = CoordinateArray(cood_array, s + cood0.s + self._ds,
+        cood1 = CoordinateArray(cood_array, s + cood0.s,
                                 np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
-        if evlp0 is not None:
-            evlp1 = EnvelopeArray.transport(evlp0, np.array(tmat_list), s)
+        if evlp is not None:
+            evlp1 = EnvelopeArray.transport(evlp, np.array(tmat_list), s)
         else:
             evlp1 = None
-        if disp0 is not None:
+        if disp is not None:
             disp1 = DispersionArray(np.array(disp_list).T, s + disp0.s)
         else:
             disp1 = None
+        cood1.x += self._dx
+        cood1.y += self._dy
+        cood1, evlp1, disp1 = self.drift_transfer(-self._ds, cood1, evlp1, disp1)
         return cood1, evlp1, disp1
