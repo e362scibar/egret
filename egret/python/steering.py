@@ -231,21 +231,23 @@ class Steering(SteeringABC, Element):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         kick_x, kick_y = self._tilted_kick(cood0.delta)
         dx, dy = 0.5 * self._length * kick_x, 0.5 * self._length * kick_y
         tmat = self.transfer_matrix(cood0, ds, method)
-        cood = np.dot(tmat, cood0.vector) + np.array([dx, kick_x, dy, kick_y])
-        cood1 = Coordinate(cood, cood0.s + self._length, cood0.z, cood0.delta)
-        if evlp0 is not None:
-            evlp1 = evlp0.copy()
+        coodvec = np.dot(tmat, cood.vector) + np.array([dx, kick_x, dy, kick_y])
+        cood1 = Coordinate(coodvec, cood0.s + self._length, cood0.z, cood0.delta)
+        if evlp is not None:
+            evlp1 = evlp
             evlp1.transfer(tmat, self._length)
         else:
             evlp1 = None
-        if disp0 is not None:
-            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0, ds, method)
-            disp1 = Dispersion(disp, disp0.s + self._length)
+        if disp is not None:
+            dispvec = np.dot(tmat, disp.vector) + self.dispersion(cood0, ds, method)
+            disp1 = Dispersion(dispvec, disp0.s + self._length)
         else:
             disp1 = None
+        cood1, evlp1, disp1 = self.drift_transfer(-self._ds, cood1, evlp1, disp1)
         return cood1, evlp1, disp1
 
     def transfer_array(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
@@ -267,6 +269,7 @@ class Steering(SteeringABC, Element):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         kick_x, kick_y = self._tilted_kick(cood0.delta)
         tmat, s = self.transfer_matrix_array(cood0, ds, endpoint, method)
         if np.abs(self._length) > 0.:
@@ -275,19 +278,20 @@ class Steering(SteeringABC, Element):
         else:
             x, y = np.array([0.]), np.array([0.])
             xp, yp = np.array([kick_x]), np.array([kick_y])
-        cood = np.matmul(tmat, cood0.vector).T + np.array([x, xp, y, yp])
-        cood1 = CoordinateArray(cood, s + cood0.s,
+        coodvec = np.matmul(tmat, cood.vector).T + np.array([x, xp, y, yp])
+        cood1 = CoordinateArray(coodvec, s + cood0.s,
                                 np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
-        if evlp0 is not None:
-            evlp1 = EnvelopeArray.transport(evlp0, tmat, s)
+        if evlp is not None:
+            evlp1 = EnvelopeArray.transport(evlp, tmat, s)
         else:
             evlp1 = None
-        if disp0 is not None:
+        if disp is not None:
             disp_add, _ = self.dispersion_array(cood0, ds, endpoint, method)
-            disp = np.matmul(tmat, disp0.vector).T + disp_add
-            disp1 = DispersionArray(disp, s + disp0.s)
+            dispvec = np.matmul(tmat, disp.vector).T + disp_add
+            disp1 = DispersionArray(dispvec, s + disp0.s)
         else:
             disp1 = None
+        cood1, evlp1, disp1 = self.drift_transfer_array(-self._ds, cood1, evlp1, disp1)
         return cood1, evlp1, disp1
 
     def set_steering(self, kick_x: float | None = None, kick_y: float | None = None) -> None:

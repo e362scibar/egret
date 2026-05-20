@@ -265,8 +265,7 @@ class Element(ElementABC, Object):
             raise NotImplementedError('transfer_matrix method not implemented in the base class.')
         tmat = np.eye(4)
         if cood0 is not None:
-            cood = cood0.copy()
-            cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+            cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
             cood.x -= self._dx
             cood.y -= self._dy
         else:
@@ -296,7 +295,7 @@ class Element(ElementABC, Object):
         '''
         if self._elements is None:
             raise NotImplementedError('transfer_matrix_array method not implemented in the base class.')
-        cood = cood0.copy() if cood0 is not None else Coordinate()
+        cood = cood0 if cood0 is not None else Coordinate()
         cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
@@ -334,7 +333,7 @@ class Element(ElementABC, Object):
         '''
         if self._elements is None:
             return np.zeros(4)
-        cood = cood0.copy() if cood0 is not None else Coordinate()
+        cood = cood0 if cood0 is not None else Coordinate()
         disp = Dispersion()
         cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
         cood.x -= self._dx
@@ -363,7 +362,7 @@ class Element(ElementABC, Object):
         if self._elements is None:
             s = self.s_array(ds, endpoint)
             return np.zeros((4, len(s))), s
-        cood = cood0.copy() if cood0 is not None else Coordinate()
+        cood = cood0 if cood0 is not None else Coordinate()
         disp = Dispersion()
         cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
         cood.x -= self._dx
@@ -402,7 +401,10 @@ class Element(ElementABC, Object):
             Dispersion: Dispersion after the drift space (if disp0 is provided).
         '''
         if length == 0.:
-            return cood0, evlp0, disp0
+            cood = cood0.copy() if cood0 is not None else None
+            evlp = evlp0.copy() if evlp0 is not None else None
+            disp = disp0.copy() if disp0 is not None else None
+            return cood, evlp, disp
         tmat = np.eye(4)
         tmat[0, 1] = length
         tmat[2, 3] = length
@@ -494,10 +496,7 @@ class Element(ElementABC, Object):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        cood = cood0.copy()
-        evlp = evlp0.copy() if evlp0 is not None else None
-        disp = disp0.copy() if disp0 is not None else None
-        cood, evlp, disp = self.drift_transfer(self._ds, cood, evlp, disp)
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx
         cood.y -= self._dy
         if self._elements is not None:
@@ -540,10 +539,7 @@ class Element(ElementABC, Object):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        cood = cood0.copy()
-        evlp = evlp0.copy() if evlp0 is not None else None
-        disp = disp0.copy() if disp0 is not None else None
-        cood, evlp, disp = self.drift_transfer(self._ds, cood, evlp, disp)
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx
         cood.y -= self._dy
         if self._elements is not None:

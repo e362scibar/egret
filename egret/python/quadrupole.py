@@ -184,7 +184,9 @@ class Quadrupole(QuadruopoleABC, Element):
         disp = np.zeros(4)
         if k == 0.: # drift
             return disp
-        cood0vec = cood0.vector.copy()
+        cood, _, _ = self.drift_transfer(cood0, self._ds)
+        cood.x -= self._dx
+        cood.y -= self._dy
         sqrtk = np.sqrt(np.abs(k))
         psi = sqrtk * self._length
         cospsi, sinpsi = np.cos(psi), np.sin(psi)
@@ -195,11 +197,11 @@ class Quadrupole(QuadruopoleABC, Element):
         Md2 = np.array([[0., sinhpsi/sqrtk], [-sqrtk*sinhpsi, 0.]]) * 0.5
         if self._tilt == 0.:
             if k < 0.: # defocusing quadrupole
-                disp[0:2] = np.dot(Md1 + Md2, cood0vec[0:2])
-                disp[2:4] = np.dot(Mf1 + Mf2, cood0vec[2:4])
+                disp[0:2] = np.dot(Md1 + Md2, cood.vector[0:2])
+                disp[2:4] = np.dot(Mf1 + Mf2, cood.vector[2:4])
             else: # focusing quadrupole
-                disp[0:2] = np.dot(Mf1 + Mf2, cood0vec[0:2])
-                disp[2:4] = np.dot(Md1 + Md2, cood0vec[2:4])
+                disp[0:2] = np.dot(Mf1 + Mf2, cood.vector[0:2])
+                disp[2:4] = np.dot(Md1 + Md2, cood.vector[2:4])
         else:
             rmat = self.rotation_matrix()
             M = np.zeros((4,4))
@@ -210,7 +212,7 @@ class Quadrupole(QuadruopoleABC, Element):
                 M[0:2,0:2] = Mf1 + Mf2
                 M[2:4,2:4] = Md1 + Md2
             M_rot = rmat.T @ M @ rmat
-            disp = M_rot @ cood0vec
+            disp = M_rot @ cood.vector
         return disp
 
     def dispersion_array(self, cood0: Coordinate, ds: float = 0.1, endpoint: bool = False, method: str = 'symplectic4') \
@@ -233,7 +235,9 @@ class Quadrupole(QuadruopoleABC, Element):
         disp = np.zeros((4, len(s)))
         if k == 0.: # drift
             return disp, s
-        cood0vec = cood0.vector.copy()
+        cood, _, _ = self.drift_transfer(cood0, self._ds)
+        cood.x -= self._dx
+        cood.y -= self._dy
         sqrtk = np.sqrt(np.abs(k))
         psi = sqrtk * s
         cospsi, sinpsi = np.cos(psi), np.sin(psi)
@@ -246,11 +250,11 @@ class Quadrupole(QuadruopoleABC, Element):
         Md2 = np.array([[np.zeros_like(s), sinhpsi/sqrtk], [-sinhpsi*sqrtk, np.zeros_like(s)]]).transpose(2,0,1) * 0.5
         if self._tilt == 0.:
             if k < 0.: # defocusing quadrupole
-                disp[0:2,:] = np.matmul(Md1 + Md2, cood0vec[0:2]).T
-                disp[2:4,:] = np.matmul(Mf1 + Mf2, cood0vec[2:4]).T
+                disp[0:2,:] = np.matmul(Md1 + Md2, cood.vector[0:2]).T
+                disp[2:4,:] = np.matmul(Mf1 + Mf2, cood.vector[2:4]).T
             else: # focusing quadrupole
-                disp[0:2,:] = np.matmul(Mf1 + Mf2, cood0vec[0:2]).T
-                disp[2:4,:] = np.matmul(Md1 + Md2, cood0vec[2:4]).T
+                disp[0:2,:] = np.matmul(Mf1 + Mf2, cood.vector[0:2]).T
+                disp[2:4,:] = np.matmul(Md1 + Md2, cood.vector[2:4]).T
         else:
             M = np.zeros((len(s),4,4))
             if k < 0.: # defocusing quadrupole
@@ -261,5 +265,5 @@ class Quadrupole(QuadruopoleABC, Element):
                 M[:,2:4,2:4] = Md1 + Md2
             rmat = self.rotation_matrix()
             M_rot = np.matmul(rmat.T, np.matmul(M, rmat))
-            disp = np.matmul(M_rot, cood0vec).T
+            disp = np.matmul(M_rot, cood.vector).T
         return disp, s
