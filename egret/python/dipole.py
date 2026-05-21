@@ -278,7 +278,7 @@ class Dipole(DipoleABC, Element):
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].
         '''
         rho = self._rho * (1. + cood0.delta)
-        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
         if self._k1 == 0.: # simple dipole
@@ -343,7 +343,7 @@ class Dipole(DipoleABC, Element):
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         rho = self._rho * (1. + cood0.delta)
-        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
         s = self.s_array(ds, endpoint)
@@ -411,7 +411,7 @@ class Dipole(DipoleABC, Element):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
         tmat = self.transfer_matrix(cood0, ds)
@@ -452,7 +452,7 @@ class Dipole(DipoleABC, Element):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
         tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)

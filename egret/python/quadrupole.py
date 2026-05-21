@@ -184,7 +184,7 @@ class Quadrupole(QuadruopoleABC, Element):
         disp = np.zeros(4)
         if k == 0.: # drift
             return disp
-        cood, _, _ = self.drift_transfer(cood0, self._ds)
+        cood, _, _ = self.drift_transfer(self._ds, cood0)
         cood.x -= self._dx
         cood.y -= self._dy
         sqrtk = np.sqrt(np.abs(k))
@@ -235,7 +235,7 @@ class Quadrupole(QuadruopoleABC, Element):
         disp = np.zeros((4, len(s)))
         if k == 0.: # drift
             return disp, s
-        cood, _, _ = self.drift_transfer(cood0, self._ds)
+        cood, _, _ = self.drift_transfer(self._ds, cood0)
         cood.x -= self._dx
         cood.y -= self._dy
         sqrtk = np.sqrt(np.abs(k))

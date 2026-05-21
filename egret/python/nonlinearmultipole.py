@@ -507,7 +507,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
         n_step, s_step = self.get_step(ds)
-        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
         tmat = np.eye(4)
@@ -534,7 +534,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         '''
         n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
-        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
         tmat = np.eye(4)
@@ -559,7 +559,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
         '''
         n_step, s_step = self.get_step(ds)
-        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
         dispout = np.zeros(4)
@@ -586,7 +586,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         '''
         n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
-        cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
+        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
         disp_list = [np.zeros(4)]
@@ -613,7 +613,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        cood, evlp, disp = self.drift_transfer(self._ds, cood, evlp, disp)
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx
         cood.y -= self._dy
         n_step, s_step = self.get_step(ds)
@@ -654,7 +654,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        cood, evlp, disp = self.drift_transfer(self._ds, cood, evlp, disp)
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx
         cood.y -= self._dy
         n_step, s_step = self.get_step(ds)
