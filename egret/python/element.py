@@ -732,7 +732,7 @@ class Element(ElementABC, Object):
             for elem in self._elements:
                 if s >= s0 and s < s0 + elem._length:
                     cood, evlp, disp = elem.transfer_from_s(s - s0, cood, evlp, disp, ds, method)
-                else:
+                elif s < s0:
                     cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
                 s0 += elem._length
             cood1, evlp1, disp1 = cood, evlp, disp
