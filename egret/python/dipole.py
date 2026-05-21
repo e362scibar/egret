@@ -499,3 +499,20 @@ class Dipole(DipoleABC, Element):
         I5u = scipy.integrate.simpson(kappa**3 * (evlp.bu * dispuv[1]**2 + 2. * evlp.au * dispuv[0] * dispuv[1] + evlp.gu * dispuv[0]**2), x=disp.s)
         I5v = scipy.integrate.simpson(kappa**3 * (evlp.bv * dispuv[3]**2 + 2. * evlp.av * dispuv[2] * dispuv[3] + evlp.gv * dispuv[2]**2), x=disp.s)
         return I2, I4, I5u, I5v, I4u, I4v
+
+    def partial_element_from_s(self, s: float) -> Dipole:
+        '''
+        Return a partial element from the given longitudinal position.
+
+        Args:
+            s float: Longitudinal position [m] from the entrance of the element.
+
+        Returns:
+            Dipole: Partial dipole element starting from the specified longitudinal position.
+        '''
+        if s < 0. or s > self._length:
+            raise ValueError(f'Longitudinal position out of range. s={s}, length={self._length}')
+        length = self._length - s
+        angle = self._angle * length / self._length
+        return Dipole(self._name + f'_part_from_{s:.3f}', length, angle, self._k1, self._e1, self._e2, self._h1, self._h2,
+                      self._dx, self._dy, self._ds + s, self._tilt, self._info)
