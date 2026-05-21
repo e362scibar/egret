@@ -138,6 +138,44 @@ public:
         );
     }
 
+    std::shared_ptr<Element>
+    partial_element_from_s(double s) const noexcept(false) override {
+        PYBIND11_OVERRIDE(
+            std::shared_ptr<Element>, // return type
+            Element, // parent class
+            partial_element_from_s, // python function name
+            s // arguments
+        );
+    }
+
+    using tuple_of_beam_params_from_s = std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>;
+    tuple_of_beam_params_from_s
+    transfer_from_s(double s, const Coordinate &cood0,
+        const std::optional<Envelope> &evlp0,
+        const std::optional<Dispersion> &disp0,
+        double ds, IntegrationMethod method) const noexcept(false) override {
+        PYBIND11_OVERRIDE(
+            tuple_of_beam_params_from_s, // return type
+            Element, // parent class
+            transfer_from_s, // python function name
+            s, cood0, evlp0, disp0, ds, method // arguments
+        );
+    }
+
+    using tuple_of_beam_param_array_from_s = std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>;
+    tuple_of_beam_param_array_from_s
+    transfer_array_from_s(double s, const Coordinate &cood0,
+        const std::optional<Envelope> &evlp0,
+        const std::optional<Dispersion> &disp0,
+        double ds, bool endpoint, IntegrationMethod method) const noexcept(false) override {
+        PYBIND11_OVERRIDE(
+            tuple_of_beam_param_array_from_s, // return type
+            Element, // parent class
+            transfer_array_from_s, // python function name
+            s, cood0, evlp0, disp0, ds, endpoint, method // arguments
+        );
+    }
+
     // define return type tuple_of_beam_param_array to prevent macro error
     using tuple_of_beam_param_array = std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>;
     tuple_of_beam_param_array
@@ -453,12 +491,21 @@ PYBIND11_MODULE(cppegret, m) {
             py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
             py::arg("endpoint") = false,
                 py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
+        .def("partial_element_from_s", &egret::Element::partial_element_from_s, py::arg("s"))
         .def("radiation_integrals", &egret::Element::radiation_integrals,
             py::arg("cood0"), py::arg("evlp0"), py::arg("disp0"), py::arg("ds") = 0.1,
                 py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("get_element_from_s", &egret::Element::get_element_from_s, py::arg("s"))
         .def("transfer_matrix_from_s", &egret::Element::transfer_matrix_from_s,
             py::arg("s0"), py::arg("cood0"), py::arg("ds") = 0.1,
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
+        .def("transfer_from_s", &egret::Element::transfer_from_s,
+            py::arg("s"), py::arg("cood0"), py::arg("evlp0") = std::nullopt,
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1,
+                py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
+        .def("transfer_array_from_s", &egret::Element::transfer_array_from_s,
+            py::arg("s"), py::arg("cood0"), py::arg("evlp0") = std::nullopt,
+            py::arg("disp0") = std::nullopt, py::arg("ds") = 0.1, py::arg("endpoint") = true,
                 py::arg_v("method", egret::Element::SYMPLECTIC4, "SYMPLECTIC4"))
         .def("get_element", &egret::Element::get_element, py::arg("indices"))
         .def("set_element", &egret::Element::set_element,

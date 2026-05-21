@@ -204,6 +204,24 @@ public:
         const std::optional<Dispersion> &disp0 = std::nullopt,
         double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
 
+    // Get a partial element starting from the specified longitudinal position
+    virtual std::shared_ptr<Element> partial_element_from_s(double s) const noexcept(false);
+
+    // Transfer coordinate, envelope, and dispersion from a given longitudinal position
+    virtual std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>
+    transfer_from_s(double s, const Coordinate &cood0,
+        const std::optional<Envelope> &evlp0 = std::nullopt,
+        const std::optional<Dispersion> &disp0 = std::nullopt,
+        double ds=0.1, IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
+
+    // Transfer coordinate array, envelope array, and dispersion array from a given longitudinal position
+    virtual std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
+    transfer_array_from_s(double s, const Coordinate &cood0,
+        const std::optional<Envelope> &evlp0 = std::nullopt,
+        const std::optional<Dispersion> &disp0 = std::nullopt,
+        double ds=0.1, bool endpoint=true,
+        IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false);
+
     // Transfer coordinate array through the element
     virtual std::tuple<CoordinateArray, std::optional<EnvelopeArray>, std::optional<DispersionArray>>
     transfer_array(const Coordinate &cood0,

@@ -261,6 +261,8 @@ class Element(Object):
         ...
     def get_element_from_s(self, s: typing.SupportsFloat) -> tuple[Element, float]:
         ...
+    def partial_element_from_s(self, s: typing.SupportsFloat) -> Element:
+        ...
     def get_s(self, indices: collections.abc.Sequence[typing.SupportsInt]) -> float:
         ...
     def radiation_integrals(self, cood0: Coordinate, evlp0: Envelope, disp0: Dispersion, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> tuple[float, float, float, float, float, float]:
@@ -274,6 +276,10 @@ class Element(Object):
     def transfer(self, cood0: Coordinate, evlp0: egret.cppegret.Envelope | None = None, disp0: egret.cppegret.Dispersion | None = None, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> tuple[Coordinate, egret.cppegret.Envelope | None, egret.cppegret.Dispersion | None]:
         ...
     def transfer_array(self, cood0: Coordinate, evlp0: egret.cppegret.Envelope | None = None, disp0: egret.cppegret.Dispersion | None = None, ds: typing.SupportsFloat = 0.1, endpoint: bool = False, method: IntegrationMethod = ...) -> tuple[CoordinateArray, egret.cppegret.EnvelopeArray | None, egret.cppegret.DispersionArray | None]:
+        ...
+    def transfer_from_s(self, s: typing.SupportsFloat, cood0: Coordinate, evlp0: egret.cppegret.Envelope | None = None, disp0: egret.cppegret.Dispersion | None = None, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> tuple[Coordinate, egret.cppegret.Envelope | None, egret.cppegret.Dispersion | None]:
+        ...
+    def transfer_array_from_s(self, s: typing.SupportsFloat, cood0: Coordinate, evlp0: egret.cppegret.Envelope | None = None, disp0: egret.cppegret.Dispersion | None = None, ds: typing.SupportsFloat = 0.1, endpoint: bool = True, method: IntegrationMethod = ...) -> tuple[CoordinateArray, egret.cppegret.EnvelopeArray | None, egret.cppegret.DispersionArray | None]:
         ...
     def transfer_matrix(self, cood0: egret.cppegret.Coordinate | None = None, ds: typing.SupportsFloat = 0.1, method: IntegrationMethod = ...) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]:
         ...
@@ -510,15 +516,15 @@ class EnvelopeArray(BaseArray):
 class IntegrationMethod:
     """
     Members:
-    
+
       MIDPOINT
-    
+
       RK4
-    
+
       SYMPLECTIC1
-    
+
       SYMPLECTIC2
-    
+
       SYMPLECTIC4
     """
     MIDPOINT: typing.ClassVar[IntegrationMethod]  # value = <IntegrationMethod.MIDPOINT: 0>

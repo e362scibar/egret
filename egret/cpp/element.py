@@ -436,6 +436,83 @@ class Element(ElementABC, Object):
         '''
         return self.instance.transfer_matrix_from_s(s, cood0.instance, ds, self.INTEGRATION_METHODS[method])
 
+    def partial_element_from_s(self, s: float) -> Element:
+        '''
+        Get a partial element starting from the specified longitudinal position.
+
+        Args:
+            s float: Longitudinal position [m].
+
+        Returns:
+            Element: Partial element starting from the specified position.
+        '''
+        elem_cpp = self.instance.partial_element_from_s(s)
+        return self.actual_element(elem_cpp)
+
+    def transfer_from_s(self, s: float, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
+                        ds: float = 0.1, method: str = 'symplectic4') \
+        -> Tuple[Coordinate, Envelope, Dispersion]:
+        '''
+        Calculate the coordinate, envelope, and dispersion from the specified longitudinal position.
+
+        Args:
+            s float: Longitudinal position [m].
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m] for integration.
+            method str: Integration method. ('midpoint', 'rk4', 'symplectic{1,2,4}')
+
+        Returns:
+            Coordinate: Coordinate after the element.
+            Envelope: Beam envelope after the element (if evlp0 is provided).
+            Dispersion: Dispersion after the element (if disp0 is provided).
+        '''
+        cood, evlp, disp = self.instance.transfer_from_s(
+            s,
+            cood0.instance,
+            evlp0.instance if evlp0 is not None else None,
+            disp0.instance if disp0 is not None else None,
+            ds,
+            self.INTEGRATION_METHODS[method],
+        )
+        return Coordinate(instance=cood), \
+            Envelope(instance=evlp) if evlp is not None else None, \
+            Dispersion(instance=disp) if disp is not None else None
+
+    def transfer_array_from_s(self, s: float, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
+                              ds: float = 0.1, endpoint: bool = True, method: str = 'symplectic4') \
+        -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
+        '''
+        Calculate the coordinate array, envelope array, and dispersion array from the specified longitudinal position.
+
+        Args:
+            s float: Longitudinal position [m].
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+            method str: Integration method. ('midpoint', 'rk4', 'symplectic{1,2,4}')
+
+        Returns:
+            CoordinateArray: Coordinate array from the specified position.
+            EnvelopeArray: Beam envelope array from the specified position (if evlp0 is provided).
+            DispersionArray: Dispersion array from the specified position (if disp0 is provided).
+        '''
+        cood, evlp, disp = self.instance.transfer_array_from_s(
+            s,
+            cood0.instance,
+            evlp0.instance if evlp0 is not None else None,
+            disp0.instance if disp0 is not None else None,
+            ds,
+            endpoint,
+            self.INTEGRATION_METHODS[method],
+        )
+        return CoordinateArray(None, None, instance=cood), \
+            EnvelopeArray(None, None, instance=evlp) if evlp is not None else None, \
+            DispersionArray(None, None, instance=disp) if disp is not None else None
+
     def get_element(self, indices: int | Tuple[int, ...]) -> Element:
         '''
         Get element by index or tuple of indices.

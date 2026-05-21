@@ -378,6 +378,64 @@ class Element(Object):
         pass
 
     @abstractmethod
+    def partial_element_from_s(self, s: float) -> Element:
+        '''
+        Get a partial element starting from the specified longitudinal position.
+
+        Args:
+            s float: Longitudinal position [m].
+
+        Returns:
+            Element: Partial element starting from the specified position.
+        '''
+        pass
+
+    @abstractmethod
+    def transfer_from_s(self, s: float, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
+                        ds: float = 0.1, method: str = 'symplectic4') \
+        -> Tuple[Coordinate, Envelope, Dispersion]:
+        '''
+        Calculate the coordinate, envelope, and dispersion from the specified start point to the end of the element.
+
+        Args:
+            s float: Longitudinal start position [m].
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m] for integration.
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
+
+        Returns:
+            Coordinate: Coordinate after the element.
+            Envelope: Beam envelope after the element (if evlp0 is provided).
+            Dispersion: Dispersion after the element (if disp0 is provided).
+        '''
+        pass
+
+    @abstractmethod
+    def transfer_array_from_s(self, s: float, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None,
+                              ds: float = 0.1, endpoint: bool = True, method: str = 'symplectic4') \
+        -> Tuple[CoordinateArray, EnvelopeArray, DispersionArray]:
+        '''
+        Calculate the coordinate array, envelope array, and dispersion array from the specified start point to the end of the element.
+
+        Args:
+            s float: Longitudinal start position [m].
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m].
+            endpoint bool: If True, include the endpoint.
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
+
+        Returns:
+            CoordinateArray: Coordinate array along the element.
+            EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
+            DispersionArray: Dispersion array along the element (if disp0 is provided).
+        '''
+        pass
+
+    @abstractmethod
     def get_element(self, indices: int | Tuple[int, ...]) -> Element:
         '''
         Get element by index or tuple of indices.

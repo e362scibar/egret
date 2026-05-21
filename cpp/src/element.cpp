@@ -29,6 +29,70 @@
 #include <cmath>
 #include <ranges>
 
+namespace {
+Eigen::Matrix4d drift_matrix(const double length) {
+    Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
+    M(0, 1) = length;
+    M(2, 3) = length;
+    return M;
+}
+
+egret::Coordinate drift_coordinate(const egret::Coordinate &cood, const double length) {
+    const auto M = drift_matrix(length);
+    const auto vec = M * cood.vector();
+    return egret::Coordinate(vec, cood.s() + length, cood.z(), cood.delta());
+}
+
+egret::CoordinateArray drift_coordinate_array(const egret::CoordinateArray &cood_array, const double length) {
+    const auto M = drift_matrix(length);
+    return egret::CoordinateArray(M * cood_array.vector_array(), cood_array.s_array(),
+        cood_array.z_array(), cood_array.delta_array());
+}
+
+egret::Dispersion drift_dispersion(const egret::Dispersion &disp, const double length) {
+    const auto M = drift_matrix(length);
+    return egret::Dispersion(M * disp.vector(), disp.s() + length);
+}
+
+egret::Envelope drift_envelope(const egret::Envelope &evlp, const double length) {
+    const auto M = drift_matrix(length);
+    egret::Envelope out = evlp;
+    out.transfer(M, length);
+    return out;
+}
+
+egret::DispersionArray drift_dispersion_array(const egret::DispersionArray &disp_array, const double length) {
+    const auto M = drift_matrix(length);
+    return egret::DispersionArray(M * disp_array.vector_array(), disp_array.s_array());
+}
+
+egret::EnvelopeArray drift_envelope_array(const egret::EnvelopeArray &evlp_array, const double length) {
+    const auto M4 = drift_matrix(length);
+    Eigen::Matrix2d M2 = Eigen::Matrix2d::Identity();
+    M2(0, 1) = length;
+    Eigen::Matrix2d M2m = Eigen::Matrix2d::Identity();
+    M2m(0, 1) = -length;
+
+    auto cov_array = evlp_array.cov_array();
+    auto T_array = evlp_array.T_array();
+    auto psix_array = evlp_array.psix_array();
+    auto psiy_array = evlp_array.psiy_array();
+    const auto bu_array = evlp_array.bu_array();
+    const auto au_array = evlp_array.au_array();
+    const auto bv_array = evlp_array.bv_array();
+    const auto av_array = evlp_array.av_array();
+    for (size_t i = 0; i < cov_array.size(); ++i) {
+        cov_array[i] = M4 * cov_array[i] * M4.transpose();
+        if (i < T_array.size()) {
+            T_array[i] = M2 * T_array[i] * M2m;
+        }
+        psix_array(i) += std::atan2(length, bu_array(i) + au_array(i) * length);
+        psiy_array(i) += std::atan2(length, bv_array(i) + av_array(i) * length);
+    }
+    return egret::EnvelopeArray(cov_array, evlp_array.s_array(), T_array, psix_array, psiy_array);
+}
+} // namespace
+
 /**
  * @brief Generate an array of s values based on length and step size.
  * @param length Length of the element
@@ -69,7 +133,9 @@ Eigen::Matrix4d egret::Element::transfer_matrix(
         //return M;
         throw std::runtime_error("Element::transfer_matrix: Do not call on base Element.");
     }
-    Coordinate cood = cood0.value_or(Coordinate());
+    Coordinate cood = drift_coordinate(cood0.value_or(Coordinate()), ds_);
+    cood.x(cood.x() - dx_);
+    cood.y(cood.y() - dy_);
     for (const auto &elem : *elements_) {
         M = elem->transfer_matrix(cood, ds, method) * M;
         cood = std::get<0>(elem->transfer(cood, std::nullopt, std::nullopt, ds, method));
@@ -97,7 +163,9 @@ egret::Element::transfer_matrix_array(
         //return std::make_tuple(M_array, s_array);
         throw std::runtime_error("Element::transfer_matrix_array: Do not call on base Element.");
     }
-    Coordinate cood = cood0.value_or(Coordinate());
+    Coordinate cood = drift_coordinate(cood0.value_or(Coordinate()), ds_);
+    cood.x(cood.x() - dx_);
+    cood.y(cood.y() - dy_);
     double s = 0.0;
     Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
     Eigen::ArrayXd s_array;
@@ -137,7 +205,9 @@ Eigen::Vector4d egret::Element::dispersion(
         return Eigen::Vector4d::Zero();
         //throw std::runtime_error("Element::dispersion: Do not call on base Element.");
     }
-    Coordinate cood = cood0.value_or(Coordinate());
+    Coordinate cood = drift_coordinate(cood0.value_or(Coordinate()), ds_);
+    cood.x(cood.x() - dx_);
+    cood.y(cood.y() - dy_);
     Dispersion disp;
     for (const auto &elem : *elements_) {
         const auto results = elem->transfer(cood, std::nullopt, disp, ds, method);
@@ -166,7 +236,9 @@ egret::Element::dispersion_array(const std::optional<Coordinate> &cood0,
         //throw std::runtime_error("Element::dispersion_array: Do not call on base Element.");
     }
     double s = 0.0;
-    Coordinate cood = cood0.value_or(Coordinate());
+    Coordinate cood = drift_coordinate(cood0.value_or(Coordinate()), ds_);
+    cood.x(cood.x() - dx_);
+    cood.y(cood.y() - dy_);
     Dispersion disp;
     Eigen::ArrayXd s_array;
     Eigen::Matrix<double, 4, Eigen::Dynamic> disp_vec_array(4, 0);
@@ -207,20 +279,25 @@ std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egre
 egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
     const std::optional<Dispersion> &disp0, const double ds,
     const IntegrationMethod method) const noexcept(false) {
-    Coordinate cood0err = cood0;
-    cood0err.x(cood0.x() - dx_);
-    cood0err.y(cood0.y() - dy_);
-    cood0err.s(cood0.s() - ds_);
+    Coordinate cood0err = drift_coordinate(cood0, ds_);
+    cood0err.x(cood0err.x() - dx_);
+    cood0err.y(cood0err.y() - dy_);
+    std::optional<Envelope> evlp = evlp0 ? std::optional<Envelope>(drift_envelope(*evlp0, ds_)) : std::nullopt;
+    std::optional<Dispersion> disp = disp0 ? std::optional<Dispersion>(drift_dispersion(*disp0, ds_)) : std::nullopt;
     if (elements_) {
         Coordinate cood = cood0err;
-        std::optional<Envelope> evlp = evlp0;
-        std::optional<Dispersion> disp = disp0;
         for (const auto &elem : *elements_) {
             std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds, method);
         }
         cood.x(cood.x() + dx_);
         cood.y(cood.y() + dy_);
-        cood.s(cood.s() + ds_);
+        cood = drift_coordinate(cood, -ds_);
+        if (evlp) {
+            *evlp = drift_envelope(*evlp, -ds_);
+        }
+        if (disp) {
+            *disp = drift_dispersion(*disp, -ds_);
+        }
         return std::make_tuple(cood, evlp, disp);
     }
     const auto M = transfer_matrix(cood0err, ds, method); // Matrix4d
@@ -228,16 +305,20 @@ egret::Element::transfer(const Coordinate &cood0, const std::optional<Envelope> 
     Coordinate cood(v_out, cood0.s() + length_, cood0.z(), cood0.delta());
     cood.x(cood.x() + dx_);
     cood.y(cood.y() + dy_);
-    cood.s(cood.s() + ds_);
-    std::optional<Envelope> evlp = evlp0;
     if (evlp) {
         evlp->transfer(M, length_);
     }
-    std::optional<Dispersion> disp = disp0;
     if (disp) {
         const Eigen::Vector4d disp_v_out = M * disp->vector() + dispersion(cood0err, ds, method);
         disp->vector(disp_v_out);
         disp->s(disp->s() + length_);
+    }
+    cood = drift_coordinate(cood, -ds_);
+    if (evlp) {
+        *evlp = drift_envelope(*evlp, -ds_);
+    }
+    if (disp) {
+        *disp = drift_dispersion(*disp, -ds_);
     }
     return std::make_tuple(cood, evlp, disp);
 }
@@ -257,14 +338,13 @@ std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>,
 egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Envelope> &evlp0,
     const std::optional<Dispersion> &disp0, const double ds, const bool endpoint,
     const IntegrationMethod method) const noexcept(false) {
-    Coordinate cood0err = cood0;
-    cood0err.x(cood0.x() - dx_);
-    cood0err.y(cood0.y() - dy_);
-    cood0err.s(cood0.s() - ds_);
+    Coordinate cood0err = drift_coordinate(cood0, ds_);
+    cood0err.x(cood0err.x() - dx_);
+    cood0err.y(cood0err.y() - dy_);
+    std::optional<Envelope> evlp = evlp0 ? std::optional<Envelope>(drift_envelope(*evlp0, ds_)) : std::nullopt;
+    std::optional<Dispersion> disp = disp0 ? std::optional<Dispersion>(drift_dispersion(*disp0, ds_)) : std::nullopt;
     if (elements_) {
         Coordinate cood = cood0err;
-        std::optional<Envelope> evlp = evlp0;
-        std::optional<Dispersion> disp = disp0;
         std::optional<CoordinateArray> cood_array = std::nullopt;
         std::optional<EnvelopeArray> evlp_array = std::nullopt;
         std::optional<DispersionArray> disp_array = std::nullopt;
@@ -315,7 +395,18 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
         }
         cood_array->x_array(cood_array->x_array() + dx_);
         cood_array->y_array(cood_array->y_array() + dy_);
-        cood_array->s_array(cood_array->s_array() + ds_);
+        if (cood_array) {
+            *cood_array = drift_coordinate_array(*cood_array, -ds_);
+            cood_array->s_array(cood_array->s_array() - ds_);
+        }
+        if (evlp_array) {
+            *evlp_array = drift_envelope_array(*evlp_array, -ds_);
+            evlp_array->s_array(evlp_array->s_array() - ds_);
+        }
+        if (disp_array) {
+            *disp_array = drift_dispersion_array(*disp_array, -ds_);
+            disp_array->s_array(disp_array->s_array() - ds_);
+        }
         return std::make_tuple(*cood_array, evlp_array, disp_array);
     }
     const auto results = transfer_matrix_array(cood0err, ds, endpoint, method);
@@ -429,23 +520,22 @@ egret::Element::get_element_from_s(const double s) const noexcept(false) {
 Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
     const egret::Coordinate &cood0, const double ds,
     const IntegrationMethod method) const noexcept(false) {
-    (void)cood0; // suppress unused parameter warning
     if (s < 0. || s > length_) {
         throw std::out_of_range("s is out of range in this element.");
     }
+    Coordinate cood0_local = drift_coordinate(cood0, ds_);
+    cood0_local.x(cood0_local.x() - dx_);
+    cood0_local.y(cood0_local.y() - dy_);
     if (elements_) {
         double s_accum = 0.;
-        Coordinate cood0_local = cood0;
         Eigen::Matrix4d M_total = Eigen::Matrix4d::Identity();
         for (const auto &elem : *elements_) {
             if (s >= s_accum && s < s_accum + elem->length()) {
                 M_total = elem->transfer_matrix_from_s(s - s_accum, cood0_local, ds, method);
-                const auto v_out = M_total * cood0_local.vector(); // Vector4d
-                cood0_local = Coordinate(v_out,
-                    cood0_local.s() + elem->length() - (s - s_accum),
-                    cood0_local.z(), cood0_local.delta());
+                std::tie(cood0_local, std::ignore, std::ignore) = elem->transfer_from_s(s - s_accum,
+                    cood0_local, std::nullopt, std::nullopt, ds, method);
             } else if (s < s_accum) {
-                const auto M = elem->transfer_matrix(cood0_local, ds); // Matrix4d
+                const auto M = elem->transfer_matrix(cood0_local, ds, method); // Matrix4d
                 M_total = M * M_total;
                 std::tie(cood0_local, std::ignore, std::ignore) = elem->transfer(cood0_local,
                     std::nullopt, std::nullopt, ds, method);
@@ -453,11 +543,263 @@ Eigen::Matrix4d egret::Element::transfer_matrix_from_s(const double s,
             s_accum += elem->length();
         }
         return M_total;
-    } else {
-        auto elem = clone(); // std::shared_ptr<egret::Element>
-        elem->length(elem->length() - s);
-        return elem->transfer_matrix(cood0, ds, method);
     }
+    const auto elem = partial_element_from_s(s);
+    return elem->transfer_matrix(cood0_local, ds, method);
+}
+
+/**
+ * @brief Get a partial element starting from a given s position.
+ * @param s Longitudinal position within the element
+ * @return std::shared_ptr<egret::Element> Partial element
+ */
+std::shared_ptr<egret::Element> egret::Element::partial_element_from_s(const double s) const noexcept(false) {
+    if (s < 0. || s > length_) {
+        throw std::out_of_range("s is out of range in this element.");
+    }
+    auto elem = clone();
+    elem->length(elem->length() - s);
+    return elem;
+}
+
+/**
+ * @brief Transfer coordinate, envelope, and dispersion from a given s position.
+ * @param s Longitudinal position within the element
+ * @param cood0 Initial coordinate
+ * @param evlp0 Initial envelope (optional)
+ * @param disp0 Initial dispersion (optional)
+ * @param ds Maximum step size
+ * @param method Integration method
+ * @return std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>> Transfer results
+ */
+std::tuple<egret::Coordinate, std::optional<egret::Envelope>, std::optional<egret::Dispersion>>
+egret::Element::transfer_from_s(const double s, const Coordinate &cood0,
+    const std::optional<Envelope> &evlp0, const std::optional<Dispersion> &disp0,
+    const double ds, const IntegrationMethod method) const noexcept(false) {
+    if (s < 0. || s > length_) {
+        throw std::out_of_range("s is out of range in this element.");
+    }
+    Coordinate cood = drift_coordinate(cood0, ds_);
+    cood.x(cood.x() - dx_);
+    cood.y(cood.y() - dy_);
+    std::optional<Envelope> evlp = evlp0 ? std::optional<Envelope>(drift_envelope(*evlp0, ds_)) : std::nullopt;
+    std::optional<Dispersion> disp = disp0 ? std::optional<Dispersion>(drift_dispersion(*disp0, ds_)) : std::nullopt;
+    if (elements_) {
+        double s_accum = 0.;
+        for (const auto &elem : *elements_) {
+            if (s >= s_accum && s < s_accum + elem->length()) {
+                std::tie(cood, evlp, disp) = elem->transfer_from_s(s - s_accum, cood, evlp, disp, ds, method);
+            } else if (s < s_accum) {
+                std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds, method);
+            }
+            s_accum += elem->length();
+        }
+    } else {
+        const auto elem = partial_element_from_s(s);
+        const Coordinate cood_in = cood;
+        const auto tmat = elem->transfer_matrix(cood, ds, method);
+        const auto cood_vec = tmat * cood.vector();
+        cood = Coordinate(cood_vec, cood.s() + length_ - s, cood.z(), cood.delta());
+        if (evlp) {
+            evlp->transfer(tmat, length_ - s);
+        }
+        if (disp) {
+            Coordinate cood_disp = drift_coordinate(cood_in, elem->ds());
+            cood_disp.x(cood_disp.x() - elem->dx());
+            cood_disp.y(cood_disp.y() - elem->dy());
+            const auto disp_vec = tmat * disp->vector() + elem->dispersion(cood_disp, ds, method);
+            disp->vector(disp_vec);
+            disp->s(disp->s() + length_ - s);
+        }
+    }
+    cood.x(cood.x() + dx_);
+    cood.y(cood.y() + dy_);
+    cood = drift_coordinate(cood, -ds_);
+    if (evlp) {
+        *evlp = drift_envelope(*evlp, -ds_);
+    }
+    if (disp) {
+        *disp = drift_dispersion(*disp, -ds_);
+    }
+    return std::make_tuple(cood, evlp, disp);
+}
+
+/**
+ * @brief Transfer coordinate array, envelope array, and dispersion array from a given s position.
+ * @param s Longitudinal position within the element
+ * @param cood0 Initial coordinate
+ * @param evlp0 Initial envelope (optional)
+ * @param disp0 Initial dispersion (optional)
+ * @param ds Maximum step size
+ * @param endpoint Whether to include the endpoint
+ * @param method Integration method
+ * @return std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>> Transfer results
+ */
+std::tuple<egret::CoordinateArray, std::optional<egret::EnvelopeArray>, std::optional<egret::DispersionArray>>
+egret::Element::transfer_array_from_s(const double s, const Coordinate &cood0,
+    const std::optional<Envelope> &evlp0, const std::optional<Dispersion> &disp0,
+    const double ds, const bool endpoint, const IntegrationMethod method) const noexcept(false) {
+    if (s < 0. || s > length_) {
+        throw std::out_of_range("s is out of range in this element.");
+    }
+    Coordinate cood = drift_coordinate(cood0, ds_);
+    cood.x(cood.x() - dx_);
+    cood.y(cood.y() - dy_);
+    std::optional<Envelope> evlp = evlp0 ? std::optional<Envelope>(drift_envelope(*evlp0, ds_)) : std::nullopt;
+    std::optional<Dispersion> disp = disp0 ? std::optional<Dispersion>(drift_dispersion(*disp0, ds_)) : std::nullopt;
+    if (elements_) {
+        double s0 = 0.;
+        std::optional<CoordinateArray> cood1 = std::nullopt;
+        std::optional<EnvelopeArray> evlp1 = std::nullopt;
+        std::optional<DispersionArray> disp1 = std::nullopt;
+        for (const auto &elem : *elements_) {
+            if (s >= s0 && s < s0 + elem->length()) {
+                auto results = elem->transfer_array_from_s(s - s0, cood, evlp, disp, ds, false, method);
+                if (cood1) {
+                    cood1->append(std::get<0>(results));
+                } else {
+                    cood1 = std::get<0>(results);
+                }
+                if (std::get<1>(results)) {
+                    if (evlp1) {
+                        evlp1->append(*std::get<1>(results));
+                    } else {
+                        evlp1 = *std::get<1>(results);
+                    }
+                }
+                if (std::get<2>(results)) {
+                    if (disp1) {
+                        disp1->append(*std::get<2>(results));
+                    } else {
+                        disp1 = *std::get<2>(results);
+                    }
+                }
+                std::tie(cood, evlp, disp) = elem->transfer_from_s(s - s0, cood, evlp, disp, ds, method);
+            } else if (s < s0) {
+                const auto results = elem->transfer_array(cood, evlp, disp, ds, false, method);
+                if (cood1) {
+                    cood1->append(std::get<0>(results));
+                } else {
+                    cood1 = std::get<0>(results);
+                }
+                if (std::get<1>(results)) {
+                    if (evlp1) {
+                        evlp1->append(*std::get<1>(results));
+                    } else {
+                        evlp1 = *std::get<1>(results);
+                    }
+                }
+                if (std::get<2>(results)) {
+                    if (disp1) {
+                        disp1->append(*std::get<2>(results));
+                    } else {
+                        disp1 = *std::get<2>(results);
+                    }
+                }
+                std::tie(cood, evlp, disp) = elem->transfer(cood, evlp, disp, ds, method);
+            }
+            s0 += elem->length();
+        }
+        if (!cood1) {
+            const Eigen::ArrayXd s_array = Eigen::ArrayXd::Constant(1, cood.s());
+            const Eigen::ArrayXd z_array = Eigen::ArrayXd::Constant(1, cood.z());
+            const Eigen::ArrayXd delta_array = Eigen::ArrayXd::Constant(1, cood.delta());
+            cood1 = CoordinateArray(cood.vector(), s_array, z_array, delta_array);
+            if (evlp) {
+                const Eigen::ArrayXd evlp_s_array = Eigen::ArrayXd::Constant(1, evlp->s());
+                const std::vector<Eigen::Matrix2d> T_vec{evlp->T()};
+                const Eigen::ArrayXd psix_arr = Eigen::ArrayXd::Constant(1, evlp->psix());
+                const Eigen::ArrayXd psiy_arr = Eigen::ArrayXd::Constant(1, evlp->psiy());
+                evlp1 = EnvelopeArray(std::vector<Eigen::Matrix4d>{evlp->cov()}, evlp_s_array,
+                    T_vec, psix_arr, psiy_arr);
+            }
+            if (disp) {
+                const Eigen::ArrayXd disp_s_array = Eigen::ArrayXd::Constant(1, disp->s());
+                disp1 = DispersionArray(Eigen::Matrix<double, 4, Eigen::Dynamic>(disp->vector()), disp_s_array);
+            }
+        } else if (endpoint) {
+            const Eigen::ArrayXd s_array = Eigen::ArrayXd::Constant(1, cood.s());
+            const Eigen::ArrayXd z_array = Eigen::ArrayXd::Constant(1, cood.z());
+            const Eigen::ArrayXd delta_array = Eigen::ArrayXd::Constant(1, cood.delta());
+            cood1->append(CoordinateArray(cood.vector(), s_array, z_array, delta_array));
+            if (evlp) {
+                const auto evlp_end = std::vector<Eigen::Matrix4d>{evlp->cov()};
+                const std::vector<Eigen::Matrix2d> T_end{evlp->T()};
+                const Eigen::ArrayXd psix_end = Eigen::ArrayXd::Constant(1, evlp->psix());
+                const Eigen::ArrayXd psiy_end = Eigen::ArrayXd::Constant(1, evlp->psiy());
+                const Eigen::ArrayXd evlp_s_array = Eigen::ArrayXd::Constant(1, evlp->s());
+                if (evlp1) {
+                    evlp1->append(EnvelopeArray(evlp_end, evlp_s_array, T_end, psix_end, psiy_end));
+                } else {
+                    evlp1 = EnvelopeArray(evlp_end, evlp_s_array, T_end, psix_end, psiy_end);
+                }
+            }
+            if (disp) {
+                const auto disp_end = Eigen::Matrix<double, 4, Eigen::Dynamic>(disp->vector());
+                const auto disp_s_array = Eigen::ArrayXd::Constant(1, disp->s());
+                if (disp1) {
+                    disp1->append(DispersionArray(disp_end, disp_s_array));
+                } else {
+                    disp1 = DispersionArray(disp_end, disp_s_array);
+                }
+            }
+        }
+        cood1->x_array(cood1->x_array() + dx_);
+        cood1->y_array(cood1->y_array() + dy_);
+        *cood1 = drift_coordinate_array(*cood1, -ds_);
+        cood1->s_array(cood1->s_array() - ds_);
+        if (evlp1) {
+            *evlp1 = drift_envelope_array(*evlp1, -ds_);
+            evlp1->s_array(evlp1->s_array() - ds_);
+        }
+        if (disp1) {
+            *disp1 = drift_dispersion_array(*disp1, -ds_);
+            disp1->s_array(disp1->s_array() - ds_);
+        }
+        return std::make_tuple(*cood1, evlp1, disp1);
+    }
+    const auto elem = partial_element_from_s(s);
+    const auto results = elem->transfer_matrix_array(cood, ds, endpoint, method);
+    const auto &M_array = std::get<0>(results);
+    const auto &s_array = std::get<1>(results);
+    const size_t n = static_cast<size_t>(s_array.size());
+    Eigen::Matrix<double, 4, Eigen::Dynamic> cood_vector_array(4, n);
+    for (const size_t i : std::views::iota(0u, n)) {
+        cood_vector_array.col(i) = M_array[i] * cood.vector();
+    }
+    CoordinateArray cood_array(cood_vector_array, s_array + cood0.s(),
+        Eigen::ArrayXd::Constant(n, cood0.z()), Eigen::ArrayXd::Constant(n, cood0.delta()));
+    std::optional<EnvelopeArray> evlp_array = std::nullopt;
+    std::optional<DispersionArray> disp_array = std::nullopt;
+    if (evlp) {
+        Eigen::ArrayXd s_transport = s_array;
+        s_transport.array() -= ds_;
+        evlp_array = EnvelopeArray::transport(*evlp, M_array, s_transport);
+    }
+    if (disp) {
+        Coordinate cood_disp = drift_coordinate(cood, elem->ds());
+        cood_disp.x(cood_disp.x() - elem->dx());
+        cood_disp.y(cood_disp.y() - elem->dy());
+        const auto disp_add = elem->dispersion_array(cood_disp, ds, endpoint, method);
+        const auto &dispersion = std::get<0>(disp_add);
+        Eigen::Matrix<double, 4, Eigen::Dynamic> disp_vector_array(4, n);
+        for (const size_t i : std::views::iota(0u, n)) {
+            disp_vector_array.col(i) = M_array[i] * disp->vector() + dispersion.col(i);
+        }
+        disp_array = DispersionArray(disp_vector_array, s_array + disp0->s());
+    }
+    cood_array.x_array(cood_array.x_array() + dx_);
+    cood_array.y_array(cood_array.y_array() + dy_);
+    if (ds_ != 0.) {
+        cood_array = drift_coordinate_array(cood_array, -ds_);
+        if (evlp_array) {
+            *evlp_array = drift_envelope_array(*evlp_array, -ds_);
+        }
+        if (disp_array) {
+            *disp_array = drift_dispersion_array(*disp_array, -ds_);
+        }
+    }
+    return std::make_tuple(cood_array, evlp_array, disp_array);
 }
 
 /**
