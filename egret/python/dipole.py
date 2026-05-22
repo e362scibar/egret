@@ -411,21 +411,21 @@ class Dipole(DipoleABC, Element):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
-        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx
         cood.y -= self._dy
         tmat = self.transfer_matrix(cood0, ds)
-        disp = self.dispersion(cood0, ds)
-        coodvec = np.dot(tmat, cood.vector) + disp * cood.delta
+        disp_add = self.dispersion(cood0, ds)
+        coodvec = np.dot(tmat, cood.vector) + disp_add * cood.delta
         cood1 = Coordinate(coodvec, cood0.s + self._length, cood0.z, cood0.delta)
-        if evlp0 is not None:
-            evlp1 = evlp0.copy()
+        if evlp is not None:
+            evlp1 = evlp
             evlp1.transfer(tmat, self._length)
         else:
             evlp1 = None
-        if disp0 is not None:
-            disp = np.dot(tmat, disp0.vector) + self.dispersion(cood0, ds)
-            disp1 = Dispersion(disp, disp0.s + self._length)
+        if disp is not None:
+            disp1vec = np.dot(tmat, disp.vector) + self.dispersion(cood0, ds)
+            disp1 = Dispersion(disp1vec, disp.s + self._length)
         else:
             disp1 = None
         cood1.x += self._dx
@@ -452,7 +452,7 @@ class Dipole(DipoleABC, Element):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
-        cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx
         cood.y -= self._dy
         tmat, s = self.transfer_matrix_array(cood0, ds, endpoint)
@@ -460,13 +460,13 @@ class Dipole(DipoleABC, Element):
         coodvec = np.matmul(tmat, cood.vector).T + dispvec * cood0.delta
         cood1 = CoordinateArray(coodvec, s + cood0.s,
                                 np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
-        if evlp0 is not None:
-            evlp1 = EnvelopeArray.transport(evlp0, tmat, s)
+        if evlp is not None:
+            evlp1 = EnvelopeArray.transport(evlp, tmat, s)
         else:
             evlp1 = None
-        if disp0 is not None:
-            disp1vec = np.matmul(tmat, disp0.vector).T + dispvec
-            disp1 = DispersionArray(disp1vec, s + disp0.s)
+        if disp is not None:
+            disp1vec = np.matmul(tmat, disp.vector).T + dispvec
+            disp1 = DispersionArray(disp1vec, s + disp.s)
         else:
             disp1 = None
         cood1.x += self._dx

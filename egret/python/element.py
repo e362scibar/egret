@@ -825,8 +825,8 @@ class Element(ElementABC, Object):
                 evlp1 = None
             if disp is not None:
                 disp_add, _ = elem.dispersion_array(cood, ds, endpoint, method)
-                disp = np.matmul(tmat, disp.vector).T + disp_add
-                disp1 = DispersionArray(disp, s + disp.s)
+                dispvec = np.matmul(tmat, disp.vector).T + disp_add
+                disp1 = DispersionArray(dispvec, s + disp.s)
             else:
                 disp1 = None
         cood1.x += self._dx
