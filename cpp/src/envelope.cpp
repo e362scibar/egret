@@ -126,16 +126,8 @@ void egret::Envelope::transfer(const Eigen::Matrix4d &M, const double length) no
     tau_ = tau;
     const double dpsix = std::atan2(Mu(0,1), bu()*Mu(0,0)-au()*Mu(0,1));
     const double dpsiy = std::atan2(Mv(0,1), bv()*Mv(0,0)-av()*Mv(0,1));
-    if (dpsix < 0.) {
-        psix_ += dpsix + 2. * std::numbers::pi;
-    } else {
-        psix_ += dpsix;
-    }
-    if (dpsiy < 0.) {
-        psiy_ += dpsiy + 2. * std::numbers::pi;
-    } else {
-        psiy_ += dpsiy;
-    }
+    psix_ += dpsix;
+    psiy_ += dpsiy;
     U_ = Mu * U_ * Mu.transpose();
     V_ = Mv * V_ * Mv.transpose();
 }

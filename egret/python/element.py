@@ -334,10 +334,10 @@ class Element(ElementABC, Object):
         if self._elements is None:
             return np.zeros(4)
         cood = cood0 if cood0 is not None else Coordinate()
-        disp = Dispersion()
         cood, _, _ = self.drift_transfer(self._ds, cood, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
+        disp = Dispersion()
         for elem in self._elements:
             cood, _, disp = elem.transfer(cood, None, disp, ds, method)
         _, _, disp = self.drift_transfer(-self._ds, None, None, disp)
@@ -368,19 +368,21 @@ class Element(ElementABC, Object):
         cood.x -= self._dx
         cood.y -= self._dy
         s0 = 0.
-        disparray = []
-        sarray = []
+        disparray = None
         for elem in self._elements:
             disp_elem, s_elem = elem.dispersion_array(cood, ds, False, method)
             tmat, _ = elem.transfer_matrix_array(cood, ds, False, method)
-            disparray.append(disp_elem + np.matmul(tmat, disp.vector).T)
-            sarray.append(s_elem + s0)
+            dispvec = disp_elem + np.matmul(tmat, disp.vector).T
+            if disparray is None:
+                disparray = DispersionArray(dispvec, s_elem + s0)
+            else:
+                disparray.append(DispersionArray(dispvec, s_elem + s0))
             s0 += elem.length
             cood, _, disp = elem.transfer(cood, None, disp, ds, method)
         if endpoint:
-            disparray.append(disp.vector[:, np.newaxis])
-            sarray.append(np.array([s0]))
-        return np.hstack(disparray), np.hstack(sarray)
+            disparray.append(DispersionArray(disp.vector[:, np.newaxis], np.array([s0])))
+        _, _, disparray = self.drift_transfer_array(-self._ds, None, None, disparray)
+        return disparray.vector, disparray.s
 
     @classmethod
     def drift_transfer(cls, length: float, cood0: Coordinate = None, evlp0: Envelope = None, disp0: Dispersion = None) \
@@ -504,7 +506,7 @@ class Element(ElementABC, Object):
                 cood, evlp, disp = elem.transfer(cood, evlp, disp, ds, method)
             cood1, evlp1, disp1 = cood, evlp, disp
         else:
-            tmat = self.transfer_matrix(cood0, ds, method)
+            tmat = self.transfer_matrix(cood, ds, method)
             cood1vec = np.dot(tmat, cood.vector)
             cood1 = Coordinate(cood1vec, cood.s + self._length, cood.z, cood.delta)
             evlp1 = evlp
@@ -512,7 +514,7 @@ class Element(ElementABC, Object):
                 evlp1.transfer(tmat, self._length)
             disp1 = disp
             if disp1 is not None:
-                disp1vec = np.dot(tmat, disp1.vector) + self.dispersion(cood0, ds, method)
+                disp1vec = np.dot(tmat, disp1.vector) + self.dispersion(cood, ds, method)
                 disp1 = Dispersion(disp1vec, disp1.s + self._length)
         cood1.x += self._dx
         cood1.y += self._dy
@@ -575,17 +577,17 @@ class Element(ElementABC, Object):
                 if disp is not None:
                     disp1.append(DispersionArray(disp.vector[:, np.newaxis], np.array([disp.s])))
         else:
-            tmat, s = self.transfer_matrix_array(cood0, ds, endpoint, method)
+            tmat, s = self.transfer_matrix_array(cood, ds, endpoint, method)
             coodvec = np.matmul(tmat, cood.vector).T
-            cood1 = CoordinateArray(coodvec, s + cood0.s, np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
+            cood1 = CoordinateArray(coodvec, s + cood.s, np.full_like(s, cood.z), np.full_like(s, cood.delta))
             if evlp is not None:
                 evlp1 = EnvelopeArray.transport(evlp, tmat, s)
             else:
                 evlp1 = None
             if disp is not None:
-                disp_add, _ = self.dispersion_array(cood0, ds, endpoint, method)
+                disp_add, _ = self.dispersion_array(cood, ds, endpoint, method)
                 dispvec = np.matmul(tmat, disp.vector).T + disp_add
-                disp1 = DispersionArray(dispvec, s + disp0.s)
+                disp1 = DispersionArray(dispvec, s + disp.s)
             else:
                 disp1 = None
         cood1.x += self._dx
@@ -737,7 +739,8 @@ class Element(ElementABC, Object):
                 s0 += elem._length
             cood1, evlp1, disp1 = cood, evlp, disp
         else:
-            tmat = self.transfer_matrix_from_s(s, cood, ds, method)
+            elem = self.partial_element_from_s(s)
+            tmat = elem.transfer_matrix(cood, ds, method)
             coodvec = np.dot(tmat, cood.vector)
             cood1 = Coordinate(coodvec, cood.s + self._length - s, cood.z, cood.delta)
             if evlp is not None:
@@ -746,7 +749,6 @@ class Element(ElementABC, Object):
             else:
                 evlp1 = None
             if disp is not None:
-                elem = self.partial_element_from_s(s)
                 dispvec = np.dot(tmat, disp.vector) + elem.dispersion(cood, ds, method)
                 disp1 = Dispersion(dispvec, disp.s + self._length - s)
             else:
@@ -816,21 +818,20 @@ class Element(ElementABC, Object):
             elem = self.partial_element_from_s(s)
             tmat, s = elem.transfer_matrix_array(cood, ds, endpoint, method)
             coodvec = np.matmul(tmat, cood.vector).T
-            cood1 = CoordinateArray(coodvec, s + cood0.s, np.full_like(s, cood0.z), np.full_like(s, cood0.delta))
+            cood1 = CoordinateArray(coodvec, s + cood.s, np.full_like(s, cood.z), np.full_like(s, cood.delta))
             if evlp is not None:
-                evlp1 = EnvelopeArray.transport(evlp, tmat, s - self._ds)
+                evlp1 = EnvelopeArray.transport(evlp, tmat, s)
             else:
                 evlp1 = None
             if disp is not None:
                 disp_add, _ = elem.dispersion_array(cood, ds, endpoint, method)
                 disp = np.matmul(tmat, disp.vector).T + disp_add
-                disp1 = DispersionArray(disp, s + disp0.s)
+                disp1 = DispersionArray(disp, s + disp.s)
             else:
                 disp1 = None
         cood1.x += self._dx
         cood1.y += self._dy
-        if self._ds != 0.:
-            cood1, evlp1, disp1 = self.drift_transfer_array(-self._ds, cood1, evlp1, disp1)
+        cood1, evlp1, disp1 = self.drift_transfer_array(-self._ds, cood1, evlp1, disp1)
         return cood1, evlp1, disp1
 
     def get_element(self, indices: int | Tuple[int, ...]) -> Element:

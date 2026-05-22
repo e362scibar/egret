@@ -378,6 +378,7 @@ std::vector<Eigen::Matrix4d> egret::EnvelopeArray::T_matrix_array() const noexce
     return T_matrices;
 }
 
+#if 0
 namespace {
     /**
      * @brief Unwrap phase array.
@@ -422,6 +423,7 @@ namespace {
         return shifted;
     }
 }
+#endif
 
 /**
  * @brief Transport an EnvelopeArray using a series of transfer matrices.
@@ -487,13 +489,18 @@ egret::EnvelopeArray egret::EnvelopeArray::transport(
         dpsiy_array(i) = std::atan2(mv12, bv0 * mv11 - av0 * mv12);
     }
     // Materialize temporaries to avoid complex expression templates
+#if 0
     const auto shifted_dpsix = shift_phase_non_negative(dpsix_array); // Eigen::ArrayXd
     const auto unwrapped_dpsix = unwrap_phase(shifted_dpsix); // Eigen::ArrayXd
-    const auto psix_base = Eigen::ArrayXd::Constant(n, evlp0.psix()); // Eigen::ArrayXd
     const auto psix_array = psix_base + unwrapped_dpsix; // Eigen::ArrayXd
     const auto shifted_dpsiy = shift_phase_non_negative(dpsiy_array); // Eigen::ArrayXd
     const auto unwrapped_dpsiy = unwrap_phase(shifted_dpsiy); // Eigen::ArrayXd
-    const auto psiy_base = Eigen::ArrayXd::Constant(n, evlp0.psiy()); // Eigen::ArrayXd
     const auto psiy_array = psiy_base + unwrapped_dpsiy; // Eigen::ArrayXd
+#else
+    const auto psix_base = Eigen::ArrayXd::Constant(n, evlp0.psix()); // Eigen::ArrayXd
+    const auto psix_array = psix_base + dpsix_array; // Eigen::ArrayXd
+    const auto psiy_base = Eigen::ArrayXd::Constant(n, evlp0.psiy()); // Eigen::ArrayXd
+    const auto psiy_array = psiy_base + dpsiy_array; // Eigen::ArrayXd
+#endif
     return EnvelopeArray(cov_array, s_array + evlp0.s(), T_array, psix_array, psiy_array);
 }
