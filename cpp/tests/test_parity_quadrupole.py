@@ -12,7 +12,7 @@ sys.path.insert(0, build_dir)
 print('Repository root:', repo_root)
 print('Build dir:', build_dir)
 
-from egret.quadrupole import Quadrupole as PyQuadrupole
+from egret import Quadrupole as PyQuadrupole
 import importlib
 import importlib.util
 import glob
@@ -22,18 +22,18 @@ import os
 
 def load_pyegret():
     try:
-        return importlib.import_module('egret.pyegret')
+        return importlib.import_module('egret.cppegret')
     except ModuleNotFoundError:
         for p in list(sys.path):
             candidate_dir = os.path.join(p, 'egret')
             if not os.path.isdir(candidate_dir):
                 continue
-            matches = glob.glob(os.path.join(candidate_dir, 'pyegret*.so'))
+            matches = glob.glob(os.path.join(candidate_dir, 'cppegret*.so'))
             if not matches:
-                matches = glob.glob(os.path.join(candidate_dir, 'pyegret*.cpython-310-*.so'))
+                matches = glob.glob(os.path.join(candidate_dir, 'cppegret*.cpython-310-*.so'))
             if matches:
                 path = matches[0]
-                spec = importlib.util.spec_from_file_location('egret.pyegret', path)
+                spec = importlib.util.spec_from_file_location('egret.cppegret', path)
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)
                 return mod

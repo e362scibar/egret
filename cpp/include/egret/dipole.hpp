@@ -146,15 +146,7 @@ public:
         IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) const noexcept(false) override;
 
     // Get a partial dipole starting from the specified longitudinal position
-    std::shared_ptr<Element> partial_element_from_s(double s) const noexcept(false) override {
-        if (s < 0. || s > length_) {
-            throw std::out_of_range("s is out of range in this element.");
-        }
-        const double length = length_ - s;
-        const double angle = (length_ == 0.0) ? angle_ : angle_ * length / length_;
-        return std::make_shared<Dipole>(name() + "_part_from_" + std::to_string(s),
-            length, angle, k1_, e1_, e2_, h1_, h2_, dx_, dy_, ds_ + s, tilt_, info_);
-    }
+    std::shared_ptr<Element> partial_element_from_s(double s) const noexcept(false) override;
 
     // Transfer coordinate, envelope, and dispersion through the dipole
     std::tuple<Coordinate, std::optional<Envelope>, std::optional<Dispersion>>

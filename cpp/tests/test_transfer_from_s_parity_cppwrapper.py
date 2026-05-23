@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 
 
 def test_transfer_from_s_parity_with_alignment_cppwrapper():
+    pytest.importorskip('scipy')
     from egret.python.dipole import Dipole as PyDipole
     from egret.cpp.dipole import Dipole as CppDipole
     from egret.python.coordinate import Coordinate as PyCoordinate
