@@ -86,7 +86,7 @@ void egret::Ring::update(const double delta, const double ds,
     // find closed orbit
     try {
         const Coordinate cood_guess(Eigen::Vector4d::Zero(), 0.0, 0.0, delta);
-        cood0_ = find_initial_coordinate_of_closed_orbit(cood_guess, method);
+        cood0_ = find_initial_coordinate_of_closed_orbit(cood_guess, ds, method);
     } catch (const std::runtime_error &e) {
         std::cout << "Error in finding closed orbit: " << e.what() << std::endl;
         std::cout << "Using previous closed orbit guess." << std::endl;

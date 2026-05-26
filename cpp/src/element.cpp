@@ -187,7 +187,7 @@ egret::Element::dispersion_array(const std::optional<Coordinate> &cood0,
         const size_t sub_size = s_sub_array.size();
         auto disp_upstream_array = Eigen::Matrix<double, 4, Eigen::Dynamic>(4, sub_size);
         for (const size_t i : std::views::iota(0u, sub_size)) {
-            disp_upstream_array.col(i) = disp_sub_array.col(i) + tmat_array[i] * disp->vector();
+            disp_upstream_array.col(i) = tmat_array[i] * disp->vector();
         }
         disp_array.append(DispersionArray(disp_sub_array + disp_upstream_array, s_sub_array + s));
         s += elem->length();

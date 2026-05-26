@@ -460,7 +460,7 @@ egret::EnvelopeArray egret::EnvelopeArray::transport(
         const auto Myy = M.block<2,2>(2,2); // Matrix2d
         const auto Mxx_s = Envelope::adjoint(Mxx); // Matrix2d
         const auto Mxy_s = Envelope::adjoint(Mxy); // Matrix2d
-        const auto tauMu = tau0 * Mxx - Mxy_s * T0; // Matrix2d
+        const auto tauMu = tau0 * Mxx - Mxy * T0; // Matrix2d
         const auto tauMv = tau0 * Myy + Myx * T0_s; // Matrix2d
         const double tau = std::sqrt(0.5 * (tauMu.determinant() + tauMv.determinant()));
         const auto Mu = tauMu / tau; // Matrix2d
