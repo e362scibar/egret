@@ -282,12 +282,28 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         Mv_T1 = tau0 * Mxy_ + np.matmul(T0, Mxx_)
         T1Mu = -tau0 * Myx + np.matmul(Myy, T0)
         T = 0.5 * (np.matmul(Mv, Mv_T1) + np.matmul(T1Mu, Mu_))
-        dpsix = np.arctan2(Mu[:,0,1], evlp0.bu*Mu[:,0,0]-evlp0.au*Mu[:,0,1])
-        dpsiy = np.arctan2(Mv[:,0,1], evlp0.bv*Mv[:,0,0]-evlp0.av*Mv[:,0,1])
-        psix = evlp0.psix + dpsix
-        psiy = evlp0.psiy + dpsiy
+        au0, av0, bu0, bv0 = evlp0.au, evlp0.av, evlp0.bu, evlp0.bv
         U = np.einsum('nij,jk,nlk->nil', Mu, evlp0.U, Mu)
         V = np.einsum('nij,jk,nlk->nil', Mv, evlp0.V, Mv)
+        au1, av1, bu1, bv1 = -0.5*(U[:,0,1]+U[:,1,0]), -0.5*(V[:,0,1]+V[:,1,0]), U[:,0,0], V[:,0,0]
+        Au = np.array([[np.ones_like(au1), np.ones_like(au1)*au0],
+                       [np.zeros_like(au1), np.ones_like(au1)],
+                       [au0-au1, -1.-au0*au1],
+                       [np.ones_like(au1), -au1]]).transpose(2,0,1)
+        Av = np.array([[np.ones_like(av1), np.ones_like(av1)*av0],
+                       [np.zeros_like(av1), np.ones_like(av1)],
+                       [av0-av1, -1.-av0*av1],
+                       [np.ones_like(av1), -av1]]).transpose(2,0,1)
+        Mu_vec = np.array([bu0*Mu[:,0,0], Mu[:,0,1], bu0*bu1*Mu[:,1,0], bu1*Mu[:,1,1]]).transpose()
+        Mv_vec = np.array([bv0*Mv[:,0,0], Mv[:,0,1], bv0*bv1*Mv[:,1,0], bv1*Mv[:,1,1]]).transpose()
+        Auinv = np.linalg.pinv(Au)
+        Avinv = np.linalg.pinv(Av)
+        bcossinu = np.einsum('nij,nj->ni', Auinv, Mu_vec)
+        bcossinv = np.einsum('nij,nj->ni', Avinv, Mv_vec)
+        dpsix = np.arctan2(bcossinu[:,1], bcossinu[:,0])
+        dpsiy = np.arctan2(bcossinv[:,1], bcossinv[:,0])
+        psix = evlp0.psix + dpsix
+        psiy = evlp0.psiy + dpsiy
         return cls(cov, evlp0.s + s, T, psix, psiy)
 
     def from_s(self, s: float) -> Envelope:

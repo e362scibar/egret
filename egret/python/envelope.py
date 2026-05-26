@@ -249,7 +249,7 @@ class Envelope(EnvelopeABC):
         Calculate eigenmode transformation matrix.
 
         Args:
-            T npt.NDArray[np.floating]: 4x4 coordinate transformation matrix for eigenmode. (Optional)
+            T npt.NDArray[np.floating]: 2x2 coordinate transformation matrix for eigenmode. (Optional)
         '''
         Sxx, Sxy, Syy = self.cov[0:2, 0:2], self.cov[0:2, 2:4], self.cov[2:4, 2:4]
         if T is not None:
@@ -305,12 +305,22 @@ class Envelope(EnvelopeABC):
         Mv_T1, T1Mu = tau0 * Mxy_ + T0 @ Mxx_, -tau0 * Myx + Myy @ T0
         self._T = 0.5 * (Mv @ Mv_T1 + T1Mu @ Mu_)
         self._tau = tau
-        dpsix = np.arctan2(Mu[0,1], self.bu*Mu[0,0]-self.au*Mu[0,1])
-        dpsiy = np.arctan2(Mv[0,1], self.bv*Mv[0,0]-self.av*Mv[0,1])
-        self._psix += dpsix
-        self._psiy += dpsiy
+        au0, av0, bu0, bv0 = self.au, self.av, self.bu, self.bv
         self._U = Mu @ self._U @ Mu.T
         self._V = Mv @ self._V @ Mv.T
+        au1, av1, bu1, bv1 = self.au, self.av, self.bu, self.bv
+        Au = np.array([[1., au0], [0., 1.], [au0-au1, -1.-au0*au1], [1., -au1]])
+        Av = np.array([[1., av0], [0., 1.], [av0-av1, -1.-av0*av1], [1., -av1]])
+        Mu_vec = np.array([bu0*Mu[0,0], Mu[0,1], bu0*bu1*Mu[1,0], bu1*Mu[1,1]])
+        Mv_vec = np.array([bv0*Mv[0,0], Mv[0,1], bv0*bv1*Mv[1,0], bv1*Mv[1,1]])
+        Auinv = np.linalg.pinv(Au)
+        Avinv = np.linalg.pinv(Av)
+        bcossinu = Auinv @ Mu_vec
+        bcossinv = Avinv @ Mv_vec
+        dpsix = np.arctan2(bcossinu[1], bcossinu[0])
+        dpsiy = np.arctan2(bcossinv[1], bcossinv[0])
+        self._psix += dpsix
+        self._psiy += dpsiy
         self._s += length
 
     def T_matrix(self) -> npt.NDArray[np.floating]:
