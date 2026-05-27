@@ -26,7 +26,10 @@
 
 #include "egret/quadrupole.hpp"
 #include "egret/drift.hpp"
+#include "egret/drift_util.hpp"
 #include <ranges>
+
+namespace eu = egret::util;
 
 /**
  * @brief Calculate the transfer matrix for a quadrupole magnet.
@@ -207,8 +210,10 @@ Eigen::Vector4d egret::Quadrupole::dispersion(
     (void)method; // unused parameter
     const double delta = cood0 ? cood0->delta() : 0.0;
     const double k = k1_ / (1.0 + delta);
-    const auto vector0 = cood0 ? cood0->vector() : Eigen::Vector4d::Zero();
-    return dispersion(vector0, length_, k, tilt_);
+    Coordinate cood = eu::drift_coordinate(cood0.value_or(Coordinate()), ds_);
+    cood.x(cood.x() - dx_);
+    cood.y(cood.y() - dy_);
+    return dispersion(cood.vector(), length_, k, tilt_);
 }
 
 /**
@@ -225,9 +230,12 @@ egret::Quadrupole::dispersion_array(
     const double ds, const bool endpoint,
     const IntegrationMethod method) const noexcept(false) {
     (void)method; // unused parameter
-    const double delta = cood0 ? cood0->delta() : 0.0;
+    Coordinate cood = eu::drift_coordinate(cood0.value_or(Coordinate()), ds_);
+    cood.x(cood.x() - dx_);
+    cood.y(cood.y() - dy_);
+    const double delta = cood.delta();
     const double k = k1_ / (1.0 + delta);
-    const auto cood0_vec = cood0 ? cood0->vector() : Eigen::Vector4d::Zero();
+    const auto cood0_vec = cood.vector();
     const auto s_array = Element::s_array(ds, endpoint);
     const size_t n = s_array.size();
     Eigen::Matrix<double, 4, Eigen::Dynamic> disp_vector_array(4, n);

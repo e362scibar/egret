@@ -199,7 +199,7 @@ egret::Element::dispersion_array(const std::optional<Coordinate> &cood0,
         const auto s_sub_array = Eigen::ArrayXd::Constant(1, disp->s());
         disp_array.append(DispersionArray(disp_sub_array, s_sub_array));
     }
-    disp_array = eu::drift_dispersion_array(disp_array, -ds);
+    disp_array = eu::drift_dispersion_array(disp_array, -ds_);
     return std::make_tuple(disp_array.vector_array(), disp_array.s_array());
 }
 
