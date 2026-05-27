@@ -31,6 +31,14 @@
 #include <utility>
 #include <numbers>
 
+namespace {
+    Eigen::Vector2d solve_phase_increment(
+        const Eigen::Matrix<double, 4, 2> &A,
+        const Eigen::Vector4d &b) {
+        return A.completeOrthogonalDecomposition().solve(b);
+    }
+}
+
 /**
  * @brief Construct a new egret::Envelope object.
  * @param cov Covariance matrices (4 x 4 x N tensor)
@@ -114,6 +122,10 @@ void egret::Envelope::transfer(const Eigen::Matrix4d &M, const double length) no
     const auto Mxx_s = adjoint(Mxx); // adjoint of Mxx
     const auto Mxy_s = adjoint(Mxy); // adjoint of Mxy
     const auto T_s = adjoint(T_); // adjoint of T_ (Matrix2d)
+    const double bu0 = bu();
+    const double bv0 = bv();
+    const double au0 = au();
+    const double av0 = av();
     const auto tauMu = tau_ * Mxx - Mxy * T_; // Matrix2d
     const auto tauMv = tau_ * Myy + Myx * T_s; // Matrix2d
     const double tau = std::sqrt(0.5 * (tauMu.determinant() + tauMv.determinant()));
@@ -124,12 +136,36 @@ void egret::Envelope::transfer(const Eigen::Matrix4d &M, const double length) no
     const auto T1Mu = -tau_ * Myx + Myy * T_; // Matrix2d
     T_ = 0.5 * (Mv * Mv_T1 + T1Mu * Mu_s);
     tau_ = tau;
-    const double dpsix = std::atan2(Mu(0,1), bu()*Mu(0,0)-au()*Mu(0,1));
-    const double dpsiy = std::atan2(Mv(0,1), bv()*Mv(0,0)-av()*Mv(0,1));
-    psix_ += dpsix;
-    psiy_ += dpsiy;
     U_ = Mu * U_ * Mu.transpose();
     V_ = Mv * V_ * Mv.transpose();
+    const double bu1 = bu();
+    const double bv1 = bv();
+    const double au1 = au();
+    const double av1 = av();
+    Eigen::Matrix<double, 4, 2> Au;
+    Au << 1.0, au0,
+          0.0, 1.0,
+          au0 - au1, -1.0 - au0 * au1,
+          1.0, -au1;
+    Eigen::Matrix<double, 4, 2> Av;
+    Av << 1.0, av0,
+          0.0, 1.0,
+          av0 - av1, -1.0 - av0 * av1,
+          1.0, -av1;
+    const Eigen::Vector4d Mu_vec(
+        bu0 * Mu(0,0),
+        Mu(0,1),
+        bu0 * bu1 * Mu(1,0),
+        bu1 * Mu(1,1));
+    const Eigen::Vector4d Mv_vec(
+        bv0 * Mv(0,0),
+        Mv(0,1),
+        bv0 * bv1 * Mv(1,0),
+        bv1 * Mv(1,1));
+    const auto bcossinu = solve_phase_increment(Au, Mu_vec);
+    const auto bcossinv = solve_phase_increment(Av, Mv_vec);
+    psix_ += std::atan2(bcossinu(1), bcossinu(0));
+    psiy_ += std::atan2(bcossinv(1), bcossinv(0));
 }
 
 /**

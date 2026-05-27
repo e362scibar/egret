@@ -29,6 +29,14 @@
 #include <ranges>
 #include <numbers>
 
+namespace {
+    Eigen::Vector2d solve_phase_increment(
+        const Eigen::Matrix<double, 4, 2> &A,
+        const Eigen::Vector4d &b) {
+        return A.completeOrthogonalDecomposition().solve(b);
+    }
+}
+
 /**
  * @brief Construct a new egret::EnvelopeArray object.
  * @param cov_array Array of covariance matrices (std::vector of 4 x 4 Matrices)
@@ -290,12 +298,16 @@ void egret::EnvelopeArray::calc_eigenmode(const std::optional<std::vector<Eigen:
     if (psix_array_.size() == 0) {
         const Eigen::ArrayXd b_array = bu_array();
         const Eigen::ArrayXd bp_array = -2.0 * au_array();
-        psix_array_ = cumulative_hermite_integral(s_array_, 1.0/b_array, -bp_array/(b_array*b_array));
+        const Eigen::ArrayXd inv_b = (1.0 / b_array).eval();
+        const Eigen::ArrayXd inv_b_deriv = (-bp_array / (b_array * b_array)).eval();
+        psix_array_ = cumulative_hermite_integral(s_array_, inv_b, inv_b_deriv);
     }
     if (psiy_array_.size() == 0) {
         const Eigen::ArrayXd b_array = bv_array();
         const Eigen::ArrayXd bp_array = -2.0 * av_array();
-        psiy_array_ = cumulative_hermite_integral(s_array_, 1.0/b_array, -bp_array/(b_array*b_array));
+        const Eigen::ArrayXd inv_b = (1.0 / b_array).eval();
+        const Eigen::ArrayXd inv_b_deriv = (-bp_array / (b_array * b_array)).eval();
+        psiy_array_ = cumulative_hermite_integral(s_array_, inv_b, inv_b_deriv);
     }
 }
 
@@ -335,8 +347,8 @@ egret::Envelope egret::EnvelopeArray::from_s(const double s) const noexcept(fals
     }
     if (ds == 0.) {
         // Degenerate case: s0 == s1
-        const auto cov = 0.5 * (cov_array_[idx] + cov_array_[idx + 1]); // Matrix4d
-        const auto T = 0.5 * (T_array_[idx] + T_array_[idx + 1]); // Matrix2d
+        const Eigen::Matrix4d cov = 0.5 * cov_array_[idx] + 0.5 * cov_array_[idx + 1];
+        const Eigen::Matrix2d T = 0.5 * T_array_[idx] + 0.5 * T_array_[idx + 1];
         const double psix = 0.5 * (psix_array_(idx) + psix_array_(idx + 1));
         const double psiy = 0.5 * (psiy_array_(idx) + psiy_array_(idx + 1));
         return Envelope(cov, s, T, psix, psiy);
@@ -442,16 +454,20 @@ egret::EnvelopeArray egret::EnvelopeArray::transport(
     }
     std::vector<Eigen::Matrix4d> cov_array;
     std::vector<Eigen::Matrix2d> T_array;
-    std::vector<Eigen::Matrix2d> Mu_array;
-    std::vector<Eigen::Matrix2d> Mv_array;
     cov_array.reserve(n);
     T_array.reserve(n);
-    Mu_array.reserve(n);
-    Mv_array.reserve(n);
     const auto &cov0 = evlp0.cov(); // Matrix4d
     const auto &T0 = evlp0.T(); // Matrix2d
     const auto T0_s = Envelope::adjoint(T0); // Matrix2d
     const double tau0 = evlp0.tau();
+    const auto &U0 = evlp0.U(); // Matrix2d
+    const auto &V0 = evlp0.V(); // Matrix2d
+    const double bu0 = evlp0.bu();
+    const double bv0 = evlp0.bv();
+    const double au0 = evlp0.au();
+    const double av0 = evlp0.av();
+    Eigen::ArrayXd psix_array = Eigen::ArrayXd::Zero(n);
+    Eigen::ArrayXd psiy_array = Eigen::ArrayXd::Zero(n);
     for (const auto &M : M_array) {
         const auto cov = M * cov0 * M.transpose(); // Matrix4d
         const auto Mxx = M.block<2,2>(0,0); // Matrix2d
@@ -469,38 +485,39 @@ egret::EnvelopeArray egret::EnvelopeArray::transport(
         const auto Mv_T1 = tau0 * Mxy_s + T0 * Mxx_s; // Matrix2d
         const auto T1Mu = -tau0 * Myx + Myy * T0; // Matrix2d
         const auto T = 0.5 * (Mv * Mv_T1 + T1Mu * Mu_s); // Matrix2d
+        const auto U = Mu * U0 * Mu.transpose();
+        const auto V = Mv * V0 * Mv.transpose();
+        const double bu1 = U(0, 0);
+        const double bv1 = V(0, 0);
+        const double au1 = -0.5 * (U(0, 1) + U(1, 0));
+        const double av1 = -0.5 * (V(0, 1) + V(1, 0));
+        Eigen::Matrix<double, 4, 2> Au;
+        Au << 1.0, au0,
+              0.0, 1.0,
+              au0 - au1, -1.0 - au0 * au1,
+              1.0, -au1;
+        Eigen::Matrix<double, 4, 2> Av;
+        Av << 1.0, av0,
+              0.0, 1.0,
+              av0 - av1, -1.0 - av0 * av1,
+              1.0, -av1;
+        const Eigen::Vector4d Mu_vec(
+            bu0 * Mu(0, 0),
+            Mu(0, 1),
+            bu0 * bu1 * Mu(1, 0),
+            bu1 * Mu(1, 1));
+        const Eigen::Vector4d Mv_vec(
+            bv0 * Mv(0, 0),
+            Mv(0, 1),
+            bv0 * bv1 * Mv(1, 0),
+            bv1 * Mv(1, 1));
+        const auto bcossinu = solve_phase_increment(Au, Mu_vec);
+        const auto bcossinv = solve_phase_increment(Av, Mv_vec);
         cov_array.push_back(cov);
         T_array.push_back(T);
-        Mu_array.push_back(Mu);
-        Mv_array.push_back(Mv);
+        psix_array(cov_array.size() - 1) = evlp0.psix() + std::atan2(bcossinu(1), bcossinu(0));
+        psiy_array(cov_array.size() - 1) = evlp0.psiy() + std::atan2(bcossinv(1), bcossinv(0));
     }
-    Eigen::ArrayXd dpsix_array = Eigen::ArrayXd::Zero(n);
-    Eigen::ArrayXd dpsiy_array = Eigen::ArrayXd::Zero(n);
-    const double bu0 = evlp0.bu();
-    const double bv0 = evlp0.bv();
-    const double au0 = evlp0.au();
-    const double av0 = evlp0.av();
-    for (const size_t i : std::views::iota(0u, n)) {
-        const double mu11 = Mu_array[i](0,0);
-        const double mu12 = Mu_array[i](0,1);
-        const double mv11 = Mv_array[i](0,0);
-        const double mv12 = Mv_array[i](0,1);
-        dpsix_array(i) = std::atan2(mu12, bu0 * mu11 - au0 * mu12);
-        dpsiy_array(i) = std::atan2(mv12, bv0 * mv11 - av0 * mv12);
-    }
-    // Materialize temporaries to avoid complex expression templates
-#if 0
-    const auto shifted_dpsix = shift_phase_non_negative(dpsix_array); // Eigen::ArrayXd
-    const auto unwrapped_dpsix = unwrap_phase(shifted_dpsix); // Eigen::ArrayXd
-    const auto psix_array = psix_base + unwrapped_dpsix; // Eigen::ArrayXd
-    const auto shifted_dpsiy = shift_phase_non_negative(dpsiy_array); // Eigen::ArrayXd
-    const auto unwrapped_dpsiy = unwrap_phase(shifted_dpsiy); // Eigen::ArrayXd
-    const auto psiy_array = psiy_base + unwrapped_dpsiy; // Eigen::ArrayXd
-#else
-    const auto psix_base = Eigen::ArrayXd::Constant(n, evlp0.psix()); // Eigen::ArrayXd
-    const auto psix_array = psix_base + dpsix_array; // Eigen::ArrayXd
-    const auto psiy_base = Eigen::ArrayXd::Constant(n, evlp0.psiy()); // Eigen::ArrayXd
-    const auto psiy_array = psiy_base + dpsiy_array; // Eigen::ArrayXd
-#endif
-    return EnvelopeArray(cov_array, s_array + evlp0.s(), T_array, psix_array, psiy_array);
+    const Eigen::ArrayXd s_out = (s_array + Eigen::ArrayXd::Constant(n, evlp0.s())).eval();
+    return EnvelopeArray(cov_array, s_out, T_array, psix_array, psiy_array);
 }
