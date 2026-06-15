@@ -8,8 +8,28 @@ Egret is a beam-dynamics simulation library for particle accelerators. It expose
 
 ## Environment
 
-- Python 3.10+; C++20; Eigen3 and GSL required at build time
+- Python 3.10+; C++20-compatible compiler (e.g. GCC 12+)
 - Build backend: scikit-build-core (PEP 517); CMake source dir is `cpp/`
+
+### C++ dependencies (build-time)
+
+| Library | Version | Notes |
+|---------|---------|-------|
+| Eigen3 | ≥ 3.3 | Linear algebra throughout (`find_package(Eigen3 3.3 REQUIRED)`) |
+| GSL (GNU Scientific Library) | any | ODE integration and numerical routines |
+| CMake | ≥ 3.20 | Build system |
+| OpenMP | — | Optional; enabled with `-DUSE_OPENMP=ON` |
+
+### Python dependencies
+
+| Package | Runtime | Build-time | Notes |
+|---------|---------|------------|-------|
+| numpy | ✓ | ✓ | Array I/O and numerical interface |
+| latticejson | ✓ | | LatticeJSON ring file parsing |
+| pybind11 ≥ 3.0 | | ✓ | C++/Python binding generator |
+| scikit-build-core ≥ 0.11.6 | | ✓ | PEP 517 build backend |
+| scipy | | ✓ | Used during the build process |
+| wheel, setuptools | | ✓ | Standard packaging tools |
 
 ## Commands
 

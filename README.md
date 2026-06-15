@@ -4,6 +4,43 @@
 - Egret stands for Energetic General Research in Energetic-beam Tracking.
 - Author: Hirokazu Maesaka (RIKEN SPring-8 Center)
 
+## Dependencies
+
+### C++ (build-time)
+
+| Library | Version | Notes |
+|---------|---------|-------|
+| Eigen3 | ≥ 3.3 | Linear algebra throughout |
+| GSL (GNU Scientific Library) | any | ODE integration and numerical routines |
+| OpenMP | — | Optional; enables parallel tracking (`-DUSE_OPENMP=ON`) |
+| CMake | ≥ 3.20 | Build system |
+| C++20-compatible compiler | — | e.g. GCC 12+, Clang 14+ |
+
+On Ubuntu/Debian:
+```bash
+sudo apt install libeigen3-dev libgsl-dev cmake ninja-build
+```
+On macOS (Homebrew):
+```bash
+brew install eigen gsl cmake ninja
+```
+
+### Python (runtime)
+
+| Package | Notes |
+|---------|-------|
+| numpy | Array I/O and numerical interface |
+| latticejson | LatticeJSON ring file parsing (`Ring.read_json()`) |
+
+### Python (build-time only)
+
+| Package | Notes |
+|---------|-------|
+| pybind11 ≥ 3.0 | C++/Python binding generator |
+| scikit-build-core ≥ 0.11.6 | PEP 517 build backend (drives CMake) |
+| scipy | Used during the build process |
+| wheel, setuptools | Standard packaging tools |
+
 ## Building (developer notes)
 
 This package uses CMake + pybind11 for the C++ core and `scikit-build-core` as
