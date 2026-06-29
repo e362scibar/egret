@@ -304,10 +304,13 @@ egret::Element::transfer_array(const Coordinate &cood0, const std::optional<Enve
             }
             if (evlp) {
                 const auto evlp_end = std::vector<Eigen::Matrix4d>{evlp->cov()};
+                const auto T_end = std::vector<Eigen::Matrix2d>{evlp->T()};
+                const auto psix_end = Eigen::ArrayXd::Constant(1, evlp->psix());
+                const auto psiy_end = Eigen::ArrayXd::Constant(1, evlp->psiy());
                 if (evlp_array) {
-                    evlp_array->append(EnvelopeArray(evlp_end, s_array));
+                    evlp_array->append(EnvelopeArray(evlp_end, s_array, T_end, psix_end, psiy_end));
                 } else {
-                    evlp_array = EnvelopeArray(evlp_end, s_array);
+                    evlp_array = EnvelopeArray(evlp_end, s_array, T_end, psix_end, psiy_end);
                 }
             }
             if (disp) {

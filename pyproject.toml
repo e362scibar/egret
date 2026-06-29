@@ -12,7 +12,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "egret"
-version = "0.3.0"
+version = "0.3.1"
 description = "A general-purpose beam dynamics simulation code. (Egret: Engine for General Research in Energetic-beam Tracking.)"
 authors = [{name="Hirokazu Maesaka", email="maesaka@spring8.or.jp"}]
 license = { text = "GPL-3.0-or-later" }
