@@ -22,6 +22,8 @@ from __future__ import annotations
 from ..base.quadrupole import Quadrupole as QuadruopoleABC
 from .element import Element
 from .coordinate import Coordinate
+from .envelope import Envelope
+from .dispersion import Dispersion
 from .drift import Drift
 import numpy as np
 import numpy.typing as npt
@@ -34,7 +36,7 @@ class Quadrupole(QuadruopoleABC, Element):
 
     def __init__(self, name: str, length: float, k1: float,
                  dx: float = 0., dy: float = 0., ds: float = 0.,
-                 tilt: float = 0., info: float = ''):
+                 tilt: float = 0., info: float = '', kick_x: float = 0.0, kick_y: float = 0.0):
         '''
         Args:
             name str: Name of the quadrupole.
@@ -45,9 +47,13 @@ class Quadrupole(QuadruopoleABC, Element):
             ds float: Longitudinal offset of the quadrupole [m].
             tilt float: Tilt angle of the quadrupole [rad]. (+pi/4: skew quadrupole)
             info str: Additional information.
+            kick_x float: Horizontal kick angle of the steering coil [rad].
+            kick_y float: Vertical kick angle of the steering coil [rad].
         '''
         super().__init__(name, length, 0.0, dx, dy, ds, tilt, info)
         self._k1 = k1
+        self._kick_x = kick_x
+        self._kick_y = kick_y
 
     @property
     def k1(self) -> float:
@@ -66,6 +72,74 @@ class Quadrupole(QuadruopoleABC, Element):
         '''
         self._k1 = k1
 
+    @property
+    def k0x(self) -> float:
+        '''
+        Horizontal steering strength [1/m].
+        '''
+        return -self._kick_x / self._length
+
+    @property
+    def k0y(self) -> float:
+        '''
+        Vertical steering strength [1/m].
+        '''
+        return -self._kick_y / self._length
+
+    @property
+    def kick_x(self) -> float:
+        '''
+        Horizontal kick angle of the steering coil [rad].
+        '''
+        return self._kick_x
+
+    @property
+    def kick_y(self) -> float:
+        '''
+        Vertical kick angle of the steering coil [rad].
+        '''
+        return self._kick_y
+
+    @k0x.setter
+    def k0x(self, k0x: float) -> None:
+        '''
+        Set horizontal steering strength.
+
+        Args:
+            k0x float: Horizontal steering strength [1/m].
+        '''
+        self._kick_x = -k0x * self._length
+
+    @k0y.setter
+    def k0y(self, k0y: float) -> None:
+        '''
+        Set vertical steering strength.
+
+        Args:
+            k0y float: Vertical steering strength [1/m].
+        '''
+        self._kick_y = -k0y * self._length
+
+    @kick_x.setter
+    def kick_x(self, kick_x: float) -> None:
+        '''
+        Set horizontal kick angle of the steering coil.
+
+        Args:
+            kick_x float: Horizontal kick angle [rad].
+        '''
+        self._kick_x = kick_x
+
+    @kick_y.setter
+    def kick_y(self, kick_y: float) -> None:
+        '''
+        Set vertical kick angle of the steering coil.
+
+        Args:
+            kick_y float: Vertical kick angle [rad].
+        '''
+        self._kick_y = kick_y
+
     def copy(self) -> Quadrupole:
         '''
         Return a copy of the quadrupole element.
@@ -74,7 +148,59 @@ class Quadrupole(QuadruopoleABC, Element):
             Quadrupole: Copied quadrupole element.
         '''
         return Quadrupole(self._name, self._length, self._k1,
-                          self._dx, self._dy, self._ds, self._tilt, self._info)
+                          self._dx, self._dy, self._ds, self._tilt, self._info, self._kick_x, self._kick_y)
+
+    def transfer(self, cood0: Coordinate, evlp0: Envelope = None, disp0: Dispersion = None, ds: float = 0.1, method='symplectic4') \
+        -> Tuple[Coordinate, Envelope, Dispersion]:
+        '''
+        Calculate the coordinate, envelope, and dispersion after the quadrupole magnet.
+
+        Args:
+            cood0 Coordinate: Initial coordinate.
+            evlp0 Envelope: Initial beam envelope (optional).
+            disp0 Dispersion: Initial dispersion (optional).
+            ds float: Maximum step size [m] for integration.
+            method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
+
+        Returns:
+            Coordinate: Coordinate after the element.
+            Envelope: Beam envelope after the element (if evlp0 is provided).
+            Dispersion: Dispersion after the element (if disp0 is provided).
+        '''
+        # Apply drift transfer for longitudinal offset
+        cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
+        cood.x -= self._dx
+        cood.y -= self._dy
+
+        # Apply steering kick if present
+        if abs(self._kick_x) > 1e-20 or abs(self._kick_y) > 1e-20:
+            # Apply dipole kick
+            cood.xp -= self._kick_x
+            cood.yp -= self._kick_y
+
+        # Apply quadrupole effect
+        tmat = self.transfer_matrix(cood, ds, method)
+        cood1vec = np.dot(tmat, cood.vector)
+        cood1 = Coordinate(cood1vec, cood.s + self._length, cood.z, cood.delta)
+
+        if evlp is not None:
+            evlp1 = evlp.copy()
+            evlp1.transfer(tmat, self._length)
+        else:
+            evlp1 = None
+
+        if disp is not None:
+            disp1 = disp.copy()
+            disp1vec = np.dot(tmat, disp1.vector) + self.dispersion(cood, ds, method)
+            disp1 = Dispersion(disp1vec, disp1.s + self._length)
+        else:
+            disp1 = None
+
+        # Apply drift transfer for longitudinal offset
+        cood1.x += self._dx
+        cood1.y += self._dy
+        cood1, evlp1, disp1 = self.drift_transfer(-self._ds, cood1, evlp1, disp1)
+        return cood1, evlp1, disp1
 
     def rotation_matrix(self) -> npt.NDArray[np.floating]:
         '''
@@ -267,3 +393,15 @@ class Quadrupole(QuadruopoleABC, Element):
             M_rot = np.matmul(rmat.T, np.matmul(M, rmat))
             disp = np.matmul(M_rot, cood.vector).T
         return disp, s
+
+    def set_steering(self, kick_x: float = None, kick_y: float = None) -> None:
+        '''
+        Set steering coil kick angles.
+
+        Args:
+            kick_x float: Horizontal kick angle of the steering coil [rad] or None to leave unchanged.
+            kick_y float: Vertical kick angle of the steering coil [rad] or None to leave unchanged.
+        '''
+        # Quadrupole elements don't have steering coils, so this method does nothing
+        # This is a placeholder to maintain compatibility with NonlinearMultipole
+        pass
