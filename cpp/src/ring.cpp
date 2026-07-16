@@ -80,13 +80,16 @@ std::shared_ptr<egret::Element> egret::Ring::clone() const noexcept(false) {
  * @param delta Relative momentum deviation
  * @param ds Longitudinal step size
  * @param method Integration method
+ * @return bool True if the update was successful, false otherwise
  */
-void egret::Ring::update(const double delta, const double ds,
+bool egret::Ring::update(const double delta, const double ds,
     const IntegrationMethod method) noexcept(false) {
     // find closed orbit
+    bool converged = false;
     try {
         const Coordinate cood_guess(Eigen::Vector4d::Zero(), 0.0, 0.0, delta);
         cood0_ = find_initial_coordinate_of_closed_orbit(cood_guess, ds, method);
+        converged = true;
     } catch (const std::runtime_error &e) {
         std::cout << "Error in finding closed orbit: " << e.what() << std::endl;
         std::cout << "Using previous closed orbit guess." << std::endl;
@@ -155,6 +158,7 @@ void egret::Ring::update(const double delta, const double ds,
     Jx_ = 1.0 - I4u_ / I2_;
     Jy_ = 1.0 - I4v_ / I2_;
     Jz_ = 2.0 + I4_ / I2_;
+    return converged;
 }
 
 namespace {

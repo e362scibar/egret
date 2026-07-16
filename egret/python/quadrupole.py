@@ -167,6 +167,8 @@ class Quadrupole(QuadruopoleABC, Element):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
+        # TODO: Implement the transfer method for the quadrupole magnet.
+
         # Apply drift transfer for longitudinal offset
         cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx

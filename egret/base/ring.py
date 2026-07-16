@@ -128,13 +128,16 @@ class Ring(Element):
         pass
 
     @abstractmethod
-    def update(self, delta: float = 0., method: str = 'symplectic4') -> None:
+    def update(self, delta: float = 0., method: str = 'symplectic4') -> bool:
         '''
         Update transfer matrix, dispersion, and emittance.
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
             method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
+
+        Returns:
+            bool: True if the update was successful, false otherwise.
         '''
         pass
 

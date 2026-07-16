@@ -156,7 +156,7 @@ public:
     double I4v() const { return I4v_; }
 
     // Update the ring parameters (tunes, etc.)
-    void update(double delta=0.0, double ds=0.1,
+    bool update(double delta=0.0, double ds=0.1,
         IntegrationMethod method=IntegrationMethod::SYMPLECTIC4) noexcept(false);
 
     // find initial coordinates of closed orbit

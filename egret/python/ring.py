@@ -154,18 +154,23 @@ class Ring(RingABC, Element):
         '''
         return Ring(self._name, self._elements, self._energy, self._info)
 
-    def update(self, delta: float = 0., method: str = 'symplectic4') -> None:
+    def update(self, delta: float = 0., method: str = 'symplectic4') -> bool:
         '''
         Update transfer matrix, dispersion, and emittance.
 
         Args:
             delta float: Relative momentum deviation (default: 0.).
             method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
+
+        Returns:
+            bool: True if the update is successful, False otherwise.
         '''
         # initial coordinate of closed orbit
+        converged = False
         try:
             cood_guess = Coordinate(delta=delta)
             self._cood0 = self.find_initial_coordinate_of_closed_orbit(guess=cood_guess, tol=self.tol_cod)
+            converged = True
         except RuntimeError as e:
             print(f'Warning: Failed to find closed orbit. Using zero coordinate. {e}')
             self._cood0 = Coordinate(delta=delta)
@@ -215,6 +220,7 @@ class Ring(RingABC, Element):
         self._Jx = 1. - self.I4u / self.I2
         self._Jy = 1. - self.I4v / self.I2
         self._Jz = 2. + self.I4 / self.I2
+        return converged
 
     def find_initial_coordinate_of_closed_orbit(self, guess: Coordinate = Coordinate(),
         tol: float = None, maxiter: int = 500, method: str = 'symplectic4') -> Coordinate:
