@@ -1,0 +1,179 @@
+# AGENTS.md
+
+Guidance for AI coding agents working in this repository.
+
+## Overview
+
+Egret is a beam-dynamics simulation library for particle accelerators. It exposes a Python API backed by a C++ numerical core (`cppegret`, built via pybind11 + scikit-build-core). The Python package is at `egret/` and the C++ sources are under `cpp/`.
+
+## Environment
+
+- **Python**: 3.10+
+- **C++ compiler**: C++20-compatible (e.g. GCC 12+)
+- **Build backend**: scikit-build-core (PEP 517); CMake source dir is `cpp/`
+
+### C++ dependencies (build-time)
+
+| Library | Version | Notes |
+|---------|---------|-------|
+| Eigen3 | ≥ 3.3 | Linear algebra throughout (`find_package(Eigen3 3.3 REQUIRED)`) |
+| GSL (GNU Scientific Library) | any | ODE integration and numerical routines |
+| CMake | ≥ 3.20 | Build system |
+| OpenMP | — | Optional; enabled with `-DUSE_OPENMP=ON` |
+
+### Python dependencies
+
+| Package | Runtime | Build-time | Notes |
+|---------|---------|------------|-------|
+| numpy | ✓ | ✓ | Array I/O and numerical interface |
+| latticejson | ✓ | | LatticeJSON ring file parsing |
+| pybind11 ≥ 3.0 | | ✓ | C++/Python binding generator |
+| scikit-build-core ≥ 0.11.6 | | ✓ | PEP 517 build backend |
+| scipy | | ✓ | Used during the build process |
+| wheel, setuptools | | ✓ | Standard packaging tools |
+
+## Architecture
+
+### Three-layer element design
+
+Every accelerator element type (`Drift`, `Steering`, `Dipole`, `Quadrupole`, `Sextupole`, `Octupole`, `NonlinearMultipole`, `Lattice`, `Ring`, …) exists in three parallel layers:
+
+1. **`egret/base/<type>.py`** — Abstract base class with `@abstractmethod` interface only. No numerics.
+2. **`egret/python/<type>.py`** — Pure-Python reference implementation.
+3. **`egret/cpp/<type>.py`** — Thin Python wrapper owning `self.instance` (the C++ pybind11 object from `cppegret`). Inherits from both the `base/` ABC and `egret/cpp/object.py::Object`.
+
+`egret/__init__.py` does `from .cpp import *`, so consumers always get the C++ backend.
+
+### C++ core (`cpp/`)
+
+- `cpp/src/bindings.cpp` — pybind11 module definition; exposes all C++ types and `IntegrationMethod` enum to Python.
+- `cpp/include/egret/` — public headers; one header per element type.
+- `cpp/src/` — implementations; `ring.cpp` and `lattice.cpp` own ring-level operations (closed-orbit finding, radiation integrals, tunes).
+- `egret_core` is built as a static library; `cppegret` (the pybind11 module) links it. Consumers of the installed package only need the `.so`.
+- GSL is linked into `egret_core` for numerical routines (e.g., ODE integration); Eigen3 is used for linear algebra throughout.
+
+### Integration methods
+
+Elements accept a `method` parameter via `Element.INTEGRATION_METHODS`: `'midpoint'`, `'rk4'`, `'symplectic1'`, `'symplectic2'`, `'symplectic4'`. Default is `'symplectic4'`.
+
+### Ring loading
+
+`Ring.read_json(path)` parses a LatticeJSON file using the `latticejson` package and constructs the element list. The internal `_make_elements` / `_make_lattice` class methods handle nested lattice structures.
+
+### Extending with a new element type
+
+Add the element in all three layers (`base/`, `python/`, `cpp/`), add C++ header + source under `cpp/include/egret/` and `cpp/src/`, register the pybind11 binding in `cpp/src/bindings.cpp`, and export from `egret/cpp/__init__.py`.
+
+### Tests
+
+| File | Purpose |
+|------|---------|
+| `tests/test_pyegret_trampoline.py` | Verifies Python subclasses can override `transfer_matrix` / `transfer_matrix_array` through the pybind11 trampoline |
+| `tests/test_pyegret_pickle.py` | Pickle round-trip tests for element objects |
+| `cpp/tests/test_parity_pyegret.py` | Numerical parity between Python reference and C++ implementations |
+| `cpp/tests/test_parity_quadrupole.py` | Quadrupole-specific parity tests |
+
+## Common Commands
+
+### Build wheel (recommended)
+
+```bash
+python -m build -w -o ../dist_wheels
+pip install ../dist_wheels/egret-*.whl
+```
+
+### Build C++ extension manually (development)
+
+```bash
+cd cpp
+PYBIND11_DIR=$(python -m pybind11 --cmakedir)
+cmake -S . -B build -DBUILD_PYEXT=ON -Dpybind11_DIR="$PYBIND11_DIR"
+cmake --build build -j4
+export PYTHONPATH=$(pwd)/..:$(pwd)/build:$PYTHONPATH
+```
+
+Optional CMake flags:
+- `-DUSE_OPENMP=ON` — Enable OpenMP (Linux only; disabled on macOS CI)
+- `-DWARNINGS_AS_ERRORS=ON` — Treat warnings as errors (local dev)
+
+### Run tests
+
+```bash
+# Python-level trampoline/pickle tests
+python -m pytest tests/ -q
+
+# C++ parity tests (requires PYTHONPATH set above)
+python -m pytest cpp/tests/ -q
+
+# Single test
+python -m pytest tests/test_pyegret_trampoline.py::test_transfer_and_transfer_array_trampoline -q
+```
+
+### Sync version before release
+
+```bash
+python scripts/sync_version.py --version-file egret/version.py --pyproject pyproject.toml
+```
+
+The canonical version lives in `egret/version.py`; `pyproject.toml` is derived from it. The C++ `version.hpp` is generated by CMake from `version.hpp.in` using the version in `pyproject.toml`.
+
+## Code Style
+
+### Language
+
+Always write in English for code comments, commit messages, display text in code (strings, labels, messages), and documentation.
+
+### Commit Messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```text
+<type>(<scope>): <short summary>
+```
+
+Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`.
+
+### General
+
+- **File encoding**: UTF-8. **Line endings**: LF.
+- **No magic numbers**: replace numeric literals with named constants.
+- **No hardcoded secrets**: never embed credentials, API keys, or passwords in source code.
+- **Logging**: never leave debug `print` statements in production code. Use the `logging` module (Python) or `spdlog` (C++) with explicit log levels.
+
+### Naming Conventions
+
+| Construct                    | Convention             |
+| ---------------------------- | ---------------------- |
+| Variables and functions      | `snake_case`           |
+| Classes and types            | `PascalCase`           |
+| Constants and enum values    | `SCREAMING_SNAKE_CASE` |
+| C++ private member variables | `trailing_underscore_` |
+
+### Floating-Point Literals
+
+Always write a decimal point in floating-point literals, even for whole numbers (`1.0`, not `1`).
+
+### Python
+
+- All method signatures must include type hints for every parameter and the return type.
+- Add docstrings where appropriate; use Google style.
+
+### C++
+
+- All C++ code must be compatible with GNU++20 (`-std=gnu++20`).
+- Format with `clang-format`. Indentation: 4 spaces; no tabs. Line length: 120 characters.
+- Never collapse `if`/`else`/`for`/`while` onto one line; never write a function body on a single line.
+- Use `#pragma once` as the include guard.
+- No raw owning pointers; use `std::unique_ptr` (default) or `std::shared_ptr` (shared ownership only).
+- Use `nullptr`, mark `override`/`final` on virtual functions, apply `noexcept` where applicable.
+- Prefer `enum class`, brace initialization `{}`, and `auto` where the type is clear.
+- Never use `#define` for constants; use `constexpr`. Use `static_assert` for compile-time checks.
+- Mark single-argument constructors `explicit`.
+- Public APIs (classes, methods, free functions, non-obvious member variables) must be documented with Doxygen-style comments (`/** … */` or `/// …`).
+
+### Testing
+
+Write unit tests for all public APIs; add or update tests with every new feature or bug fix.
+
+- **C++**: use GoogleTest (`ASSERT_*` / `EXPECT_*`, fixtures, parameterized tests).
+- **Python**: use `pytest` (fixtures, `@pytest.mark.parametrize`).
