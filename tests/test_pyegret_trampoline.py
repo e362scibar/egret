@@ -1,3 +1,20 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: -all
+#     formats: ipynb,py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.3
+#   kernelspec:
+#     display_name: egret
+#     language: python
+#     name: python3
+# ---
+
+# %%
 import importlib
 import importlib.util
 import glob
@@ -6,6 +23,7 @@ import os
 import pytest
 
 
+# %%
 def load_pyegret():
     try:
         return importlib.import_module('egret.cppegret')
@@ -26,10 +44,12 @@ def load_pyegret():
         raise
 
 
+# %%
 def get_pyegret():
     return load_pyegret()
 
 
+# %%
 def test_transfer_and_transfer_array_trampoline():
     mod = get_pyegret()
     Coordinate = mod.Coordinate

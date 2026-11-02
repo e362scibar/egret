@@ -71,3 +71,9 @@ Notes:
 - If you need to run the CMake build manually (development), you can still run
  a CMake build under `egret/cpp` and copy the produced `cppegret` shared object
  into the `egret/` package directory for local testing.
+
+## Testing Environment and Notebook Placement
+
+- Use `tests/environment.yml` to create the dedicated test conda environment (name: `egret`).
+- Place egret test notebooks directly under `tests/` (not `tests/notebooks/`).
+- For test inputs, prefer single elements and short synthetic lattices over the full SPring-8-II lattice.

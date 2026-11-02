@@ -126,3 +126,12 @@ The canonical version lives in `egret/version.py`; `pyproject.toml` is derived f
 | `tests/test_pyegret_pickle.py` | Pickle round-trip tests for element objects |
 | `cpp/tests/test_parity_pyegret.py` | Numerical parity between Python reference and C++ implementations |
 | `cpp/tests/test_parity_quadrupole.py` | Quadrupole-specific parity tests |
+
+### Notebook-based feature tests
+
+- Place egret test notebooks directly under `tests/` (do not use `tests/notebooks/`).
+- Use Jupytext-paired files and edit the paired `.py` file.
+- Keep `.py` and `.ipynb` synchronized with `jupytext --sync tests/<name>.ipynb`.
+- Use the dedicated conda test environment at `tests/environment.yml` (environment name: `egret`).
+- Before commit, strip notebook outputs with `nbstripout` (configured by `.gitattributes`).
+- As a rule, avoid the full SPring-8-II lattice in `tests/`; prefer single elements and short synthetic lattices.

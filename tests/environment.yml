@@ -1,0 +1,22 @@
+name: egret
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - cmake>=3.20
+  - ninja
+  - numpy
+  - scipy
+  - matplotlib
+  - jupyter
+  - ipykernel
+  - jupytext
+  - nbstripout
+  - pytest
+  - gsl
+  - eigen
+  - pip:
+      - pybind11>=3.0
+      - scikit-build-core>=0.11.6
+      - latticejson

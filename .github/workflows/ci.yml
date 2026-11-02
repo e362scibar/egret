@@ -47,29 +47,32 @@ jobs:
           pip install --upgrade pip
           pip install dist/*.whl
 
-        - name: Lightweight verification (presence + ldd)
+      - name: Lightweight verification (presence + ldd)
         run: |
           source .venv/bin/activate
           # locate installed egret package and compiled extension
           SO=$(python - <<'PY'
-    import importlib.util, sys, os, glob, site
-    spec = importlib.util.find_spec('egret')
-    pkgdir = None
-    if spec and spec.submodule_search_locations:
-      pkgdir = list(spec.submodule_search_locations)[0]
-    else:
-      for p in site.getsitepackages():
-        candidate = os.path.join(p, 'egret')
-        if os.path.isdir(candidate):
-          pkgdir = candidate
-          break
-    if not pkgdir:
-      print('')
-    else:
-      matches = glob.glob(os.path.join(pkgdir, 'cppegret*.so')) + glob.glob(os.path.join(pkgdir, 'cppegret*.cpython-*-*.so'))
-      print(matches[0] if matches else '')
-    PY
-    )
+          import importlib.util, os, glob, site
+
+          spec = importlib.util.find_spec('egret')
+          pkgdir = None
+          if spec and spec.submodule_search_locations:
+              pkgdir = list(spec.submodule_search_locations)[0]
+          else:
+              for p in site.getsitepackages():
+                  candidate = os.path.join(p, 'egret')
+                  if os.path.isdir(candidate):
+                      pkgdir = candidate
+                      break
+
+          if not pkgdir:
+              print('')
+          else:
+              matches = glob.glob(os.path.join(pkgdir, 'cppegret*.so'))
+              matches += glob.glob(os.path.join(pkgdir, 'cppegret*.cpython-*-*.so'))
+              print(matches[0] if matches else '')
+          PY
+          )
           if [ -z "$SO" ]; then echo "Compiled extension not found in installed package"; exit 1; fi
           echo "Found shared object: $SO"
           echo "ldd output:"; ldd "$SO" | sed -n '1,200p'

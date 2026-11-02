@@ -73,6 +73,32 @@ Add the element in all three layers (`base/`, `python/`, `cpp/`), add C++ header
 | `cpp/tests/test_parity_pyegret.py` | Numerical parity between Python reference and C++ implementations |
 | `cpp/tests/test_parity_quadrupole.py` | Quadrupole-specific parity tests |
 
+#### Notebook-based feature tests
+
+Notebook-based feature tests for egret must be placed directly under `tests/`, not in the parent `codcorrvbpm/notebooks/` directory.
+
+- Use Jupytext-paired notebook files and edit the paired `.py` file.
+- Keep `.py` and `.ipynb` synchronized with `jupytext --sync tests/<name>.ipynb`.
+- Use notebooks for exploratory/feature validation flows; keep `pytest` tests for automated CI checks.
+- Use the dedicated conda test environment declared in `tests/environment.yml` (environment name: `egret`).
+- Before commit, ensure notebook outputs are stripped by `nbstripout` (configured via `.gitattributes`).
+
+#### Lattice scope for tests
+
+- As a rule, do not use the full SPring-8-II lattice in egret tests.
+- Prefer unit-scale test inputs: single elements and short synthetic lattices built specifically for the test.
+- Use SPring-8-II lattice data only for explicit integration/compatibility scenarios, and keep such cases clearly separated.
+
+#### Systematic class-level test coverage
+
+For each public class, cover tests in a structured way:
+
+1. Construction and parameter validation.
+2. Core transfer/physics behavior on simple coordinates.
+3. Integration-method variants (`midpoint`, `rk4`, `symplectic1`, `symplectic2`, `symplectic4`) where applicable.
+4. Array/batch APIs (`*_array`) and shape/consistency checks.
+5. Python vs C++ parity for numerically equivalent paths.
+
 ## Common Commands
 
 ### Build wheel (recommended)
