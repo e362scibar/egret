@@ -88,43 +88,30 @@ void egret::CoordinateArray::append(const CoordinateArray &other) noexcept(false
 /**
  * @brief Get Coordinate from linear interpolation.
  * @param s Longitudinal position to interpolate
+ * @return Interpolated coordinate at s.
+ * @throws std::invalid_argument if there are fewer than two points or s is out of the range of s_array.
  */
 egret::Coordinate egret::CoordinateArray::from_s(double s) const noexcept(false) {
     const size_t n = s_array_.size();
     if (n < 2) {
-        throw std::out_of_range("CoordinateArray must contain at least two points for interpolation");
+        throw std::invalid_argument("CoordinateArray must contain at least two points for interpolation");
     }
-    if (s < s_array_(0) || s > s_array_(n - 1)) {
-        throw std::out_of_range("s value is out of the range of the s_array");
-    }
-    // binary search to find the right interval
-    const double *begin = s_array_.data();
-    const double *end = s_array_.data() + n;
-    const double *it = std::upper_bound(begin, end, s);
-    size_t idx = std::distance(begin, it);
-    if (idx == 0) {
-        throw std::out_of_range("Out of range");
-    }
-    if (idx == n) {
-        idx = n - 1;
-    }
-    if (idx == n - 1) {
-        throw std::out_of_range("Out of range");
-    }
-    const double s0 = s_array_[idx - 1];
-    const double s1 = s_array_[idx];
+    // Same interval selection (including the tolerance and clamping) as the Python reference
+    const size_t idx = index_from_s(s);
+    const double s0 = s_array_[idx];
+    const double s1 = s_array_[idx + 1];
     const double ds = s1 - s0;
     if (ds == 0.) {
         // Degenerate case: s0 == s1
-        Eigen::Vector4d vec = 0.5 * (vector_array_.col(idx - 1) + vector_array_.col(idx));
-        double zval = 0.5 * (z_array_[idx - 1] + z_array_[idx]);
-        double dval = 0.5 * (delta_array_[idx - 1] + delta_array_[idx]);
+        Eigen::Vector4d vec = 0.5 * (vector_array_.col(idx) + vector_array_.col(idx + 1));
+        double zval = 0.5 * (z_array_[idx] + z_array_[idx + 1]);
+        double dval = 0.5 * (delta_array_[idx] + delta_array_[idx + 1]);
         return Coordinate(vec, s, zval, dval);
     }
     const double a0 = (s1 - s) / ds;
     const double a1 = (s - s0) / ds;
-    const Eigen::Vector4d vec = a0 * vector_array_.col(idx - 1) + a1 * vector_array_.col(idx);
-    const double zval = a0 * z_array_[idx - 1] + a1 * z_array_[idx];
-    const double dval = a0 * delta_array_[idx - 1] + a1 * delta_array_[idx];
+    const Eigen::Vector4d vec = a0 * vector_array_.col(idx) + a1 * vector_array_.col(idx + 1);
+    const double zval = a0 * z_array_[idx] + a1 * z_array_[idx + 1];
+    const double dval = a0 * delta_array_[idx] + a1 * delta_array_[idx + 1];
     return Coordinate(vec, s, zval, dval);
 }

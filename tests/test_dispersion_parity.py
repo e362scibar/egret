@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.3
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: egret
 #     language: python
@@ -25,6 +25,14 @@
 
 # %%
 from __future__ import annotations
+
+import sys
+
+import matplotlib
+
+# Plain `python` runs must not open plot windows; Jupyter (IPython loaded) keeps its inline backend.
+if "IPython" not in sys.modules:
+    matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -66,7 +74,6 @@ def plot_vector_parity(py_vector: np.ndarray, cpp_vector: np.ndarray, title: str
     ax.set_ylabel("value")
     ax.legend()
     ax.grid(alpha=0.3)
-    plt.show()
 
 
 # %% [markdown]

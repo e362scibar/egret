@@ -19,15 +19,10 @@ PYBIND11_DIR=$(python -m pybind11 --cmakedir)
 cmake -S . -B build -DBUILD_PYEXT=ON -DUSE_OPENMP=ON -Dpybind11_DIR="$PYBIND11_DIR"
 cmake --build build -j 4
 
-# Run pytest (ensure PYTHONPATH includes repo root and build dir)
-export PYTHONPATH=$(pwd)/..:$(pwd)/build:$PYTHONPATH
-python -m pytest -q egret/cpp/tests
+# Run pytest from the egret root against the installed package (build and install the wheel first)
+cd ..
+pytest -q tests
 ```
-
-Benchmarks
-
-- A small benchmark script is provided at `egret/cpp/benchmarks/benchmark_apply.py`.
-- Run it with `PYTHONPATH` set as above.
 
 Notes
 

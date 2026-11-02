@@ -107,11 +107,8 @@ python -m pip install --force-reinstall dist/egret-*.whl
 ```
 
 ```bash
-# Python-level trampoline/pickle tests
-python -m pytest tests/ -q
-
-# C++ parity tests (requires PYTHONPATH set above)
-python -m pytest cpp/tests/ -q
+# Python-level and C++ parity tests (run from the egret root against the installed package)
+pytest tests/ -q
 
 # Single test
 python -m pytest tests/test_pyegret_trampoline.py::test_transfer_and_transfer_array_trampoline -q
@@ -131,8 +128,8 @@ The canonical version lives in `egret/version.py`; `pyproject.toml` is derived f
 |------|---------|
 | `tests/test_pyegret_trampoline.py` | Verifies Python subclasses can override `transfer_matrix` / `transfer_matrix_array` through the pybind11 trampoline |
 | `tests/test_pyegret_pickle.py` | Pickle round-trip tests for element objects |
-| `cpp/tests/test_parity_pyegret.py` | Numerical parity between Python reference and C++ implementations |
-| `cpp/tests/test_parity_quadrupole.py` | Quadrupole-specific parity tests |
+| `tests/test_parity_pyegret.py` | Numerical parity between Python reference and C++ implementations |
+| `tests/test_parity_cli_quadrupole.py` | Quadrupole parity against the `egret_cli` C++ binary (skipped if not built) |
 
 ### Notebook-based feature tests
 

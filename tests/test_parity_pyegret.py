@@ -1,46 +1,7 @@
-import os
-import sys
 import numpy as np
-
-# Ensure repo root and built extension are importable
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-build_dir = os.path.join(repo_root, 'build')
-sys.path.insert(0, build_dir)
-sys.path.insert(0, repo_root)
-
-import importlib
-import importlib.util
-import glob
-import sys
-import os
 import pytest
 
-
-def load_pyegret():
-    # Prefer normal import; if the local package shadows the installed extension,
-    # search sys.path entries for an `egret/cppegret*.so` and load it directly.
-    try:
-        return importlib.import_module('egret.cppegret')
-    except ModuleNotFoundError:
-        for p in list(sys.path):
-            candidate_dir = os.path.join(p, 'egret')
-            if not os.path.isdir(candidate_dir):
-                continue
-            matches = glob.glob(os.path.join(candidate_dir, 'cppegret*.so'))
-            if not matches:
-                # some systems may use different suffixes
-                matches = glob.glob(os.path.join(candidate_dir, 'cppegret*.cpython-310-*.so'))
-            if matches:
-                path = matches[0]
-                spec = importlib.util.spec_from_file_location('egret.cppegret', path)
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                return mod
-        # re-raise original error if not found
-        raise
-
-
-pyegret = load_pyegret()
+import egret.cppegret as pyegret
 
 
 def test_quadrupole_parity():

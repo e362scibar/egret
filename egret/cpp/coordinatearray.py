@@ -33,20 +33,24 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
 
     def __init__(self, vector: npt.NDArray[np.floating],
                  s: npt.NDArray[np.floating],
-                 z: npt.NDArray[np.floating] = np.array([]),
-                 delta: npt.NDArray[np.floating] = np.array([]), **kwargs):
+                 z: npt.NDArray[np.floating] | None = None,
+                 delta: npt.NDArray[np.floating] | None = None, **kwargs):
         '''
         4xN array of 4D phase-space vectors [x, x', y, y'].
 
         Args:
             vector npt.NDArray[np.floating]: 4xN array of 4D phase-space vectors [x, x', y, y'].
             s npt.NDArray[np.floating]: Longitudinal position array [m] with shape (N,).
-            z npt.NDArray[np.floating]: Longitudinal displacement array [m] with shape (N,).
-            delta npt.NDArray[np.floating]: Relative momentum deviation array with shape (N,).
+            z npt.NDArray[np.floating]: Longitudinal displacement array [m] with shape (N,). Zeros if omitted.
+            delta npt.NDArray[np.floating]: Relative momentum deviation array with shape (N,). Zeros if omitted.
         '''
         if 'instance' in kwargs:
             self.instance = kwargs['instance']
         else:
+            if z is None:
+                z = np.zeros_like(s)
+            if delta is None:
+                delta = np.zeros_like(s)
             self.instance = CoordinateArrayCPP(vector, s, z, delta)
         super().__init__(None, instance=self.instance)
 
@@ -90,14 +94,14 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         '''
         Longitudinal displacement array [m] with shape (N,).
         '''
-        return self.instance.z
+        return self.instance.z_array
 
     @property
     def delta(self) -> npt.NDArray[np.floating]:
         '''
         Relative momentum deviation array with shape (N,).
         '''
-        return self.instance.delta
+        return self.instance.delta_array
 
     @vector.setter
     def vector(self, vector: npt.NDArray[np.floating]) -> None:
