@@ -26,6 +26,20 @@ from .envelope import Envelope
 import numpy as np
 import numpy.typing as npt
 
+def _check_T_shape(T: npt.NDArray[np.floating]) -> None:
+    '''
+    Check that the coordinate transformation matrices have shape (N, 2, 2).
+
+    Args:
+        T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices.
+
+    Raises:
+        ValueError: If T is not Nx2x2.
+    '''
+    if T.ndim != 3 or T.shape[1:] != (2, 2):
+        raise ValueError(f"T must have shape (N, 2, 2); got {T.shape}.")
+
+
 class EnvelopeArray(EnvelopeArrayABC, BaseArray):
     '''
     Class for beam envelope array.
@@ -45,7 +59,11 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         if 'instance' in kwargs:
             self.instance = kwargs['instance']
         else:
+            if cov.ndim != 3 or cov.shape[1:] != (4, 4):
+                raise ValueError(f"cov must have shape (N, 4, 4); got {cov.shape}.")
             cov_list = [cov[i, :, :] for i in range(cov.shape[0])]
+            if T is not None:
+                _check_T_shape(T)
             T_list = [T[i, :, :] for i in range(T.shape[0])] if T is not None else None
             self.instance = EnvelopeArrayCPP(cov_list, s, T_list, psix, psiy)
         super().__init__(None, instance=self.instance)
@@ -190,6 +208,8 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         Args:
             T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices for eigenmode. (Optional)
         '''
+        if T is not None:
+            _check_T_shape(T)
         T_list = [T[i, :, :] for i in range(T.shape[0])] if T is not None else None
         self.instance.calc_eigenmode(T_list)
 
@@ -198,8 +218,9 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         Returns:
             EnvelopeArray: A copy of the envelope array object.
         '''
-        return EnvelopeArray(cov=self.instance.cov_array, s=self.instance.s_array, T=self.instance.T_array,
-                             psix=self.instance.psix_array, psiy=self.instance.psiy_array)
+        return EnvelopeArray(cov=np.array(self.instance.cov_array), s=np.array(self.instance.s_array),
+                             T=np.array(self.instance.T_array), psix=np.array(self.instance.psix_array),
+                             psiy=np.array(self.instance.psiy_array))
 
     def append(self, evlp: EnvelopeArray) -> None:
         '''

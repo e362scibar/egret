@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from ..base.coordinatearray import CoordinateArray as CoordinateArrayABC
-from .basearray import BaseArray
+from .basearray import BaseArray, read_only_view
 from .coordinate import Coordinate
 import numpy as np
 import numpy.typing as npt
@@ -38,16 +38,22 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
             s npt.NDArray[np.floating]: Longitudinal position array along the reference orbit [m] with shape (N,).
             z npt.NDArray[np.floating]: Longitudinal displacement array [m] with shape (N,).
             delta npt.NDArray[np.floating]: Relative momentum deviation array with shape (N,).
+
+        Raises:
+            ValueError: If s is not non-decreasing or vector does not have one column per element of s.
         '''
         super().__init__(s)
+        self._check_vector(vector)
         self._vector = vector.copy()
         if z is None:
             self._z = np.zeros_like(s)
         else:
+            self._check_length(len(z), "z")
             self._z = z.copy()
         if delta is None:
             self._delta = np.zeros_like(s)
         else:
+            self._check_length(len(delta), "delta")
             self._delta = delta.copy()
 
     @property
@@ -55,49 +61,49 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         '''
         4xN array of 4D phase-space vectors [x, x', y, y'].
         '''
-        return self._vector
+        return read_only_view(self._vector)
 
     @property
     def z(self) -> npt.NDArray[np.floating]:
         '''
         Longitudinal displacement array [m] with shape (N,).
         '''
-        return self._z
+        return read_only_view(self._z)
 
     @property
     def delta(self) -> npt.NDArray[np.floating]:
         '''
         Relative momentum deviation array with shape (N,).
         '''
-        return self._delta
+        return read_only_view(self._delta)
 
     @property
     def x(self) -> npt.NDArray[np.floating]:
         '''
         Horizontal position array with shape (N,).
         '''
-        return self._vector[0, :]
+        return self._vector[0, :].copy()
 
     @property
     def xp(self) -> npt.NDArray[np.floating]:
         '''
         Horizontal angle array with shape (N,).
         '''
-        return self._vector[1, :]
+        return self._vector[1, :].copy()
 
     @property
     def y(self) -> npt.NDArray[np.floating]:
         '''
         Vertical position array with shape (N,).
         '''
-        return self._vector[2, :]
+        return self._vector[2, :].copy()
 
     @property
     def yp(self) -> npt.NDArray[np.floating]:
         '''
         Vertical angle array with shape (N,).
         '''
-        return self._vector[3, :]
+        return self._vector[3, :].copy()
 
     @vector.setter
     def vector(self, vector: npt.NDArray[np.floating]) -> None:
@@ -107,6 +113,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             vector npt.NDArray[np.floating]: New 4xN array of 4D phase-space vectors.
         '''
+        self._check_vector(vector)
         self._vector = vector.copy()
 
     @z.setter
@@ -117,6 +124,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             z npt.NDArray[np.floating]: New longitudinal displacement array.
         '''
+        self._check_length(len(z), "z")
         self._z = z.copy()
 
     @delta.setter
@@ -127,6 +135,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             delta npt.NDArray[np.floating]: New relative momentum deviation array.
         '''
+        self._check_length(len(delta), "delta")
         self._delta = delta.copy()
 
     @x.setter
@@ -137,6 +146,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             x npt.NDArray[np.floating]: New horizontal position array.
         '''
+        self._check_length(len(x), "x")
         self._vector[0, :] = x
 
     @xp.setter
@@ -147,6 +157,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             xp npt.NDArray[np.floating]: New horizontal angle array.
         '''
+        self._check_length(len(xp), "xp")
         self._vector[1, :] = xp
 
     @y.setter
@@ -157,6 +168,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             y npt.NDArray[np.floating]: New vertical position array.
         '''
+        self._check_length(len(y), "y")
         self._vector[2, :] = y
 
     @yp.setter
@@ -167,6 +179,7 @@ class CoordinateArray(CoordinateArrayABC, BaseArray):
         Args:
             yp npt.NDArray[np.floating]: New vertical angle array.
         '''
+        self._check_length(len(yp), "yp")
         self._vector[3, :] = yp
 
     def copy(self) -> CoordinateArray:

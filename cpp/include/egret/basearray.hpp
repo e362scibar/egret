@@ -41,6 +41,14 @@ protected:
     //! Longitudinal positions
     Eigen::ArrayXd s_array_;
 
+    /**
+     * @brief Check that a per-element array has the same length as s_array.
+     * @param n Length of the array to check.
+     * @param name Name of the array used in the error message.
+     * @throws std::invalid_argument if n does not match the size of s_array.
+     */
+    void check_length(Eigen::Index n, const char *name) const noexcept(false);
+
 public:
     // Constructor
     BaseArray(const Eigen::ArrayXd& s_array) noexcept(false);
@@ -63,9 +71,10 @@ public:
 
     /**
      * @brief Set the array of longitudinal positions.
-     * @param other Eigen::ArrayXd to copy from
+     * @param s_array Eigen::ArrayXd to copy from; must keep the current length and be non-decreasing.
+     * @throws std::invalid_argument if the length changes or s_array is not non-decreasing.
      */
-    void s_array(const Eigen::ArrayXd& s_array) { s_array_ = s_array; }
+    void s_array(const Eigen::ArrayXd& s_array) noexcept(false);
 
     /**
      * @brief Get the step size between longitudinal positions.

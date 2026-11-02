@@ -66,6 +66,76 @@ egret::CoordinateArray::CoordinateArray(
 }
 
 /**
+ * @brief Set the array of particle coordinate vectors.
+ * @param vector_array Eigen::Matrix<double,4,Eigen::Dynamic> to copy from; must have one column per element of s_array.
+ * @throws std::invalid_argument if the number of columns does not match s_array.
+ */
+void egret::CoordinateArray::vector_array(const Eigen::Matrix<double,4,Eigen::Dynamic>& vector_array) noexcept(false) {
+    check_length(vector_array.cols(), "vector_array");
+    vector_array_ = vector_array;
+}
+
+/**
+ * @brief Set the array of longitudinal displacements.
+ * @param z_array Eigen::ArrayXd to copy from; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::CoordinateArray::z_array(const Eigen::ArrayXd& z_array) noexcept(false) {
+    check_length(z_array.size(), "z_array");
+    z_array_ = z_array;
+}
+
+/**
+ * @brief Set the array of relative momentum deviations.
+ * @param delta_array Eigen::ArrayXd to copy from; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::CoordinateArray::delta_array(const Eigen::ArrayXd& delta_array) noexcept(false) {
+    check_length(delta_array.size(), "delta_array");
+    delta_array_ = delta_array;
+}
+
+/**
+ * @brief Set the array of x coordinates.
+ * @param x_array Eigen::ArrayXd to copy from; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::CoordinateArray::x_array(const Eigen::ArrayXd& x_array) noexcept(false) {
+    check_length(x_array.size(), "x_array");
+    vector_array_.row(0) = x_array.transpose();
+}
+
+/**
+ * @brief Set the array of x' coordinates.
+ * @param xp_array Eigen::ArrayXd to copy from; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::CoordinateArray::xp_array(const Eigen::ArrayXd& xp_array) noexcept(false) {
+    check_length(xp_array.size(), "xp_array");
+    vector_array_.row(1) = xp_array.transpose();
+}
+
+/**
+ * @brief Set the array of y coordinates.
+ * @param y_array Eigen::ArrayXd to copy from; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::CoordinateArray::y_array(const Eigen::ArrayXd& y_array) noexcept(false) {
+    check_length(y_array.size(), "y_array");
+    vector_array_.row(2) = y_array.transpose();
+}
+
+/**
+ * @brief Set the array of y' coordinates.
+ * @param yp_array Eigen::ArrayXd to copy from; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::CoordinateArray::yp_array(const Eigen::ArrayXd& yp_array) noexcept(false) {
+    check_length(yp_array.size(), "yp_array");
+    vector_array_.row(3) = yp_array.transpose();
+}
+
+/**
  * @brief Append another CoordinateArray to this one.
  * @param other The other CoordinateArray to append.
  */

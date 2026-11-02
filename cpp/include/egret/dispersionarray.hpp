@@ -79,30 +79,35 @@ public:
 
     /**
      * @brief Set the array of dispersion functions.
-     * @param vec_array Array of dispersion functions as a 4 x N matrix
+     * @param vec_array Array of dispersion functions as a 4 x N matrix; must have one column per element of s_array.
+     * @throws std::invalid_argument if the number of columns does not match s_array.
      */
-    void vector_array(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec_array) { vector_array_ = vec_array; }
+    void vector_array(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec_array) noexcept(false);
 
     /**
      * @brief Set the array of x components of the dispersion functions.
-     * @param x_array Array of x components
+     * @param x_array Array of x components; must have one element per element of s_array.
+     * @throws std::invalid_argument if the length does not match s_array.
      */
-    void x_array(const Eigen::ArrayXd& x_array) { vector_array_.row(0) = x_array.transpose(); }
+    void x_array(const Eigen::ArrayXd& x_array) noexcept(false);
     /**
      * @brief Set the array of x' components of the dispersion functions.
-     * @param xp_array Array of x' components
+     * @param xp_array Array of x' components; must have one element per element of s_array.
+     * @throws std::invalid_argument if the length does not match s_array.
      */
-    void xp_array(const Eigen::ArrayXd& xp_array) { vector_array_.row(1) = xp_array.transpose(); }
+    void xp_array(const Eigen::ArrayXd& xp_array) noexcept(false);
     /**
      * @brief Set the array of y components of the dispersion functions.
-     * @param y_array Array of y components
+     * @param y_array Array of y components; must have one element per element of s_array.
+     * @throws std::invalid_argument if the length does not match s_array.
      */
-    void y_array(const Eigen::ArrayXd& y_array) { vector_array_.row(2) = y_array.transpose(); }
+    void y_array(const Eigen::ArrayXd& y_array) noexcept(false);
     /**
      * @brief Set the array of y' components of the dispersion functions.
-     * @param yp_array Array of y' components
+     * @param yp_array Array of y' components; must have one element per element of s_array.
+     * @throws std::invalid_argument if the length does not match s_array.
      */
-    void yp_array(const Eigen::ArrayXd& yp_array) { vector_array_.row(3) = yp_array.transpose(); }
+    void yp_array(const Eigen::ArrayXd& yp_array) noexcept(false);
 
     // Efficient append (reserve + copy)
     void append(const DispersionArray &other);

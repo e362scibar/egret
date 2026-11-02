@@ -19,12 +19,41 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
+from typing import Final
 from ..base.envelopearray import EnvelopeArray as EnvelopeArrayABC
-from .basearray import BaseArray
+from .basearray import BaseArray, read_only_view
 from .envelope import Envelope
 import numpy as np
 import numpy.typing as npt
 import scipy
+
+# Relative tolerance on the residual of the eigenmode linear system
+RESIDUAL_TOL: Final = 1.0e-9
+
+
+def solve_minimum_norm(mat: npt.NDArray[np.floating], vec: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+    '''
+    Solve the stacked linear systems mat[n] @ x[n] = vec[n] with the minimum-norm least-squares solution.
+
+    The minimum-norm solution is unique even when a system is singular.
+
+    Args:
+        mat npt.NDArray[np.floating]: Nx4x4 coefficient matrices.
+        vec npt.NDArray[np.floating]: Nx4 right-hand sides.
+
+    Returns:
+        npt.NDArray[np.floating]: Nx4 solutions.
+
+    Raises:
+        ValueError: If a system has no solution.
+    '''
+    x = np.einsum('nij,nj->ni', np.linalg.pinv(mat), vec)
+    residual = np.linalg.norm(np.einsum('nij,nj->ni', mat, x) - vec, axis=1)
+    scale = np.maximum(np.linalg.norm(vec, axis=1), 1.0)
+    if np.any(residual > RESIDUAL_TOL * scale):
+        raise ValueError("No eigenmode coupling T exists for this covariance matrix.")
+    return x
+
 
 class EnvelopeArray(EnvelopeArrayABC, BaseArray):
     '''
@@ -40,8 +69,18 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
             T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices for eigenmode. (Optional)
             psix npt.NDArray[np.floating]: Horizontal phase advance array [rad] with shape (N,). (Optional)
             psiy npt.NDArray[np.floating]: Vertical phase advance array [rad] with shape (N,). (Optional)
+
+        Raises:
+            ValueError: If s is not non-decreasing, cov is not Nx4x4, or any array length does not match s.
         '''
         super().__init__(s)
+        if cov.ndim != 3 or cov.shape[1:] != (4, 4):
+            raise ValueError(f"cov must have shape (N, 4, 4); got {cov.shape}.")
+        self._check_length(cov.shape[0], "cov")
+        if psix is not None:
+            self._check_length(len(psix), "psix")
+        if psiy is not None:
+            self._check_length(len(psiy), "psiy")
         self._cov = cov.copy()
         self._psix = psix
         self._psiy = psiy
@@ -52,42 +91,42 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         '''
         Nx4x4 array of 4D positive-definite covariance matrices with the determinant of unity.
         '''
-        return self._cov
+        return read_only_view(self._cov)
 
     @property
     def T(self) -> npt.NDArray[np.floating]:
         '''
         Nx2x2 coordinate transformation matrices for eigenmode.
         '''
-        return self._T
+        return read_only_view(self._T)
 
     @property
     def U(self) -> npt.NDArray[np.floating]:
         '''
         Nx2x2 array of 2D positive-definite covariance matrices for eigenmode U with the determinant of unity.
         '''
-        return self._U
+        return read_only_view(self._U)
 
     @property
     def V(self) -> npt.NDArray[np.floating]:
         '''
         Nx2x2 array of 2D positive-definite covariance matrices for eigenmode V with the determinant of unity.
         '''
-        return self._V
+        return read_only_view(self._V)
 
     @property
     def tau(self) -> npt.NDArray[np.floating]:
         '''
         Array of coupling parameters tau with shape (N,).
         '''
-        return self._tau
+        return read_only_view(self._tau)
 
     @property
     def bx(self) -> npt.NDArray[np.floating]:
         '''
         Horizontal beta function array [m] with shape (N,).
         '''
-        return self._cov[:, 0, 0]
+        return read_only_view(self._cov[:, 0, 0])
 
     @property
     def ax(self) -> npt.NDArray[np.floating]:
@@ -101,14 +140,14 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         '''
         Horizontal gamma function array [1/m] with shape (N,).
         '''
-        return self._cov[:, 1, 1]
+        return read_only_view(self._cov[:, 1, 1])
 
     @property
     def by(self) -> npt.NDArray[np.floating]:
         '''
         Vertical beta function array [m] with shape (N,).
         '''
-        return self._cov[:, 2, 2]
+        return read_only_view(self._cov[:, 2, 2])
 
     @property
     def ay(self) -> npt.NDArray[np.floating]:
@@ -122,14 +161,14 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         '''
         Vertical gamma function array [1/m] with shape (N,).
         '''
-        return self._cov[:, 3, 3]
+        return read_only_view(self._cov[:, 3, 3])
 
     @property
     def bu(self) -> npt.NDArray[np.floating]:
         '''
         Eigenmode U beta function array [m] with shape (N,).
         '''
-        return self._U[:, 0, 0]
+        return read_only_view(self._U[:, 0, 0])
 
     @property
     def au(self) -> npt.NDArray[np.floating]:
@@ -143,14 +182,14 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         '''
         Eigenmode U gamma function array [1/m] with shape (N,).
         '''
-        return self._U[:, 1, 1]
+        return read_only_view(self._U[:, 1, 1])
 
     @property
     def bv(self) -> npt.NDArray[np.floating]:
         '''
         Eigenmode V beta function array [m] with shape (N,).
         '''
-        return self._V[:, 0, 0]
+        return read_only_view(self._V[:, 0, 0])
 
     @property
     def av(self) -> npt.NDArray[np.floating]:
@@ -164,21 +203,21 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
         '''
         Eigenmode V gamma function array [1/m] with shape (N,).
         '''
-        return self._V[:, 1, 1]
+        return read_only_view(self._V[:, 1, 1])
 
     @property
     def psix(self) -> npt.NDArray[np.floating]:
         '''
         Horizontal phase advance array [rad] with shape (N,).
         '''
-        return self._psix
+        return read_only_view(self._psix)
 
     @property
     def psiy(self) -> npt.NDArray[np.floating]:
         '''
         Vertical phase advance array [rad] with shape (N,).
         '''
-        return self._psiy
+        return read_only_view(self._psiy)
 
     def calc_eigenmode(self, T: npt.NDArray[np.floating] = None) -> None:
         '''
@@ -186,25 +225,26 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
 
         Args:
             T npt.NDArray[np.floating]: Nx2x2 coordinate transformation matrices for eigenmode. (Optional)
+
+        Raises:
+            ValueError: If T is not Nx2x2, or if T is omitted and no eigenmode coupling exists.
         '''
         Sxx, Sxy, Syy = self._cov[:, 0:2, 0:2], self._cov[:, 0:2, 2:4], self._cov[:, 2:4, 2:4]
         if T is not None:
+            if T.ndim != 3 or T.shape[1:] != (2, 2):
+                raise ValueError(f"T must have shape (N, 2, 2); got {T.shape}.")
+            self._check_length(T.shape[0], "T")
             self._T = T.copy()
         else:
             N = self._cov.shape[0]
-            self._T = np.zeros((N, 2, 2), dtype=self._cov.dtype)
             # Calculate T from the covariance matrix
             zeros = np.zeros_like(self._s)
             mat = np.array([[-Sxx[:,0,0], -Sxx[:,0,1]-Syy[:,0,1], zeros, Syy[:,0,0]],
                             [zeros, -Syy[:,1,1], -Sxx[:,0,0], -Sxx[:,0,1]+Syy[:,0,1]],
                             [-Sxx[:,0,1]+Syy[:,0,1], -Sxx[:,1,1], -Syy[:,0,0], zeros],
                             [Syy[:,1,1], zeros, -Sxx[:,0,1]-Syy[:,0,1], -Sxx[:,1,1]]]).transpose(2, 0, 1)  # (N, 4, 4)
-            vec = Sxy.transpose(1, 2, 0).reshape(4, N).T[:,:,np.newaxis]  # (N, 4, 1)
-            try:
-                res = np.linalg.solve(mat, vec)
-            except np.linalg.LinAlgError:
-                res = np.zeros((N, 4))
-            T = res.reshape(N, 2, 2)
+            vec = Sxy.transpose(1, 2, 0).reshape(4, N).T  # (N, 4), row-major [T00, T01, T10, T11]
+            T = solve_minimum_norm(mat, vec).reshape(N, 2, 2)
             self._T = T
         T_ = np.array([[T[:,1,1], -T[:,0,1]], [-T[:,1,0], T[:,0,0]]]).transpose(2,0,1)
         self._tau = np.sqrt(1. - np.linalg.det(T))

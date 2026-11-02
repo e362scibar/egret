@@ -171,10 +171,13 @@ void egret::Envelope::transfer(const Eigen::Matrix4d &M, const double length) no
 /**
  * @brief Estimate T matrix from covariance matrix.
  * @param cov Covariance matrix (4 x 4)
- * @return Eigen::Matrix2d Estimated T matrix.
- * @throws std::runtime_error if estimation fails.
+ * @return Eigen::Matrix2d Estimated T matrix. If the linear system is singular but consistent,
+ *         the minimum-norm solution is returned.
+ * @throws std::invalid_argument if the linear system has no solution (no eigenmode coupling exists).
  */
 Eigen::Matrix2d egret::Envelope::estimate_T(const Eigen::Matrix4d &cov) noexcept(false) {
+    // Relative tolerance on the residual of the linear system
+    static constexpr double residual_tol = 1.0e-9;
     const auto Sxx = cov.block<2, 2>(0, 0); // Matrix2d
     const auto Sxy = cov.block<2, 2>(0, 2); // Matrix2d
     const auto Syy = cov.block<2, 2>(2, 2); // Matrix2d
@@ -184,12 +187,16 @@ Eigen::Matrix2d egret::Envelope::estimate_T(const Eigen::Matrix4d &cov) noexcept
             0., -Syy(1,1), -Sxx(0,0), -Sxx(0,1)+Syy(0,1),
             -Sxx(0,1)+Syy(0,1), -Sxx(1,1), -Syy(0,0), 0.,
             Syy(1,1), 0., -Sxx(0,1)-Syy(0,1), -Sxx(1,1);
-    const auto vec = Eigen::Map<const Eigen::Vector4d>(Sxy.data()); // Vector4d
-    Eigen::Vector4d res;
-    try {
-        res = mat.colPivHouseholderQr().solve(vec);
-    } catch (const std::exception& e) {
-        res = Eigen::Vector4d::Zero();
+    // Right-hand side and unknowns use row-major order [T00, T01, T10, T11].
+    // Sxy is a non-contiguous block of the column-major Matrix4d, so its elements are copied one by one.
+    Eigen::Vector4d vec;
+    vec << Sxy(0,0), Sxy(0,1), Sxy(1,0), Sxy(1,1);
+    // Minimum-norm least-squares solution: unique and well defined even when mat is singular
+    const Eigen::Vector4d res = mat.completeOrthogonalDecomposition().solve(vec);
+    if ((mat * res - vec).norm() > residual_tol * std::max(vec.norm(), 1.0)) {
+        throw std::invalid_argument("No eigenmode coupling T exists for this covariance matrix");
     }
-    return Eigen::Map<const Eigen::Matrix2d>(res.data());
+    Eigen::Matrix2d T;
+    T << res(0), res(1), res(2), res(3);
+    return T;
 }

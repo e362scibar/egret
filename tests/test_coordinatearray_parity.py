@@ -97,6 +97,17 @@ def assert_raises(fn, expected: type[Exception]) -> None:
     raise AssertionError(f"expected {expected.__name__} but none was raised")
 
 
+def returned_vector_is_isolated(arr) -> bool:
+    # A read-only view is acceptable; a writable view that changes the object is not.
+    before = np.array(arr.vector, copy=True)
+    view = arr.vector
+    try:
+        view[0, 0] = before[0, 0] + 1.0
+    except ValueError:
+        return True
+    return np.array_equal(arr.vector, before)
+
+
 def plot_profile_parity(s_query: np.ndarray, py_x: np.ndarray, cpp_x: np.ndarray, title: str) -> None:
     fig, ax = plt.subplots(figsize=(7.0, 4.0))
     ax.plot(s_query, py_x, "o-", label="pyegret")
@@ -318,6 +329,64 @@ assert_raises(lambda: single_point_py.from_s(S_GRID[0]), ValueError)
 assert_raises(lambda: single_point_cpp.from_s(S_GRID[0]), ValueError)
 
 print("Case 11 passed: invalid from_s requests raise ValueError in both backends")
+
+
+# %% [markdown]
+# ## Case 12: constructor rejects a size mismatch between `vector` and `s` with `ValueError`
+
+# %%
+assert_raises(lambda: pyegret.CoordinateArray(VECTOR.copy(), S_GRID[:-1].copy()), ValueError)
+assert_raises(lambda: cppegret.CoordinateArray(VECTOR.copy(), S_GRID[:-1].copy()), ValueError)
+print("Case 12 passed: size mismatch rejected in both backends")
+
+
+# %% [markdown]
+# ## Case 13: constructor rejects a decreasing `s` with `ValueError`
+
+# %%
+assert_raises(lambda: pyegret.CoordinateArray(VECTOR.copy(), S_GRID[::-1].copy()), ValueError)
+assert_raises(lambda: cppegret.CoordinateArray(VECTOR.copy(), S_GRID[::-1].copy()), ValueError)
+print("Case 13 passed: decreasing s rejected in both backends")
+
+
+# %% [markdown]
+# ## Case 14: the `vector` getter does not expose the internal storage
+
+# %%
+py_arr = pyegret.CoordinateArray(VECTOR.copy(), S_GRID.copy())
+cpp_arr = cppegret.CoordinateArray(VECTOR.copy(), S_GRID.copy())
+
+assert returned_vector_is_isolated(py_arr), "pyegret vector getter exposes internal storage"
+assert returned_vector_is_isolated(cpp_arr), "cppegret vector getter exposes internal storage"
+print("Case 14 passed: vector getter is isolated from internal storage")
+
+
+# %% [markdown]
+# ## Case 15: wrong lengths and unsorted `s` raise `ValueError` in the constructor and setters
+
+# %%
+INVALID_COORDINATE_USES = {
+    "constructor: z length": lambda m: m.CoordinateArray(VECTOR.copy(), S_GRID.copy(), Z_VALUES[:-1].copy()),
+    "constructor: delta length": lambda m: m.CoordinateArray(
+        VECTOR.copy(), S_GRID.copy(), Z_VALUES.copy(), DELTA_VALUES[:-1].copy()
+    ),
+    "constructor: vector columns": lambda m: m.CoordinateArray(VECTOR[:, :-1].copy(), S_GRID.copy()),
+    "s setter: length": lambda m: setattr(m.CoordinateArray(VECTOR.copy(), S_GRID.copy()), "s", S_GRID[:-1].copy()),
+    "s setter: decreasing": lambda m: setattr(m.CoordinateArray(VECTOR.copy(), S_GRID.copy()), "s", S_GRID[::-1].copy()),
+    "vector setter: columns": lambda m: setattr(m.CoordinateArray(VECTOR.copy(), S_GRID.copy()), "vector", VECTOR[:, :-1].copy()),
+    "z setter: length": lambda m: setattr(m.CoordinateArray(VECTOR.copy(), S_GRID.copy()), "z", Z_VALUES[:-1].copy()),
+    "delta setter: length": lambda m: setattr(m.CoordinateArray(VECTOR.copy(), S_GRID.copy()), "delta", DELTA_VALUES[:-1].copy()),
+    "x setter: length 1 (no broadcasting)": lambda m: setattr(m.CoordinateArray(VECTOR.copy(), S_GRID.copy()), "x", np.array([5.0])),
+    "yp setter: length": lambda m: setattr(m.CoordinateArray(VECTOR.copy(), S_GRID.copy()), "yp", np.zeros(N_POINTS - 1)),
+}
+
+for name, use in INVALID_COORDINATE_USES.items():
+    for module in (pyegret, cppegret):
+        try:
+            assert_raises(lambda: use(module), ValueError)
+        except AssertionError as exc:
+            raise AssertionError(f"{name} [{module.__name__}]: {exc}") from exc
+print(f"Case 15 passed: {len(INVALID_COORDINATE_USES)} invalid uses rejected in both backends")
 
 
 # %% [markdown]

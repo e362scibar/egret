@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 from ..base.dispersionarray import DispersionArray as DispersionArrayABC
-from .basearray import BaseArray
+from .basearray import BaseArray, read_only_view
 from .dispersion import Dispersion
 import numpy as np
 import numpy.typing as npt
@@ -35,8 +35,12 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         Args:
             vector npt.NDArray[np.floating]: 4xN 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
             s npt.NDArray[np.floating]: Longitudinal position array along the reference orbit [m] with shape (N,).
+
+        Raises:
+            ValueError: If s is not non-decreasing or vector does not have one column per element of s.
         '''
         super().__init__(s)
+        self._check_vector(vector)
         self._vector = vector.copy()
 
     @property
@@ -44,35 +48,35 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         '''
         4xN array of 4D dispersion vectors [eta_x, eta'_x, eta_y, eta'_y].
         '''
-        return self._vector
+        return read_only_view(self._vector)
 
     @property
     def x(self) -> npt.NDArray[np.floating]:
         '''
         Horizontal dispersion array with shape (N,).
         '''
-        return self._vector[0, :]
+        return self._vector[0, :].copy()
 
     @property
     def xp(self) -> npt.NDArray[np.floating]:
         '''
         Horizontal angle dispersion array with shape (N,).
         '''
-        return self._vector[1, :]
+        return self._vector[1, :].copy()
 
     @property
     def y(self) -> npt.NDArray[np.floating]:
         '''
         Vertical dispersion array with shape (N,).
         '''
-        return self._vector[2, :]
+        return self._vector[2, :].copy()
 
     @property
     def yp(self) -> npt.NDArray[np.floating]:
         '''
         Vertical angle dispersion array with shape (N,).
         '''
-        return self._vector[3, :]
+        return self._vector[3, :].copy()
 
     @vector.setter
     def vector(self, vector: npt.NDArray[np.floating]):
@@ -82,6 +86,7 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         Args:
             vector npt.NDArray[np.floating]: 4xN array of dispersion vectors.
         '''
+        self._check_vector(vector)
         self._vector = vector.copy()
 
     @x.setter
@@ -92,6 +97,7 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         Args:
             x npt.NDArray[np.floating]: Horizontal dispersion array.
         '''
+        self._check_length(len(x), "x")
         self._vector[0, :] = x.copy()
 
     @xp.setter
@@ -102,6 +108,7 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         Args:
             xp npt.NDArray[np.floating]: Horizontal angle dispersion array.
         '''
+        self._check_length(len(xp), "xp")
         self._vector[1, :] = xp.copy()
 
     @y.setter
@@ -112,6 +119,7 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         Args:
             y npt.NDArray[np.floating]: Vertical dispersion array.
         '''
+        self._check_length(len(y), "y")
         self._vector[2, :] = y.copy()
 
     @yp.setter
@@ -122,6 +130,7 @@ class DispersionArray(DispersionArrayABC, BaseArray):
         Args:
             yp npt.NDArray[np.floating]: Vertical angle dispersion array.
         '''
+        self._check_length(len(yp), "yp")
         self._vector[3, :] = yp.copy()
 
     def copy(self) -> DispersionArray:

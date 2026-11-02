@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <optional>
+#include <string>
 #include <utility>
 
 /**
@@ -42,6 +43,33 @@ egret::BaseArray::BaseArray(const Eigen::ArrayXd& s_array) noexcept(false):
     if (!std::is_sorted(s_array_.data(), s_array_.data() + s_array_.size())) {
         throw std::invalid_argument("s_array must be non-decreasing");
     }
+}
+
+/**
+ * @brief Check that a per-element array has the same length as s_array.
+ * @param n Length of the array to check.
+ * @param name Name of the array used in the error message.
+ * @throws std::invalid_argument if n does not match the size of s_array.
+ */
+void egret::BaseArray::check_length(const Eigen::Index n, const char *name) const noexcept(false) {
+    if (n != static_cast<Eigen::Index>(size())) {
+        throw std::invalid_argument(std::string(name) + " must have the same length as s_array");
+    }
+}
+
+/**
+ * @brief Set the array of longitudinal positions.
+ * @param s_array Eigen::ArrayXd to copy from; must keep the current length and be non-decreasing.
+ * @throws std::invalid_argument if the length changes or s_array is not non-decreasing.
+ */
+void egret::BaseArray::s_array(const Eigen::ArrayXd& s_array) noexcept(false) {
+    if (s_array.size() != s_array_.size()) {
+        throw std::invalid_argument("s_array must keep its current length");
+    }
+    if (!std::is_sorted(s_array.data(), s_array.data() + s_array.size())) {
+        throw std::invalid_argument("s_array must be non-decreasing");
+    }
+    s_array_ = s_array;
 }
 
 /**

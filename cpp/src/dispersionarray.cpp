@@ -45,6 +45,56 @@ egret::DispersionArray::DispersionArray(
 }
 
 /**
+ * @brief Set the array of dispersion functions.
+ * @param vec_array Array of dispersion functions as a 4 x N matrix; must have one column per element of s_array.
+ * @throws std::invalid_argument if the number of columns does not match s_array.
+ */
+void egret::DispersionArray::vector_array(const Eigen::Matrix<double,4,Eigen::Dynamic>& vec_array) noexcept(false) {
+    check_length(vec_array.cols(), "vector_array");
+    vector_array_ = vec_array;
+}
+
+/**
+ * @brief Set the array of x components of the dispersion functions.
+ * @param x_array Array of x components; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::DispersionArray::x_array(const Eigen::ArrayXd& x_array) noexcept(false) {
+    check_length(x_array.size(), "x_array");
+    vector_array_.row(0) = x_array.transpose();
+}
+
+/**
+ * @brief Set the array of x' components of the dispersion functions.
+ * @param xp_array Array of x' components; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::DispersionArray::xp_array(const Eigen::ArrayXd& xp_array) noexcept(false) {
+    check_length(xp_array.size(), "xp_array");
+    vector_array_.row(1) = xp_array.transpose();
+}
+
+/**
+ * @brief Set the array of y components of the dispersion functions.
+ * @param y_array Array of y components; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::DispersionArray::y_array(const Eigen::ArrayXd& y_array) noexcept(false) {
+    check_length(y_array.size(), "y_array");
+    vector_array_.row(2) = y_array.transpose();
+}
+
+/**
+ * @brief Set the array of y' components of the dispersion functions.
+ * @param yp_array Array of y' components; must have one element per element of s_array.
+ * @throws std::invalid_argument if the length does not match s_array.
+ */
+void egret::DispersionArray::yp_array(const Eigen::ArrayXd& yp_array) noexcept(false) {
+    check_length(yp_array.size(), "yp_array");
+    vector_array_.row(3) = yp_array.transpose();
+}
+
+/**
  * @brief Append another DispersionArray to this one.
  * @param other The other DispersionArray to append.
  */
