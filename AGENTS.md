@@ -82,19 +82,26 @@ python -m build -w -o ../dist_wheels
 pip install ../dist_wheels/egret-*.whl
 ```
 
-### Build C++ extension manually (development)
+### Build C++ extension manually (development / iteration)
 
 ```bash
 cd cpp
 PYBIND11_DIR=$(python -m pybind11 --cmakedir)
 cmake -S . -B build -DBUILD_PYEXT=ON -Dpybind11_DIR="$PYBIND11_DIR"
 cmake --build build -j4
+# Make the extension importable without installing:
 export PYTHONPATH=$(pwd)/..:$(pwd)/build:$PYTHONPATH
 ```
 
 Optional CMake flags:
 - `-DUSE_OPENMP=ON` — Enable OpenMP (Linux only; disabled on macOS CI)
 - `-DWARNINGS_AS_ERRORS=ON` — Treat warnings as errors (local dev)
+
+Example for local dev:
+
+```bash
+cmake -S . -B build -DBUILD_PYEXT=ON -DUSE_OPENMP=ON -DWARNINGS_AS_ERRORS=ON -Dpybind11_DIR="$PYBIND11_DIR"
+```
 
 ### Run tests
 

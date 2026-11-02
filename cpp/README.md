@@ -1,6 +1,6 @@
-# egret C++ core (pyegret)
+# egret C++ core (cppegret)
 
-This folder contains the C++ core of the `egret` numerical kernels and a pybind11 extension `pyegret` used by the Python bridge.
+This folder contains the C++ core of the `egret` numerical kernels and the pybind11 extension `cppegret` used by the Python bridge.
 
 Quick build & test (local)
 
@@ -34,7 +34,7 @@ Notes
 - `USE_OPENMP` is a CMake option that enables OpenMP parallel loops; on macOS OpenMP support is more complex — CI disables OpenMP on macOS by default. Adjust `-DUSE_OPENMP=ON|OFF` when configuring.
 - Runtime heuristics in the binding currently control whether threads are used based on work size; thresholds are in `bindings.cpp` and can be made configurable if desired.
 
-If you want me to add a small `pyegret` packaging step (wheel) or make the runtime thresholds configurable via environment variables, tell me and I will add it.
+If you want me to add a small `cppegret` packaging step (wheel) or make the runtime thresholds configurable via environment variables, tell me and I will add it.
 
 ## libegret (C++ core) — README
 
@@ -42,7 +42,7 @@ What this scaffold provides
 
 - A minimal C++ core (`egret_core`) implementing `Coordinate` and `CoordinateArray`.
 - Simple implementations of `Drift` transfer matrices and transfer-matrix arrays.
-- A `pyegret` Python extension built with `pybind11` exposing basic types.
+- A `cppegret` Python extension built with `pybind11` exposing basic types.
 
 Targets & toolchains
 
@@ -65,7 +65,7 @@ cmake ..
 cmake --build . --config Release -j
 ```
 
-This will build `libegret` and the Python extension `pyegret` (if a Python dev environment is available).
+This will build `libegret` and the Python extension `cppegret` (if a Python dev environment is available).
 
 ### Cross-building for Linux aarch64 (CI / cross toolchain)
 
