@@ -80,6 +80,9 @@ Notebook-based feature tests for egret must be placed directly under `tests/`, n
 - Use Jupytext-paired notebook files and edit the paired `.py` file.
 - Keep `.py` and `.ipynb` synchronized with `jupytext --sync tests/<name>.ipynb`.
 - Use notebooks for exploratory/feature validation flows; keep `pytest` tests for automated CI checks.
+- When egret code is added or changed, add/update corresponding notebook tests in `tests/` as needed.
+- Include concise `print`/`display` cells that show key object states and intermediate values.
+- Add plots when useful to validate behavior or visualize parity between `pyegret` and `cppegret`.
 - Use the dedicated conda test environment declared in `tests/environment.yml` (environment name: `egret`).
 - Before commit, ensure notebook outputs are stripped by `nbstripout` (configured via `.gitattributes`).
 
@@ -98,6 +101,18 @@ For each public class, cover tests in a structured way:
 3. Integration-method variants (`midpoint`, `rk4`, `symplectic1`, `symplectic2`, `symplectic4`) where applicable.
 4. Array/batch APIs (`*_array`) and shape/consistency checks.
 5. Python vs C++ parity for numerically equivalent paths.
+
+For parity tests, compare:
+
+- `egret.python` (`pyegret`) implementation results, and
+- `egret.cpp` (`cppegret`) implementation results,
+
+and require numerical equivalence within an explicit tolerance.
+
+Setter/getter policy:
+
+- Do not add trivial tests that only set and read back a stored value.
+- Add setter/getter tests when accessors perform non-trivial computation, normalization, validation, or have side effects.
 
 ## Common Commands
 
@@ -130,6 +145,13 @@ cmake -S . -B build -DBUILD_PYEXT=ON -DUSE_OPENMP=ON -DWARNINGS_AS_ERRORS=ON -Dp
 ```
 
 ### Run tests
+
+Before running tests in the `egret` conda environment, build and install the package into that same environment:
+
+```bash
+python -m build -w -o dist
+python -m pip install --force-reinstall dist/egret-*.whl
+```
 
 ```bash
 # Python-level trampoline/pickle tests

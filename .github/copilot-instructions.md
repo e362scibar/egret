@@ -99,6 +99,13 @@ Optional CMake flags:
 
 ### Run tests
 
+Before running tests in the `egret` conda environment, build and install the package into that same environment:
+
+```bash
+python -m build -w -o dist
+python -m pip install --force-reinstall dist/egret-*.whl
+```
+
 ```bash
 # Python-level trampoline/pickle tests
 python -m pytest tests/ -q
@@ -132,6 +139,11 @@ The canonical version lives in `egret/version.py`; `pyproject.toml` is derived f
 - Place egret test notebooks directly under `tests/` (do not use `tests/notebooks/`).
 - Use Jupytext-paired files and edit the paired `.py` file.
 - Keep `.py` and `.ipynb` synchronized with `jupytext --sync tests/<name>.ipynb`.
+- When egret code is added or changed, add/update corresponding notebook tests in `tests/` as needed.
+- Include concise `print`/`display` output for key object state and intermediate values.
+- Add plots when useful to validate behavior or visualize parity (`pyegret` vs `cppegret`).
 - Use the dedicated conda test environment at `tests/environment.yml` (environment name: `egret`).
 - Before commit, strip notebook outputs with `nbstripout` (configured by `.gitattributes`).
 - As a rule, avoid the full SPring-8-II lattice in `tests/`; prefer single elements and short synthetic lattices.
+- For numerical behavior checks, run both `egret.python` (`pyegret`) and `egret.cpp` (`cppegret`) and assert result parity with an explicit tolerance.
+- Do not add trivial setter/getter tests that only set/get stored values; do test accessors when they include non-trivial computation, normalization, validation, or side effects.
