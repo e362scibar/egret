@@ -161,7 +161,7 @@ class Steering(SteeringABC, Element):
             method str: Integration method. ('midpoint', 'rk4', 'symplectic{1,2,4}') (Not used in the steering magnet).
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         return Drift.transfer_matrix_array_from_length(self._length, ds, endpoint)

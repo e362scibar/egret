@@ -82,7 +82,7 @@ class Drift(DriftABC, Element):
             method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}') (not used in the drift class).
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         return Drift.transfer_matrix_array_from_length(self._length, ds, endpoint)
@@ -115,7 +115,7 @@ class Drift(DriftABC, Element):
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         s = cls.s_array_from_length(length, ds, endpoint)

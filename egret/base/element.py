@@ -248,7 +248,7 @@ class Element(Object):
             method str: Integration method ('midpoint', 'rk4', 'symplectic{1,2,4}').
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         pass

@@ -238,7 +238,7 @@ class EnvelopeArray(EnvelopeArrayABC, BaseArray):
 
         Args:
             evlp0 Envelope: Initial envelope.
-            tmat npt.NDArray[np.floating]: 4x4xN transfer matrices.
+            tmat npt.NDArray[np.floating]: Nx4x4 transfer matrices.
             s npt.NDArray[np.floating]: Longitudinal positions [m] from evlp0.s with shape (N,).
 
         Returns:

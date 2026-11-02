@@ -57,7 +57,7 @@ class Drift(Element):
             endpoint bool: If True, include the endpoint.
 
         Returns:
-            npt.NDArray[np.floating]: Transfer matrix array of shape (4, 4, N).
+            npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         pass
