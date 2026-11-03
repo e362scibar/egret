@@ -474,6 +474,45 @@ print("Case 14 passed: k3 = 0 with k1 reproduces the quadrupole element in both 
 
 
 # %% [markdown]
+# ## Case 15: alignment offsets (dx, dy) and longitudinal offset (ds) in both backends
+#
+# An element with offsets is a drift of `ds`, then the centred map applied to the coordinate relative to the offset,
+# then the offset restored, then a drift of `-ds`. The exit coordinate and the envelope (beta, alpha, emittance) are
+# checked against this map. The orbit error is the exit offset of a particle that enters on the axis.
+
+# %%
+ALIGN_CASES = [(1.0e-3, 0.0, 0.0), (0.0, -2.0e-3, 0.0), (0.0, 0.0, 3.0e-2), (1.5e-3, -8.0e-4, -2.0e-2)]  # (dx, dy, ds) in metres
+ALIGN_METHODS = ("midpoint", "rk4", "symplectic1", "symplectic2", "symplectic4")
+
+
+def centred_map(module, centred, vector: np.ndarray, method: str) -> np.ndarray:
+    return centred.transfer(module.Coordinate(vector.copy(), 0.0, 0.0, 0.0), None, None, DS, method)[0].vector
+
+
+def expected_aligned(module, centred, vector: np.ndarray, dx: float, dy: float, ds: float, method: str) -> np.ndarray:
+    offset = np.array([dx, 0.0, dy, 0.0])
+    drift_in = np.eye(4)
+    drift_in[0, 1], drift_in[2, 3] = ds, ds
+    drift_out = np.eye(4)
+    drift_out[0, 1], drift_out[2, 3] = -ds, -ds
+    return drift_out @ (centred_map(module, centred, drift_in @ vector - offset, method) + offset)
+
+
+for dx, dy, ds in ALIGN_CASES:
+    for method in ALIGN_METHODS:
+        for module in (pyegret, cppegret):
+            centred = make_octupole(module)
+            aligned = make_octupole(module, dx=dx, dy=dy, ds=ds)
+            cood, _, _ = aligned.transfer(module.Coordinate(COORD_VECTOR.copy(), 0.0, 0.0, 0.0), None, None, DS,
+                                          method)
+            expected = expected_aligned(module, centred, COORD_VECTOR, dx, dy, ds, method)
+            assert_close(cood.vector, expected, atol=1.0e-9,
+                         err_msg=f"{module.__name__} {method} dx={dx} dy={dy} ds={ds}")
+    print(f"dx={dx:+.1e} dy={dy:+.1e} ds={ds:+.1e}: all integration methods agree with the centred element")
+print("Case 15 passed: octupole with offsets and ds equals the centred element on the offset coordinate, in both backends")
+
+
+# %% [markdown]
 # ## Summary
 
 # %%

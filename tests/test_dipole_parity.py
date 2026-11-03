@@ -461,6 +461,53 @@ print("Case 12 passed: aligned dipole transfer from s, with envelope, dispersion
 
 
 # %% [markdown]
+# ## Case 13: alignment offsets (dx, dy) and longitudinal offset (ds) in both backends
+#
+# An element with offsets is a drift of `ds`, then the centred map applied to the coordinate relative to the offset,
+# then the offset restored, then a drift of `-ds`. The exit coordinate and the envelope (beta, alpha, emittance) are
+# checked against this map. The orbit error is the exit offset of a particle that enters on the axis.
+
+# %%
+ALIGN_CASES = [(1.0e-3, 0.0, 0.0), (0.0, -2.0e-3, 0.0), (0.0, 0.0, 3.0e-2), (1.5e-3, -8.0e-4, -2.0e-2)]  # (dx, dy, ds) in metres
+ALIGN_DS_TRANSFER = 0.1
+ALIGN_COV = np.zeros((4, 4))
+ALIGN_COV[0:2, 0:2] = np.array([[5.0, -0.3], [-0.3, 1.09 / 5.0]])
+ALIGN_COV[2:4, 2:4] = np.array([[3.0, 0.1], [0.1, 1.01 / 3.0]])
+
+
+def drift(length: float) -> np.ndarray:
+    tmat = np.eye(4)
+    tmat[0, 1] = length
+    tmat[2, 3] = length
+    return tmat
+
+
+def expected_aligned(centred_matrix: np.ndarray, vector: np.ndarray, dx: float, dy: float, ds: float) -> np.ndarray:
+    offset = np.array([dx, 0.0, dy, 0.0])
+    return drift(-ds) @ (centred_matrix @ (drift(ds) @ vector - offset) + offset)
+
+
+for dx, dy, ds in ALIGN_CASES:
+    centred = sector_matrix(LENGTH, ANGLE)
+    expected = expected_aligned(centred, COORD_VECTOR, dx, dy, ds)
+    tmat_expected = drift(-ds) @ centred @ drift(ds)
+    for module in (pyegret, cppegret):
+        bend = module.Dipole("B", LENGTH, ANGLE, dx=dx, dy=dy, ds=ds)
+        cood, evlp, _ = bend.transfer(module.Coordinate(COORD_VECTOR.copy(), S0, Z0, 0.0),
+                                      module.Envelope(cov=ALIGN_COV.copy(), s=S0), None, ALIGN_DS_TRANSFER)
+        assert_close(cood.vector, expected, err_msg=f"{module.__name__} dx={dx} dy={dy} ds={ds} coordinate")
+        assert_close(evlp.cov, tmat_expected @ ALIGN_COV @ tmat_expected.T, atol=1.0e-10,
+                     err_msg=f"{module.__name__} ds={ds} envelope")
+        axis_out, _, _ = bend.transfer(module.Coordinate(np.zeros(4), S0, Z0, 0.0), None, None, ALIGN_DS_TRANSFER)
+        orbit_error = float(np.max(np.abs(axis_out.vector)))
+        sigma_x2 = float((evlp.cov[0, 0]))
+        sigma_x2_centred = float((tmat_expected @ ALIGN_COV @ tmat_expected.T)[0, 0])
+        print(f"{module.__name__:14s} dx={dx:+.1e} dy={dy:+.1e} ds={ds:+.1e}: "
+              f"exit orbit error {orbit_error:.3e} m, sigma_x^2 {sigma_x2:.6f} (check {sigma_x2_centred:.6f})")
+print("Case 13 passed: aligned bend coordinate, envelope, and on-axis orbit error, in both backends")
+
+
+# %% [markdown]
 # ## Summary
 
 # %%

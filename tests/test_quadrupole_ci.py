@@ -8,7 +8,7 @@ import pytest
 import egret.cpp as cppegret
 import egret.python as pyegret
 
-from _ci_helpers import METHODS, assert_close, drift_matrix
+from _ci_helpers import ALIGNMENT_CASES, METHODS, aligned_matrix, aligned_reference, assert_close, drift_matrix
 
 LENGTH = 0.5
 K1 = 1.2
@@ -154,3 +154,21 @@ def test_backends_agree_on_kicked_transfer():
     cpp, _, _ = cppegret.Quadrupole("Q", LENGTH, K1, kick_x=1.0e-4, kick_y=-2.0e-4).transfer(
         cppegret.Coordinate(COORD.copy(), S0, Z0, DELTA0), None, None, DS)
     assert_close(cpp.vector, py.vector, atol=1.0e-9, err_msg="kicked coordinate parity")
+
+
+@pytest.mark.parametrize("dx, dy, ds", ALIGNMENT_CASES)
+def test_alignment_matches_analytic_map(backend, dx, dy, ds):
+    cood, _, _ = backend.Quadrupole("Q", LENGTH, K1, dx=dx, dy=dy, ds=ds).transfer(
+        backend.Coordinate(COORD.copy(), S0, Z0, 0.0), None, None, DS)
+    expected = aligned_reference(lambda vec: quad_matrix(LENGTH, K1) @ vec, COORD, dx, dy, ds)
+    assert_close(cood.vector, expected, atol=1.0e-9, err_msg=f"dx={dx} dy={dy} ds={ds}")
+
+
+@pytest.mark.parametrize("dx, dy, ds", ALIGNMENT_CASES)
+def test_alignment_envelope_follows_conjugated_map(backend, dx, dy, ds):
+    """The envelope (beta, alpha, emittance) is transported by the matrix with the longitudinal offset."""
+    cov = np.diag([5.0, 1.0 / 5.0, 3.0, 1.0 / 3.0])
+    _, env, _ = backend.Quadrupole("Q", LENGTH, K1, dx=dx, dy=dy, ds=ds).transfer(
+        backend.Coordinate(np.zeros(4), S0, Z0, 0.0), backend.Envelope(cov=cov.copy(), s=S0), None, DS)
+    tmat = aligned_matrix(quad_matrix(LENGTH, K1), ds)
+    assert_close(env.cov, tmat @ cov @ tmat.T, atol=1.0e-9, err_msg=f"ds={ds}")

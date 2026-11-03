@@ -8,7 +8,7 @@ import pytest
 import egret.cpp as cppegret
 import egret.python as pyegret
 
-from _ci_helpers import METHODS, assert_close, drift_matrix
+from _ci_helpers import ALIGNMENT_CASES, METHODS, aligned_matrix, aligned_reference, assert_close, drift_matrix
 
 LENGTH = 1.0
 ANGLE = 0.1
@@ -17,6 +17,9 @@ S0 = 0.25
 Z0 = -0.02
 DELTA0 = 3.0e-4
 DS = 0.1
+COV = np.zeros((4, 4))
+COV[0:2, 0:2] = np.array([[5.0, -0.3], [-0.3, 1.09 / 5.0]])
+COV[2:4, 2:4] = np.array([[3.0, 0.1], [0.1, 1.01 / 3.0]])
 
 
 @pytest.fixture(params=[pyegret, cppegret], ids=["pyegret", "cppegret"])
@@ -113,13 +116,10 @@ def test_coordinate_transfer_is_analytic_and_offsets_are_consistent(backend):
 
 
 def test_envelope_transfer_is_analytic(backend):
-    cov = np.zeros((4, 4))
-    cov[0:2, 0:2] = np.array([[5.0, -0.3], [-0.3, 1.09 / 5.0]])
-    cov[2:4, 2:4] = np.array([[3.0, 0.1], [0.1, 1.01 / 3.0]])
     _, env, _ = backend.Dipole("B", LENGTH, ANGLE).transfer(
-        backend.Coordinate(np.zeros(4), S0, Z0, 0.0), backend.Envelope(cov=cov.copy(), s=S0))
+        backend.Coordinate(np.zeros(4), S0, Z0, 0.0), backend.Envelope(cov=COV.copy(), s=S0))
     tmat = sector_matrix(LENGTH, ANGLE)
-    assert_close(env.cov, tmat @ cov @ tmat.T, atol=1.0e-10)
+    assert_close(env.cov, tmat @ COV @ tmat.T, atol=1.0e-10)
 
 
 @pytest.mark.parametrize("endpoint", [True, False])
@@ -143,3 +143,21 @@ def test_offset_transfer_from_inside_matches_between_backends():
     assert_close(cpp_cood.vector, py_cood.vector, atol=1.0e-12)
     assert_close(cpp_env.cov, py_env.cov, atol=1.0e-12)
     assert_close(cpp_disp.vector, py_disp.vector, atol=1.0e-12)
+
+
+@pytest.mark.parametrize("dx, dy, ds", ALIGNMENT_CASES)
+def test_alignment_matches_analytic_map(backend, dx, dy, ds):
+    cood, _, _ = backend.Dipole("B", LENGTH, ANGLE, dx=dx, dy=dy, ds=ds).transfer(
+        backend.Coordinate(COORD.copy(), S0, Z0, 0.0), None, None, DS)
+    expected = aligned_reference(lambda vec: sector_matrix(LENGTH, ANGLE) @ vec, COORD, dx, dy, ds)
+    assert_close(cood.vector, expected, err_msg=f"dx={dx} dy={dy} ds={ds}")
+
+
+@pytest.mark.parametrize("dx, dy, ds", ALIGNMENT_CASES)
+def test_alignment_envelope_follows_conjugated_map(backend, dx, dy, ds):
+    """The envelope (beta, alpha, emittance) is transported by the matrix with the longitudinal offset."""
+    _, env, _ = backend.Dipole("B", LENGTH, ANGLE, dx=dx, dy=dy, ds=ds).transfer(
+        backend.Coordinate(np.zeros(4), S0, Z0, 0.0), backend.Envelope(cov=COV.copy(), s=S0), None, DS)
+    tmat = aligned_matrix(sector_matrix(LENGTH, ANGLE), ds)
+    assert_close(env.cov, tmat @ COV @ tmat.T, atol=1.0e-10, err_msg=f"ds={ds}")
+

@@ -26,6 +26,39 @@ def drift_matrix(length: float) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Alignment helpers: element offsets (dx, dy) and longitudinal offset (ds), shared by the CI suites.
+# An element with offsets is a drift of ds, then the centred map applied to the coordinate relative to the offset,
+# then the offset restored, then a drift of -ds.
+# ---------------------------------------------------------------------------------------------------------------------
+
+ALIGNMENT_CASES = (
+    (1.0e-3, 0.0, 0.0),
+    (0.0, -2.0e-3, 0.0),
+    (0.0, 0.0, 3.0e-2),
+    (1.5e-3, -8.0e-4, -2.0e-2),
+)  # (dx, dy, ds) in metres
+
+
+def aligned_reference(centred_map, vector: np.ndarray, dx: float, dy: float, ds: float) -> np.ndarray:
+    """Expected exit vector of an element with offsets (dx, dy) and longitudinal offset ds.
+
+    Args:
+        centred_map: Callable mapping an entrance vector to the exit vector of the centred element.
+        vector: Entrance coordinate (x, x', y, y').
+        dx: Horizontal offset [m].
+        dy: Vertical offset [m].
+        ds: Longitudinal offset [m].
+    """
+    offset = np.array([dx, 0.0, dy, 0.0])
+    return drift_matrix(-ds) @ (centred_map(drift_matrix(ds) @ vector - offset) + offset)
+
+
+def aligned_matrix(tmat: np.ndarray, ds: float) -> np.ndarray:
+    """Transfer matrix of a centred linear element after a longitudinal offset ds (drift, map, drift -ds)."""
+    return drift_matrix(-ds) @ tmat @ drift_matrix(ds)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Multipole (sextupole / octupole) helpers, shared by the CI suites.
 # ---------------------------------------------------------------------------------------------------------------------
 

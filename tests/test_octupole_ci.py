@@ -10,7 +10,8 @@ import egret.python as pyegret
 
 from _ci_helpers import (
     METHODS, MULTIPOLE_ORDER, TRAJ_FD_ATOL_BY_ORDER, TRAJ_KICK_ATOL_BY_METHOD, TRAJ_KICK_ATOL_BY_ORDER,
-    assert_close, drift_matrix, multipole_symplectic_residual, multipole_trajectory,
+    ALIGNMENT_CASES, aligned_reference, assert_close, drift_matrix, multipole_symplectic_residual,
+    multipole_trajectory,
 )
 
 LENGTH = 0.2
@@ -135,3 +136,18 @@ def test_trajectory_checks(method, kick_name, strength_name):
             atol = TRAJ_KICK_ATOL_BY_METHOD.get(method, TRAJ_KICK_ATOL_BY_ORDER[order])
             assert_close(d["zero"], expected, atol=atol, err_msg=f"{module.__name__} zero-amplitude kick response")
     assert_close(data["egret.cpp"]["vector"], data["egret.python"]["vector"], atol=1.0e-9, err_msg="trajectory parity")
+
+
+@pytest.mark.parametrize("method", METHODS)
+@pytest.mark.parametrize("dx, dy, ds", ALIGNMENT_CASES)
+def test_alignment_matches_centred_element(backend, dx, dy, ds, method):
+    """An element with offsets equals the centred element applied to the offset coordinate (same integrator)."""
+    centred = backend.Octupole("O", LENGTH, K3)
+
+    def centred_map(vec: np.ndarray) -> np.ndarray:
+        return centred.transfer(backend.Coordinate(vec.copy(), 0.0, 0.0, 0.0), None, None, DS, method)[0].vector
+
+    aligned = backend.Octupole("O", LENGTH, K3, dx=dx, dy=dy, ds=ds)
+    cood, _, _ = aligned.transfer(backend.Coordinate(COORD.copy(), 0.0, 0.0, 0.0), None, None, DS, method)
+    assert_close(cood.vector, aligned_reference(centred_map, COORD, dx, dy, ds), atol=1.0e-9,
+                 err_msg=f"{method} dx={dx} dy={dy} ds={ds}")

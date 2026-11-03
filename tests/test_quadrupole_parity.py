@@ -570,6 +570,49 @@ print(f"Case 16 passed: {len(TRAJ_CASES)} trajectory and dispersion parameter se
 
 
 # %% [markdown]
+# ## Case 17: alignment offsets (dx, dy) and longitudinal offset (ds) in both backends
+#
+# An element with offsets is a drift of `ds`, then the centred map applied to the coordinate relative to the offset,
+# then the offset restored, then a drift of `-ds`. The exit coordinate and the envelope (beta, alpha, emittance) are
+# checked against this map. The orbit error is the exit offset of a particle that enters on the axis.
+
+# %%
+ALIGN_CASES = [(1.0e-3, 0.0, 0.0), (0.0, -2.0e-3, 0.0), (0.0, 0.0, 3.0e-2), (1.5e-3, -8.0e-4, -2.0e-2)]  # (dx, dy, ds) in metres
+ALIGN_DS_TRANSFER = 0.1
+
+
+def drift(length: float) -> np.ndarray:
+    tmat = np.eye(4)
+    tmat[0, 1] = length
+    tmat[2, 3] = length
+    return tmat
+
+
+def expected_aligned(centred_matrix: np.ndarray, vector: np.ndarray, dx: float, dy: float, ds: float) -> np.ndarray:
+    offset = np.array([dx, 0.0, dy, 0.0])
+    return drift(-ds) @ (centred_matrix @ (drift(ds) @ vector - offset) + offset)
+
+
+for dx, dy, ds in ALIGN_CASES:
+    centred = quad_matrix(LENGTH, K1)
+    expected = expected_aligned(centred, COORD_VECTOR, dx, dy, ds)
+    tmat_expected = drift(-ds) @ centred @ drift(ds)
+    for module in (pyegret, cppegret):
+        quad = make_quad(module, dx=dx, dy=dy, ds=ds)
+        cood, evlp, _ = quad.transfer(make_coordinate(module, delta=0.0), module.Envelope(cov=COV.copy(), s=S0), None, ALIGN_DS_TRANSFER)
+        assert_close(cood.vector, expected, err_msg=f"{module.__name__} dx={dx} dy={dy} ds={ds} coordinate")
+        assert_close(evlp.cov, tmat_expected @ COV @ tmat_expected.T, atol=1.0e-9,
+                     err_msg=f"{module.__name__} ds={ds} envelope")
+        axis_out, _, _ = quad.transfer(make_coordinate(module, vector=np.zeros(4), delta=0.0), None, None,
+                                       ALIGN_DS_TRANSFER)
+        orbit_error = float(np.max(np.abs(axis_out.vector)))
+        print(f"{module.__name__:14s} dx={dx:+.1e} dy={dy:+.1e} ds={ds:+.1e}: "
+              f"exit orbit error {orbit_error:.3e} m, sigma_x^2 {evlp.cov[0, 0]:.6f} "
+              f"(check {(tmat_expected @ COV @ tmat_expected.T)[0, 0]:.6f})")
+print("Case 17 passed: aligned quadrupole coordinate, envelope, and on-axis orbit error, in both backends")
+
+
+# %% [markdown]
 # ## Summary
 
 # %%
