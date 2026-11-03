@@ -28,8 +28,38 @@
 #include "egret/drift_util.hpp"
 #include <cmath>
 #include <ranges>
+#include <stdexcept>
 
 namespace eu = egret::util;
+
+/**
+ * @brief Construct a new egret::Dipole object.
+ * @param name Name of the dipole element
+ * @param length Length of the dipole element
+ * @param angle Bending angle (radians)
+ * @param k1 Quadrupole component strength k1 (1/m^2)
+ * @param e1 Entrance edge angle (radians)
+ * @param e2 Exit edge angle (radians)
+ * @param h1 Entrance pole-face curvature (1/m)
+ * @param h2 Exit pole-face curvature (1/m)
+ * @param dx Horizontal displacement (m)
+ * @param dy Vertical displacement (m)
+ * @param ds Longitudinal displacement (m)
+ * @param tilt Tilt angle (radians)
+ * @param info Additional information string
+ * @throws std::invalid_argument if angle is zero.
+ */
+egret::Dipole::Dipole(const std::string &name, const double length, const double angle,
+    const double k1, const double e1, const double e2,
+    const double h1, const double h2,
+    const double dx, const double dy, const double ds,
+    const double tilt, const std::string &info) noexcept(false) :
+    Element(name, length, angle, dx, dy, ds, tilt, info),
+    k1_(k1), e1_(e1), e2_(e2), h1_(h1), h2_(h2) {
+    if (angle == 0.0) {
+        throw std::invalid_argument("Angle is zero.");
+    }
+}
 
 /**
  * @brief Calculate the transfer matrix for the dipole element.

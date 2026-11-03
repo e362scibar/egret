@@ -556,6 +556,14 @@ PYBIND11_MODULE(cppegret, m) {
             py::arg("h1") = 0.0, py::arg("h2") = 0.0,
             py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
             py::arg("tilt") = 0.0, py::arg("info") = "")
+        .def_property("angle",
+            [](const egret::Dipole& self) { return self.angle(); },
+            [](egret::Dipole& self, double angle) {
+                if (angle == 0.0) {
+                    throw std::invalid_argument("Angle is zero.");
+                }
+                self.egret::Element::angle(angle);
+            })
         .def_property("k1",
             static_cast<double(egret::Dipole::*)() const>(&egret::Dipole::k1),
             static_cast<void(egret::Dipole::*)(double)>(&egret::Dipole::k1))

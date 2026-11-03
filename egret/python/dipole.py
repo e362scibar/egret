@@ -61,7 +61,6 @@ class Dipole(DipoleABC, Element):
         if angle == 0.:
             raise ValueError(f'Angle is zero.')
         super().__init__(name, length, angle, dx, dy, ds, tilt, info)
-        self._rho = length / angle
         self._k1 = k1
         self._e1 = e1
         self._e2 = e2
@@ -71,9 +70,24 @@ class Dipole(DipoleABC, Element):
     @property
     def rho(self) -> float:
         '''
-        Bending radius of the dipole [m].
+        Bending radius of the dipole [m], computed from the current length and angle.
         '''
-        return self._rho
+        return self._length / self._angle
+
+    @Element.angle.setter
+    def angle(self, angle: float) -> None:
+        '''
+        Set the bending angle of the dipole. The bending radius follows from the length and this angle.
+
+        Args:
+            angle float: Bending angle of the dipole [rad].
+
+        Raises:
+            ValueError: If angle is zero.
+        '''
+        if angle == 0.:
+            raise ValueError(f'Angle is zero.')
+        Element.angle.fset(self, angle)
 
     @property
     def k1(self) -> float:
@@ -184,7 +198,7 @@ class Dipole(DipoleABC, Element):
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
         delta = 0. if cood0 is None else cood0.delta
-        rho = self._rho * (1. + delta)
+        rho = self.rho * (1. + delta)
         tmat = np.eye(4)
         if self._k1 == 0.: # simple dipole
             phi = self._angle / (1. + delta)
@@ -232,7 +246,7 @@ class Dipole(DipoleABC, Element):
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
         delta = 0. if cood0 is None else cood0.delta
-        rho = self._rho * (1. + delta)
+        rho = self.rho * (1. + delta)
         s = self.s_array(ds, endpoint)
         tmat = np.repeat(np.eye(4)[np.newaxis,:,:], len(s), axis=0)
         if self._k1 == 0.: # simple dipole
@@ -277,7 +291,7 @@ class Dipole(DipoleABC, Element):
         Returns:
             npt.NDArray[np.floating]: Additive dispersion function [eta_x, eta_x', eta_y, eta_y'].
         '''
-        rho = self._rho * (1. + cood0.delta)
+        rho = self.rho * (1. + cood0.delta)
         cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
@@ -342,7 +356,7 @@ class Dipole(DipoleABC, Element):
             npt.NDArray[np.floating]: Dispersion function array of shape (4, N).
             npt.NDArray[np.floating]: Longitudinal positions [m].
         '''
-        rho = self._rho * (1. + cood0.delta)
+        rho = self.rho * (1. + cood0.delta)
         cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
         cood.y -= self._dy
@@ -488,7 +502,7 @@ class Dipole(DipoleABC, Element):
         Returns:
             Tuple[float, float, float, float, float, float]: Radiation integrals I2, I4, I5u, I5v, I4u, and I4v.
         '''
-        kappa = 1./self._rho
+        kappa = 1./self.rho
         k = self._k1
         _, evlp, disp = self.transfer_array(cood0, evlp0, disp0, ds, endpoint=True, method=method)
         dispuv = np.matvec(evlp.T_matrix(), disp.vector.T).T

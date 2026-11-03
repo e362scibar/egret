@@ -122,6 +122,16 @@ class Element(ElementABC, Object):
         '''
         return self.instance.angle
 
+    @angle.setter
+    def angle(self, angle: float) -> None:
+        '''
+        Set bending angle of the element [rad].
+
+        Args:
+            angle float: Bending angle of the element [rad].
+        '''
+        self.instance.angle = angle
+
     @property
     def dx(self) -> float:
         '''

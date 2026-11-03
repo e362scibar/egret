@@ -56,14 +56,13 @@ public:
      * @param ds Longitudinal displacement (m)
      * @param tilt Tilt angle (radians)
      * @param info Additional information string
+     * @throws std::invalid_argument if angle is zero.
      */
     Dipole(const std::string &name, const double length, const double angle,
         const double k1=0.0, const double e1=0.0, const double e2=0.0,
         const double h1=0.0, const double h2=0.0,
         const double dx=0.0, const double dy=0.0, const double ds=0.0,
-        const double tilt=0.0, const std::string &info="") :
-        Element(name, length, angle, dx, dy, ds, tilt, info),
-        k1_(k1), e1_(e1), e2_(e2), h1_(h1), h2_(h2) {}
+        const double tilt=0.0, const std::string &info="") noexcept(false);
     /**
      * @brief Destroy the Dipole object
      */
