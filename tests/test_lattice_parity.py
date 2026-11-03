@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.3
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: egret
 #     language: python
@@ -21,8 +21,8 @@
 # - `egret.python.Lattice` / `egret.python.Ring` (pure-Python reference)
 # - `egret.cpp.Lattice` / `egret.cpp.Ring` (C++ backend wrapper)
 #
-# The lattice is a synthetic double-bend cell: two 1 m bends (each bending `pi/8`) between focusing and
-# defocusing quadrupoles, with drift spaces. It is **not** an achromat (the periodic dispersion is nonzero),
+# The lattice is a synthetic double-bend cell: two 1 m bends (each bending `pi/8`) between a horizontally
+# focusing centre quadrupole and two horizontally defocusing outer quadrupoles, with drift spaces. It is **not** an achromat (the periodic dispersion is nonzero),
 # so the checks are the transfer composition, the tune-trace relation, and the periodicity of the dispersion.
 # No SPring-8-II lattice is used.
 
@@ -52,8 +52,8 @@ except Exception:  # pragma: no cover - fallback for non-IPython execution
 
 # %%
 BEND_ANGLE = np.pi / 8
-K_F = 1.8
-K_D = -2.1
+K_OUTER = -1.8  # outer quadrupoles: horizontally defocusing
+K_CENTER = 2.1  # centre quadrupole: horizontally focusing
 L_BEND_GAP = 0.1
 L_QUAD = 0.3
 L_DRIFT_OUTER = 0.4
@@ -64,18 +64,18 @@ COORD = np.array([1.0e-3, 2.0e-4, -5.0e-4, 1.0e-4])
 
 
 def cell_elements(module) -> list:
-    """Synthetic double-bend cell: QF - drift - B - drift - QD - drift - B - drift - QF."""
+    """Synthetic double-bend cell: QO1 - drift - B - drift - QC - drift - B - drift - QO2."""
     return [
         module.Drift("d0", L_DRIFT_OUTER),
-        module.Quadrupole("QF", L_QUAD, K_F),
+        module.Quadrupole("QO1", L_QUAD, K_OUTER),
         module.Drift("d1", L_DRIFT_INNER),
         module.Dipole("B1", 1.0, BEND_ANGLE),
         module.Drift("d2", L_BEND_GAP),
-        module.Quadrupole("QD", L_QUAD, K_D),
+        module.Quadrupole("QC", L_QUAD, K_CENTER),
         module.Drift("d3", L_BEND_GAP),
         module.Dipole("B2", 1.0, BEND_ANGLE),
         module.Drift("d4", L_DRIFT_INNER),
-        module.Quadrupole("QF2", L_QUAD, K_F),
+        module.Quadrupole("QO2", L_QUAD, K_OUTER),
         module.Drift("d5", L_DRIFT_OUTER),
     ]
 
@@ -200,6 +200,47 @@ for label, ring, module, lat in (("py", py_ring, pyegret, py_lat), ("cpp", cpp_r
     assert_close(np.asarray(ring.cood0.vector), np.zeros(4), atol=1.0e-12, err_msg=f"{label} closed orbit")
 assert_close(cpp_ring.disp0.vector, py_ring.disp0.vector, atol=1.0e-9, err_msg="parity periodic dispersion")
 print("Case 6 passed: periodic dispersion is reproduced after one turn; closed orbit is zero; backends agree")
+
+
+# %% [markdown]
+# ## Case 7: beta functions and dispersion along the cell
+#
+# The periodic envelope and dispersion of the ring are propagated through the cell. The optics must close
+# after one turn, and both backends must agree at every point along the cell.
+
+# %%
+def optics_along_cell(module, ring):
+    lattice = module.Lattice("cell", cell_elements(module))
+    disp0 = module.Dispersion(np.asarray(ring.disp0.vector, dtype=float).copy(), 0.0)
+    _, evlp, disp = lattice.transfer_array(module.Coordinate(np.zeros(4), 0.0, 0.0, 0.0),
+                                           ring.evlp0, disp0, 0.05, True)
+    return {
+        "s": np.asarray(evlp.s, dtype=float),
+        "bx": np.asarray(evlp.bx, dtype=float),
+        "by": np.asarray(evlp.by, dtype=float),
+        "eta_x": np.asarray(disp.x, dtype=float),
+    }
+
+
+py_optics = optics_along_cell(pyegret, py_ring)
+cpp_optics = optics_along_cell(cppegret, cpp_ring)
+for key in ("bx", "by", "eta_x"):
+    assert_close(py_optics[key][-1], py_optics[key][0], atol=1.0e-9, err_msg=f"py {key} periodicity")
+    assert_close(cpp_optics[key][-1], cpp_optics[key][0], atol=1.0e-9, err_msg=f"cpp {key} periodicity")
+    assert_close(cpp_optics[key], py_optics[key], atol=1.0e-9, err_msg=f"parity {key}")
+display({"case7_bx_start_end": (py_optics["bx"][0], py_optics["bx"][-1]),
+         "case7_eta_start_end": (py_optics["eta_x"][0], py_optics["eta_x"][-1])})
+
+fig, axes = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
+for ax, key, label in zip(axes, ("bx", "by", "eta_x"), ("beta_x [m]", "beta_y [m]", "eta_x [m]")):
+    ax.plot(py_optics["s"], py_optics[key], "-", label="pyegret")
+    ax.plot(cpp_optics["s"], cpp_optics[key], "x", label="cppegret")
+    ax.set_ylabel(label)
+    ax.grid(alpha=0.3)
+    ax.legend()
+axes[-1].set_xlabel("s [m]")
+axes[0].set_title("Periodic optics of the synthetic double-bend cell")
+print("Case 7 passed: optics close after one turn and agree between backends")
 
 
 # %% [markdown]

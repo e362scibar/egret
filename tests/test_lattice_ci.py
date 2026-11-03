@@ -11,8 +11,8 @@ import egret.python as pyegret
 from _ci_helpers import assert_close
 
 BEND_ANGLE = np.pi / 8
-K_F = 1.8
-K_D = -2.1
+K_OUTER = -1.8  # outer quadrupoles: horizontally defocusing
+K_CENTER = 2.1  # centre quadrupole: horizontally focusing
 ENERGY = 1.0
 COORD = np.array([1.0e-3, 2.0e-4, -5.0e-4, 1.0e-4])
 LENGTH = 4.5  # sum of the element lengths
@@ -25,18 +25,18 @@ def backend(request):
 
 
 def cell_elements(module) -> list:
-    """Synthetic double-bend cell (not an achromat): QF - drift - B - drift - QD - drift - B - drift - QF."""
+    """Synthetic double-bend cell (not an achromat): QO1 - drift - B - drift - QC - drift - B - drift - QO2."""
     return [
         module.Drift("d0", 0.4),
-        module.Quadrupole("QF", 0.3, K_F),
+        module.Quadrupole("QO1", 0.3, K_OUTER),
         module.Drift("d1", 0.3),
         module.Dipole("B1", 1.0, BEND_ANGLE),
         module.Drift("d2", 0.1),
-        module.Quadrupole("QD", 0.3, K_D),
+        module.Quadrupole("QC", 0.3, K_CENTER),
         module.Drift("d3", 0.1),
         module.Dipole("B2", 1.0, BEND_ANGLE),
         module.Drift("d4", 0.3),
-        module.Quadrupole("QF2", 0.3, K_F),
+        module.Quadrupole("QO2", 0.3, K_OUTER),
         module.Drift("d5", 0.4),
     ]
 
