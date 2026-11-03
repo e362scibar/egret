@@ -196,6 +196,8 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         k0b, k1b = self.get_k(cood1)
         # get average dipole and quadrupole strengths
         k0, k1 = 0.5 * (k0a + k0b), 0.5 * (k1a + k1b)
+        # tilt of the averaged quadrupole component
+        tilt_ab = 0.5 * np.angle(k1)
         # calculate final coordinate after the step
         tmat, disp = None, None
         if np.abs(k1) < 1.e-20:
@@ -210,9 +212,9 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         else:
             # transverse offset to generate dipole kick
             # offset = - np.exp(1.j*tilt) * np.conj(np.exp(-1.j*tilt) * k0) / np.abs(k1)
-            offset = - np.exp(2.j*tilt) * np.conj(k0) / np.abs(k1)
+            offset = - np.exp(2.j*tilt_ab) * np.conj(k0) / np.abs(k1)
             # get second quad
-            quad2 = Quadrupole(self._name+'_quad2', ds, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt)
+            quad2 = Quadrupole(self._name+'_quad2', ds, np.abs(k1), dx=offset.real, dy=offset.imag, tilt=tilt_ab)
             # get coordinate after second quad
             cood = Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.)
             cood2, _, _ = quad2.transfer(cood)
@@ -223,7 +225,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             if tmatflag:
                 tmat = quad2.transfer_matrix()
             if dispflag:
-                cood = Coordinate(np.array([-offset.real, xp0, -offset.imag, yp0]), cood0.s, cood0.z, delta=0.)
+                cood = Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.)
                 disp = quad2.dispersion(cood)
         return tmat, cood2, disp
 
@@ -339,7 +341,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             if tmatflag:
                 tmat = quad4.transfer_matrix()
             if dispflag:
-                cood = Coordinate(np.array([-offset.real, xp0, -offset.imag, yp0]), cood0.s, cood0.z, delta=0.)
+                cood = Coordinate(np.array([0., xp0, 0., yp0]), cood0.s, cood0.z, delta=0.)
                 disp = quad4.dispersion(cood)
         return tmat, cood4, disp
 
@@ -490,6 +492,8 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             int: Number of steps.
             float: Step size [m].
         '''
+        if self._length == 0.:
+            return 0, 0.0
         n_step = int(np.ceil(self._length / ds))
         s_step = self._length / n_step
         return n_step, s_step
@@ -506,6 +510,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         Returns:
             npt.NDArray[np.floating]: 4x4 transfer matrix.
         '''
+        cood0 = Coordinate() if cood0 is None else cood0  # None means zero amplitude
         n_step, s_step = self.get_step(ds)
         cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
@@ -532,6 +537,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             npt.NDArray[np.floating]: Transfer matrix array of shape (N, 4, 4).
             npt.NDArray[np.floating]: Longitudinal position array of shape (N,).
         '''
+        cood0 = Coordinate() if cood0 is None else cood0  # None means zero amplitude
         n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
         cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
@@ -558,6 +564,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
         Returns:
             npt.NDArray[np.floating]: Dispersion vector [eta_x, eta_x', eta_y, eta_y'].
         '''
+        cood0 = Coordinate() if cood0 is None else cood0  # None means zero amplitude
         n_step, s_step = self.get_step(ds)
         cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
         cood.x -= self._dx
@@ -584,6 +591,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             npt.NDArray[np.floating]: 4xN Additive dispersion array [eta_x, eta_x', eta_y, eta_y'].
             npt.NDArray[np.floating]: Longitudinal position array [s].
         '''
+        cood0 = Coordinate() if cood0 is None else cood0  # None means zero amplitude
         n_step, s_step = self.get_step(ds)
         s = self.s_array(ds, endpoint)
         cood, _, _ = self.drift_transfer(self._ds, cood0, None, None)
@@ -613,6 +621,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             Envelope: Beam envelope after the element (if evlp0 is provided).
             Dispersion: Dispersion after the element (if disp0 is provided).
         '''
+        cood0 = Coordinate() if cood0 is None else cood0  # None means zero amplitude
         cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx
         cood.y -= self._dy
@@ -654,6 +663,7 @@ class NonlinearMultipole(NonlinearMultipoleABC, Element):
             EnvelopeArray: Beam envelope array along the element (if evlp0 is provided).
             DispersionArray: Dispersion array along the element (if disp0 is provided).
         '''
+        cood0 = Coordinate() if cood0 is None else cood0  # None means zero amplitude
         cood, evlp, disp = self.drift_transfer(self._ds, cood0, evlp0, disp0)
         cood.x -= self._dx
         cood.y -= self._dy
