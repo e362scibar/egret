@@ -315,6 +315,100 @@ print("Case 10 passed: angle setter updates rho and the transfer matrix; zero an
 
 
 # %% [markdown]
+# ## Case 11: trajectories and dispersion of a single bend (same checks as the quadrupole trajectory case)
+#
+# A particle starts at the orbit v0 with momentum delta, and a second particle starts at v0 + eta0 * delta.
+# Their trajectories differ by delta * eta(s), so (x - x_delta) / delta = -eta(s).
+# For each parameter set, both backends are checked for:
+# (a) the end point of transfer_array equals transfer (coordinates and dispersion),
+# (b) the finite-difference dispersion matches the dispersion from transfer_array,
+# (c) Python and C++ agree.
+
+# %%
+DELTA_FD = 1.0e-6
+FD_ATOL = 1.0e-8
+BEND_TRAJ_CASES = [
+    dict(name="sector bend, no quadrupole", length=1.0, angle=0.1, k1=0.0, init=[1.0e-3, 0.0, 1.0e-3, 0.0],
+         disp=[3.0e-3, 0.0, 3.0e-3, 0.0], dx=0.0, dy=0.0),
+    dict(name="combined function, k1=+0.5", length=0.5, angle=0.2, k1=0.5, init=[-2.0e-3, 5.0e-4, 1.0e-3, -2.0e-4],
+         disp=[2.0e-3, 1.0e-4, -1.0e-3, 2.0e-4], dx=0.0, dy=0.0),
+    dict(name="offset, combined function, k1=-0.3", length=1.2, angle=0.05, k1=-0.3,
+         init=[1.0e-3, 0.0, -1.0e-3, 1.0e-4], disp=[1.0e-3, -2.0e-4, 5.0e-4, 1.0e-4], dx=1.0e-3, dy=-2.0e-3),
+]
+
+
+def bend_trajectory_arrays(module, case: dict):
+    bend = module.Dipole("B", case["length"], case["angle"], k1=case["k1"], dx=case["dx"], dy=case["dy"])
+    init = np.array(case["init"])
+    eta0 = np.array(case["disp"])
+    disp0 = module.Dispersion(eta0.copy(), 0.0)
+    cood0 = module.Coordinate(init.copy(), 0.0, 0.0, 0.0)
+    cood_arr, _, disp_arr = bend.transfer_array(cood0, disp0=disp0, ds=0.05, endpoint=True)
+    cood_end, _, disp_end = bend.transfer(cood0, disp0=disp0)
+    cood_plus, _, _ = bend.transfer_array(module.Coordinate(init + eta0 * DELTA_FD, 0.0, 0.0, DELTA_FD),
+                                          ds=0.05, endpoint=True)
+    cood_minus, _, _ = bend.transfer_array(module.Coordinate(init - eta0 * DELTA_FD, 0.0, 0.0, -DELTA_FD),
+                                           ds=0.05, endpoint=True)
+    # Central difference in delta: (x_minus - x_plus) / (2 delta) = -eta(s) with O(delta^2) truncation error
+    fd = (np.asarray(cood_minus.vector) - np.asarray(cood_plus.vector)) / (2.0 * DELTA_FD)
+    return cood_arr, disp_arr, cood_end, disp_end, fd
+
+
+def plot_bend_trajectory(case: dict, py_arr, cpp_arr, py_disp, py_fd: np.ndarray) -> None:
+    s = np.asarray(py_arr.s)
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(s, np.asarray(py_arr.x), "r-", label="x (pyegret)")
+    ax.plot(s, np.asarray(cpp_arr.x), "ro", markersize=3, label="x (cppegret)")
+    ax.plot(s, np.asarray(py_arr.y), "b-", label="y (pyegret)")
+    ax.plot(s, np.asarray(cpp_arr.y), "bo", markersize=3, label="y (cppegret)")
+    ax.plot(s, -np.asarray(py_disp.vector)[0], "g--", label="-etax (pyegret)")
+    ax.plot(s, -np.asarray(py_disp.vector)[2], "m--", label="-etay (pyegret)")
+    ax.plot(s, py_fd[0], "c:", linewidth=3, label="x finite difference")
+    ax.set_title(f"Case 11: {case['name']}")
+    ax.set_xlabel("s [m]")
+    ax.set_ylabel("x, y [m], -eta [m]")
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=8)
+
+
+failures = []
+for case in BEND_TRAJ_CASES:
+    try:
+        results = {}
+        for module in (pyegret, cppegret):
+            results[module.__name__] = bend_trajectory_arrays(module, case)
+        py_arr, py_disp, py_end, py_disp_end, py_fd = results["egret.python"]
+        cpp_arr, cpp_disp, cpp_end, cpp_disp_end, cpp_fd = results["egret.cpp"]
+        for label, arr, disp, end, disp_end, fd in (("python", py_arr, py_disp, py_end, py_disp_end, py_fd),
+                                                    ("cpp", cpp_arr, cpp_disp, cpp_end, cpp_disp_end, cpp_fd)):
+            try:
+                assert_close(np.asarray(arr.vector)[:, -1], np.asarray(end.vector), atol=1.0e-12,
+                             err_msg=f"{label} end point equals transfer")
+            except AssertionError as exc:
+                failures.append(f"{case['name']} [{label}] end point: {exc}")
+            try:
+                assert_close(np.asarray(disp.vector)[:, -1], np.asarray(disp_end.vector), atol=1.0e-12,
+                             err_msg=f"{label} dispersion end point equals transfer")
+            except AssertionError as exc:
+                failures.append(f"{case['name']} [{label}] dispersion end point: {exc}")
+            try:
+                assert_close(fd, -np.asarray(disp.vector), atol=FD_ATOL, err_msg=f"{label} finite-difference dispersion")
+            except AssertionError as exc:
+                failures.append(f"{case['name']} [{label}] finite-difference dispersion: {exc}")
+        assert_close(np.asarray(cpp_arr.vector), np.asarray(py_arr.vector), atol=1.0e-12,
+                     err_msg="python and cpp trajectories agree")
+        assert_close(np.asarray(cpp_disp.vector), np.asarray(py_disp.vector), atol=1.0e-12,
+                     err_msg="python and cpp dispersion agree")
+        plot_bend_trajectory(case, py_arr, cpp_arr, py_disp, py_fd)
+        plt.show()
+    except Exception as exc:
+        failures.append(f"{case['name']}: {type(exc).__name__}: {exc}")
+if failures:
+    raise AssertionError("\n".join(failures))
+print(f"Case 11 passed: {len(BEND_TRAJ_CASES)} bend trajectory and dispersion parameter sets, both backends")
+
+
+# %% [markdown]
 # ## Summary
 
 # %%

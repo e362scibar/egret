@@ -583,20 +583,38 @@ PYBIND11_MODULE(cppegret, m) {
 
     py::class_<egret::Quadrupole, egret::Element, egret::Object,
         std::shared_ptr<egret::Quadrupole>>(m, "Quadrupole")
-        .def(py::init<const std::string&, double, double, double, double, double, double, const std::string&>(),
+        .def(py::init<const std::string&, double, double, double, double, double, double, const std::string&,
+            double, double>(),
             py::arg("name"), py::arg("length"), py::arg("k1"),
             py::arg("dx") = 0.0, py::arg("dy") = 0.0, py::arg("ds") = 0.0,
-            py::arg("tilt") = 0.0, py::arg("info") = "")
+            py::arg("tilt") = 0.0, py::arg("info") = "",
+            py::arg("kick_x") = 0.0, py::arg("kick_y") = 0.0)
         .def_property("k1",
             static_cast<double(egret::Quadrupole::*)() const>(&egret::Quadrupole::k1),
             static_cast<void(egret::Quadrupole::*)(double)>(&egret::Quadrupole::k1))
+        .def_property("kick_x",
+            static_cast<double(egret::Quadrupole::*)() const>(&egret::Quadrupole::kick_x),
+            static_cast<void(egret::Quadrupole::*)(double)>(&egret::Quadrupole::kick_x))
+        .def_property("kick_y",
+            static_cast<double(egret::Quadrupole::*)() const>(&egret::Quadrupole::kick_y),
+            static_cast<void(egret::Quadrupole::*)(double)>(&egret::Quadrupole::kick_y))
+        .def_property("k0x",
+            static_cast<double(egret::Quadrupole::*)() const>(&egret::Quadrupole::k0x),
+            static_cast<void(egret::Quadrupole::*)(double)>(&egret::Quadrupole::k0x))
+        .def_property("k0y",
+            static_cast<double(egret::Quadrupole::*)() const>(&egret::Quadrupole::k0y),
+            static_cast<void(egret::Quadrupole::*)(double)>(&egret::Quadrupole::k0y))
+        .def("set_steering", &egret::Quadrupole::set_steering,
+            py::arg("kick_x") = std::nullopt, py::arg("kick_y") = std::nullopt)
         .def_static("transfer_matrix_from_length_k1",
             py::overload_cast<double, double, const std::optional<Eigen::Matrix4d>&>
             (&egret::Quadrupole::transfer_matrix),
             py::arg("length"), py::arg("k1"), py::arg("rmat") = std::nullopt)
         .def_static("rotation_matrix", &egret::Quadrupole::rotation_matrix,
             py::arg("tilt"))
-        .def_static("transfer_by_length_k1", &egret::Quadrupole::transfer,
+        .def_static("transfer_by_length_k1",
+            py::overload_cast<const Eigen::Vector4d&, double, double, double, double, double, bool, bool>
+            (&egret::Quadrupole::transfer),
             py::arg("cood0_vec"), py::arg("length"), py::arg("k1"),
             py::arg("k0x"), py::arg("k0y"), py::arg("tilt"),
             py::arg("tmat_flag") = false, py::arg("disp_flag") = false);

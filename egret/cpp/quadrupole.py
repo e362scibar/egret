@@ -30,7 +30,8 @@ class Quadrupole(QuadrupoleABC, Element):
 
     def __init__(self, name: str, length: float, k1: float,
                  dx: float = 0.0, dy: float = 0.0, ds: float = 0.0,
-                 tilt: float = 0.0, info: str = '', **kwargs) -> None:
+                 tilt: float = 0.0, info: str = '',
+                 kick_x: float = 0.0, kick_y: float = 0.0, **kwargs) -> None:
         '''
         Initialize a quadrupole magnet.
 
@@ -43,12 +44,88 @@ class Quadrupole(QuadrupoleABC, Element):
             ds (float, optional): Longitudinal offset [m]. Defaults to 0.0.
             tilt (float, optional): Tilt angle [rad]. Defaults to 0.0.
             info (str, optional): Additional information. Defaults to ''.
+            kick_x (float, optional): Horizontal kick angle of the steering coil [rad]. Defaults to 0.0.
+            kick_y (float, optional): Vertical kick angle of the steering coil [rad]. Defaults to 0.0.
+
+        Raises:
+            TypeError: If an unexpected keyword argument is given.
         '''
+        unexpected = set(kwargs) - {'instance'}
+        if unexpected:
+            raise TypeError(f"Unexpected keyword arguments: {sorted(unexpected)}")
         if 'instance' in kwargs:
             self.instance = kwargs['instance']
         else:
-            self.instance = QuadrupoleCPP(name, length, k1, dx, dy, ds, tilt, info)
+            self.instance = QuadrupoleCPP(name, length, k1, dx, dy, ds, tilt, info, kick_x, kick_y)
         super().__init__(None, None, None, instance=self.instance)
+
+    @property
+    def kick_x(self) -> float:
+        '''
+        Horizontal kick angle of the steering coil [rad], realized by a magnetic-center offset.
+        '''
+        return self.instance.kick_x
+
+    @kick_x.setter
+    def kick_x(self, kick_x: float) -> None:
+        '''
+        Set horizontal kick angle of the steering coil [rad].
+
+        Args:
+            kick_x (float): Horizontal kick angle [rad].
+        '''
+        self.instance.kick_x = kick_x
+
+    @property
+    def kick_y(self) -> float:
+        '''
+        Vertical kick angle of the steering coil [rad], realized by a magnetic-center offset.
+        '''
+        return self.instance.kick_y
+
+    @kick_y.setter
+    def kick_y(self, kick_y: float) -> None:
+        '''
+        Set vertical kick angle of the steering coil [rad].
+
+        Args:
+            kick_y (float): Vertical kick angle [rad].
+        '''
+        self.instance.kick_y = kick_y
+
+    @property
+    def k0x(self) -> float:
+        '''
+        Horizontal steering strength [1/m], k0x = -kick_x / length.
+        '''
+        return self.instance.k0x
+
+    @k0x.setter
+    def k0x(self, k0x: float) -> None:
+        '''
+        Set horizontal steering strength [1/m]; sets kick_x = -k0x * length.
+
+        Args:
+            k0x (float): Horizontal steering strength [1/m].
+        '''
+        self.instance.k0x = k0x
+
+    @property
+    def k0y(self) -> float:
+        '''
+        Vertical steering strength [1/m], k0y = -kick_y / length.
+        '''
+        return self.instance.k0y
+
+    @k0y.setter
+    def k0y(self, k0y: float) -> None:
+        '''
+        Set vertical steering strength [1/m]; sets kick_y = -k0y * length.
+
+        Args:
+            k0y (float): Vertical steering strength [1/m].
+        '''
+        self.instance.k0y = k0y
 
     @property
     def k1(self) -> float:
@@ -67,6 +144,16 @@ class Quadrupole(QuadrupoleABC, Element):
         '''
         self.instance.k1 = k1
 
+    def set_steering(self, kick_x: float = None, kick_y: float = None) -> None:
+        '''
+        Set steering coil kick angles.
+
+        Args:
+            kick_x (float): Horizontal kick angle [rad], or None to leave unchanged.
+            kick_y (float): Vertical kick angle [rad], or None to leave unchanged.
+        '''
+        self.instance.set_steering(kick_x, kick_y)
+
     def copy(self) -> Quadrupole:
         '''
         Create a copy of this quadrupole magnet.
@@ -76,4 +163,5 @@ class Quadrupole(QuadrupoleABC, Element):
         '''
         return Quadrupole(self.instance.name, self.instance.length, self.instance.k1,
                           self.instance.dx, self.instance.dy, self.instance.ds,
-                          self.instance.tilt, self.instance.info)
+                          self.instance.tilt, self.instance.info,
+                          self.instance.kick_x, self.instance.kick_y)
