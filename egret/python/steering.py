@@ -99,16 +99,14 @@ class Steering(SteeringABC, Element):
         self._kick_y = kick_y
 
     @kick.setter
-    def kick(self, kick_x: float, kick_y: float) -> None:
+    def kick(self, kick: Tuple[float, float]) -> None:
         '''
         Set the steering angles.
 
         Args:
-            kick_x float: Horizontal kick angle [rad].
-            kick_y float: Vertical kick angle [rad].
+            kick Tuple[float, float]: Horizontal and vertical kick angles (kick_x, kick_y) [rad].
         '''
-        self._kick_x = kick_x
-        self._kick_y = kick_y
+        self._kick_x, self._kick_y = kick
 
     def copy(self) -> Steering:
         '''

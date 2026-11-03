@@ -157,8 +157,8 @@ egret::Steering::transfer_array(const Coordinate &cood0,
     if (n == 1) {
         kick_vector_array << 0.0, kick_x_eff, 0.0, kick_y_eff;
     } else if (std::abs(length_) > 0.) {
-        const auto dx_array = 0.5 * kick_x_eff * s_array; // ArrayXd
-        const auto dy_array = 0.5 * kick_y_eff * s_array; // ArrayXd
+        const auto dx_array = 0.5 * kick_x_eff * s_array * s_array / length_; // ArrayXd
+        const auto dy_array = 0.5 * kick_y_eff * s_array * s_array / length_; // ArrayXd
         const auto kick_x_array = kick_x_eff * s_array / length_; // ArrayXd
         const auto kick_y_array = kick_y_eff * s_array / length_; // ArrayXd
         kick_vector_array.row(0) = dx_array;

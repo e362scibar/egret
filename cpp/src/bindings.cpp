@@ -543,7 +543,9 @@ PYBIND11_MODULE(cppegret, m) {
             static_cast<void(egret::Steering::*)(double)>(&egret::Steering::kick_y))
         .def_property("kick",
             static_cast<std::tuple<double,double>(egret::Steering::*)() const>(&egret::Steering::kick),
-            static_cast<void(egret::Steering::*)(double,double)>(&egret::Steering::kick))
+            [](egret::Steering& self, const std::tuple<double,double>& kick) {
+                self.kick(std::get<0>(kick), std::get<1>(kick));
+            })
         .def("set_steering", &egret::Steering::set_steering,
             py::arg("kick_x"), py::arg("kick_y"));
 
