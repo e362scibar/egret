@@ -70,7 +70,8 @@ Add the element in all three layers (`base/`, `python/`, `cpp/`), add C++ header
 |------|---------|
 | `tests/test_pyegret_trampoline.py` | Verifies Python subclasses can override `transfer_matrix` / `transfer_matrix_array` through the pybind11 trampoline |
 | `tests/test_pyegret_pickle.py` | Pickle round-trip tests for element objects |
-| `tests/test_parity_pyegret.py` | Numerical parity between Python reference and C++ implementations |
+| `tests/test_*_parity.ipynb` | Element and array parity notebooks (Python vs C++), for exploration and plots; not run by pytest |
+| `tests/test_*_ci.py` | Pytest counterparts of the notebooks (analytic checks, parity, regressions, validation); run in CI with `pytest tests/` |
 | `tests/test_parity_cli_quadrupole.py` | Quadrupole parity against the `egret_cli` C++ binary (skipped if not built) |
 
 #### Notebook-based feature tests
@@ -79,7 +80,7 @@ Notebook-based feature tests for egret must be placed directly under `tests/`, n
 
 - Use Jupytext-paired notebook files and edit the paired `.py` file.
 - Keep `.py` and `.ipynb` synchronized with `jupytext --sync tests/<name>.ipynb`.
-- Use notebooks for exploratory/feature validation flows; keep `pytest` tests for automated CI checks.
+- Use notebooks for exploratory/feature validation flows; keep `pytest` tests for automated CI checks. The pytest suite in `tests/` runs in CI (`.github/workflows/ci.yml`).
 - When egret code is added or changed, add/update corresponding notebook tests in `tests/` as needed.
 - Include concise `print`/`display` cells that show key object states and intermediate values.
 - Add plots when useful to validate behavior or visualize parity between `pyegret` and `cppegret`.

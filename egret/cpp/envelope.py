@@ -218,4 +218,4 @@ class Envelope(EnvelopeABC):
         Returns:
             npt.NDArray[np.floating]: 4x4 transformation matrix.
         '''
-        return self.instance.T_matrix()
+        return np.array(self.instance.T_matrix)

@@ -128,7 +128,8 @@ The canonical version lives in `egret/version.py`; `pyproject.toml` is derived f
 |------|---------|
 | `tests/test_pyegret_trampoline.py` | Verifies Python subclasses can override `transfer_matrix` / `transfer_matrix_array` through the pybind11 trampoline |
 | `tests/test_pyegret_pickle.py` | Pickle round-trip tests for element objects |
-| `tests/test_parity_pyegret.py` | Numerical parity between Python reference and C++ implementations |
+| `tests/test_*_parity.ipynb` | Element and array parity notebooks (Python vs C++), for exploration and plots; not run by pytest |
+| `tests/test_*_ci.py` | Pytest counterparts of the notebooks (analytic checks, parity, regressions, validation); run in CI with `pytest tests/` |
 | `tests/test_parity_cli_quadrupole.py` | Quadrupole parity against the `egret_cli` C++ binary (skipped if not built) |
 
 ### Notebook-based feature tests

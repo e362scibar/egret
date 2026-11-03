@@ -76,3 +76,9 @@ jobs:
           echo "Found shared object: $SO"
           echo "ldd output:"; ldd "$SO" | sed -n '1,200p'
           if ldd "$SO" | grep -i "not found"; then echo "Missing shared library dependencies"; ldd "$SO"; exit 1; fi
+
+      - name: Run pytest against the installed package
+        run: |
+          source .venv/bin/activate
+          pip install pytest
+          pytest tests/ -q

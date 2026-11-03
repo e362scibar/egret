@@ -409,6 +409,58 @@ print(f"Case 11 passed: {len(BEND_TRAJ_CASES)} bend trajectory and dispersion pa
 
 
 # %% [markdown]
+# ## Case 12: transfer from a point inside a dipole with element offsets, envelope, dispersion, and arrays
+#
+# The dipole is offset in x, y, and s. The transfer from `s0` inside the magnet is checked for the matrix,
+# the coordinate, the envelope, the dispersion, and the transfer arrays.
+
+# %%
+ALIGN_LENGTH = 1.2
+ALIGN_ANGLE = 0.25
+ALIGN_S0 = 0.35
+ALIGN_DS = 0.05
+ALIGN_OFFSET = dict(dx=1.5e-3, dy=-8.0e-4, ds=2.0e-3)
+ALIGN_VECTOR = np.array([1.0e-3, -2.0e-4, 3.0e-4, 4.0e-4])
+ALIGN_DISP = np.array([2.0e-4, -1.0e-4, 5.0e-5, 1.0e-4])
+
+
+def aligned_case(module):
+    element = module.Dipole("D", ALIGN_LENGTH, ALIGN_ANGLE, **ALIGN_OFFSET)
+    cood0 = module.Coordinate(ALIGN_VECTOR.copy(), 0.2, -0.1, 0.01)
+    evlp0 = module.Envelope()
+    disp0 = module.Dispersion(ALIGN_DISP.copy(), 0.2)
+    return element, cood0, evlp0, disp0
+
+
+py_elem, py_cood0, py_evlp0, py_disp0 = aligned_case(pyegret)
+cpp_elem, cpp_cood0, cpp_evlp0, cpp_disp0 = aligned_case(cppegret)
+
+assert_close(cpp_elem.transfer_matrix_from_s(ALIGN_S0, cpp_cood0, ALIGN_DS),
+             py_elem.transfer_matrix_from_s(ALIGN_S0, py_cood0, ALIGN_DS), atol=1.0e-12, err_msg="aligned matrix from s")
+
+py_cood, py_evlp, py_disp = py_elem.transfer_from_s(ALIGN_S0, py_cood0, py_evlp0, py_disp0, ds=ALIGN_DS)
+cpp_cood, cpp_evlp, cpp_disp = cpp_elem.transfer_from_s(ALIGN_S0, cpp_cood0, cpp_evlp0, cpp_disp0, ds=ALIGN_DS)
+assert_close(cpp_cood.vector, py_cood.vector, atol=1.0e-12, err_msg="aligned coordinate from s")
+assert_close([cpp_cood.s, cpp_cood.z, cpp_cood.delta], [py_cood.s, py_cood.z, py_cood.delta], atol=1.0e-12,
+             err_msg="aligned coordinate s, z, delta")
+assert_close(cpp_evlp.cov, py_evlp.cov, atol=1.0e-12, err_msg="aligned envelope from s")
+assert_close(cpp_evlp.s, py_evlp.s, atol=1.0e-12, err_msg="aligned envelope s")
+assert_close(cpp_disp.vector, py_disp.vector, atol=1.0e-12, err_msg="aligned dispersion from s")
+assert_close(cpp_disp.s, py_disp.s, atol=1.0e-12, err_msg="aligned dispersion s")
+
+py_arr, py_arr_evlp, py_arr_disp = py_elem.transfer_array_from_s(ALIGN_S0, py_cood0, py_evlp0, py_disp0,
+                                                                 ds=ALIGN_DS, endpoint=True)
+cpp_arr, cpp_arr_evlp, cpp_arr_disp = cpp_elem.transfer_array_from_s(ALIGN_S0, cpp_cood0, cpp_evlp0, cpp_disp0,
+                                                                     ds=ALIGN_DS, endpoint=True)
+assert_close(cpp_arr.vector, py_arr.vector, atol=1.0e-12, err_msg="aligned coordinate array")
+assert_close(cpp_arr.s, py_arr.s, atol=1.0e-12, err_msg="aligned coordinate array s")
+assert_close(cpp_arr_evlp.cov[0], py_arr_evlp.cov[0], atol=1.0e-12, err_msg="aligned envelope array")
+assert_close(cpp_arr_disp.vector, py_arr_disp.vector, atol=1.0e-12, err_msg="aligned dispersion array")
+assert_close(cpp_arr_disp.s, py_arr_disp.s, atol=1.0e-12, err_msg="aligned dispersion array s")
+print("Case 12 passed: aligned dipole transfer from s, with envelope, dispersion, and arrays, in both backends")
+
+
+# %% [markdown]
 # ## Summary
 
 # %%
