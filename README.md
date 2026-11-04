@@ -47,11 +47,11 @@ This package uses CMake + pybind11 for the C++ core and `scikit-build-core` as
 the PEP 517 build backend. The C++ sources live under the `cpp/` directory and
 are built automatically when creating a wheel.
 
-Recommended local build (creates a wheel in `../dist_wheels`):
+Recommended local build (creates a wheel in `dist/`):
 
 ```bash
 cd /path/to/repo/egret
-python -m build -w -o ../dist_wheels
+python -m build -w -o dist
 ```
 
 Quick smoke test (install the wheel into a fresh venv and verify import):
@@ -59,7 +59,7 @@ Quick smoke test (install the wheel into a fresh venv and verify import):
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install ../dist_wheels/egret-0.1.6-*.whl
+pip install dist/egret-0.1.6-*.whl
 python -c "import egret; print('EGRET', egret.__version__)"
 ```
 

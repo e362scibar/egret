@@ -120,8 +120,8 @@ Setter/getter policy:
 ### Build wheel (recommended)
 
 ```bash
-python -m build -w -o ../dist_wheels
-pip install ../dist_wheels/egret-*.whl
+python -m build -w -o dist
+pip install dist/egret-*.whl
 ```
 
 ### Build C++ extension manually (development / iteration)
