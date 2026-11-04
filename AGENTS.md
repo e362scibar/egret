@@ -174,7 +174,7 @@ The canonical version lives in `egret/version.py`; `pyproject.toml` is derived f
 
 ### Language
 
-Always write in English for code comments, commit messages, display text in code (strings, labels, messages), and documentation.
+Always write in US English for code comments, commit messages, display text in code (strings, labels, messages), and documentation.
 
 ### Commit Messages
 
@@ -192,6 +192,14 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`.
 - **No magic numbers**: replace numeric literals with named constants.
 - **No hardcoded secrets**: never embed credentials, API keys, or passwords in source code.
 - **Logging**: never leave debug `print` statements in production code. Use the `logging` module (Python) or `spdlog` (C++) with explicit log levels.
+
+### License Header
+
+Every source file under `egret/` (C++, Python, and test files, including Jupytext-paired notebooks) must begin with the GPL-3.0-or-later license header. Copy the header from `egret/python/dipole.py` and adjust the following:
+
+- **First line**: the file path relative to `egret/` (e.g., `# tests/test_dipole_parity.py`; `//` for C++).
+- **Copyright**: `Copyright (C) <year> Hirokazu Maesaka (RIKEN SPring-8 Center)`, using the year the file was created.
+- **Jupytext-paired `.py` files**: place the header after the YAML block and wrap it in a `# %% [markdown]` cell so the notebook starts with it. Edit the `.py` file, then run `jupytext --sync`.
 
 ### Naming Conventions
 
